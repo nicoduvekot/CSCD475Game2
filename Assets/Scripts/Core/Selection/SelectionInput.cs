@@ -9,8 +9,7 @@ namespace Selection
         [Header("Input")]
         [SerializeField] private InputActionReference pointerPositionAction;
         [SerializeField] private InputActionReference selectAdditiveAction;
-        [SerializeField] private InputActionReference selectStartAction;
-        [SerializeField] private InputActionReference selectEndAction;
+        [SerializeField] private InputActionReference selectAction;
         [SerializeField] private InputActionReference commandAction;
         
         [Header("References")]
@@ -20,17 +19,17 @@ namespace Selection
         [SerializeField] private List<GameObject> selectedObjects = new();
         
         [Header("Dragging Settings")]
-        [SerializeField] private float holdThreshold = 0.15f;
-        [SerializeField] private float dragStartDistance = 5f;
+        //[SerializeField] private float holdThreshold = 0.15f;
+        //[SerializeField] private float dragStartDistance = 5f;
         
         private ISelectable _lastHoveredSelectable;
         
-        private Vector2 _startPos;
-        private Vector2 _currentPos;
+        //private Vector2 _startPos;
+        //private Vector2 _currentPos;
         
-        private bool _isHolding;
-        private bool _isDragging;
-        private float _holdTimer;
+        //private bool _isHolding;
+        //private bool _isDragging;
+        //private float _holdTimer;
         
         private bool _isAdditive;
         private bool _isAdditiveAtStart;
@@ -41,8 +40,7 @@ namespace Selection
         {
             pointerPositionAction.action.Enable();
             selectAdditiveAction.action.Enable();
-            selectStartAction.action.Enable();
-            selectEndAction.action.Enable();
+            selectAction.action.Enable();
             commandAction.action.Enable();
 
             _pointerMovedHandler = ctx => OnPointerMoved(ctx.ReadValue<Vector2>());
@@ -50,8 +48,7 @@ namespace Selection
             pointerPositionAction.action.performed += _pointerMovedHandler;
             selectAdditiveAction.action.performed += OnAdditiveChanged;
             selectAdditiveAction.action.canceled  += OnAdditiveChanged;
-            selectStartAction.action.started += OnSelectStarted;
-            selectEndAction.action.canceled += OnSelectEnded;
+            selectAction.action.performed += OnSelectAction;
             commandAction.action.started += OnCommand;
         }
 
@@ -59,37 +56,18 @@ namespace Selection
         {
             pointerPositionAction.action.Disable();
             selectAdditiveAction.action.Disable();
-            selectStartAction.action.Disable();
-            selectEndAction.action.Disable();
+            selectAction.action.Disable();
             commandAction.action.Disable();
 
             pointerPositionAction.action.performed -= _pointerMovedHandler;
             selectAdditiveAction.action.performed -= OnAdditiveChanged;
             selectAdditiveAction.action.canceled  -= OnAdditiveChanged;
-            selectStartAction.action.started -= OnSelectStarted;
-            selectEndAction.action.canceled -= OnSelectEnded;
+            selectAction.action.performed += OnSelectAction;
             commandAction.action.started -= OnCommand;
-        }
-
-        private void Update()
-        {
-            if (!_isHolding) return;
-            
-            if (!_isDragging)
-            {
-                _holdTimer += Time.deltaTime;
-                
-                bool movedEnough = Vector2.Distance(_startPos, _currentPos) >= dragStartDistance;
-
-                if (_holdTimer >= holdThreshold && movedEnough)
-                    _isDragging = true;
-            }
         }
 
         private void OnPointerMoved(Vector2 pos)
         {
-            _currentPos = pos;
-            
             if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
             {
                 if (_lastHoveredSelectable == selectable)
@@ -114,50 +92,26 @@ namespace Selection
             _isAdditive = ctx.performed;
         }
 
-        private void OnSelectStarted(InputAction.CallbackContext ctx)
+        private void OnSelectAction(InputAction.CallbackContext ctx)
         {
-            Vector2 pos = ctx.ReadValue<Vector2>();
+            Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
             
-            _startPos = pos;
-            
-            _isHolding = true;
-            _isDragging = false;
-            _holdTimer = 0f;
-            
-            _isAdditiveAtStart = _isAdditive;
-        }
-
-        private void OnSelectEnded(InputAction.CallbackContext ctx)
-        {
-            Vector2 pos = ctx.ReadValue<Vector2>();
-
-            if (_isDragging)
+            if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
             {
-                Debug.Log("[Nico] Drag Detected: Dragging Scenario not implemented");
-            }
-            else // single click selection
-            {
-                if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
-                {
-                    if (!_isAdditiveAtStart)
-                    {
-                        ClearSelection();
-                    }
-
-                    AddToSelection(selectable);
-                }
-                else // clicked, no selectable
-                {
+                if (!_isAdditive)
                     ClearSelection();
-                }
+
+                AddToSelection(selectable);
             }
-            _isHolding = false;
-            _isDragging = false;
+            else
+            {
+                ClearSelection();
+            }
         }
 
         private void OnCommand(InputAction.CallbackContext ctx)
         {
-            Vector2 pos = ctx.ReadValue<Vector2>();
+            Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
             
             if (!TryGetWorldPoint(pos, out Vector3 worldPos))
                 return;

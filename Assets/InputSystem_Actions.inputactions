@@ -79,24 +79,6 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "SelectStart",
-                    "type": "Button",
-                    "id": "dfd02a8d-e375-4f0f-9174-7c7ec06fb338",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "SelectEnd",
-                    "type": "Button",
-                    "id": "5c9cf0d2-97a6-472c-a335-a75ce965fb50",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Command",
                     "type": "Button",
                     "id": "a2b9ff05-7614-4d0a-97fa-b632de6144ab",
@@ -335,28 +317,6 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "PointerPosition",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "36307760-9eeb-4d1b-bfd0-be3982da140c",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "Press",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "SelectStart",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "1d14e4aa-5567-4b3d-bbbd-2af552f208ef",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "Press(behavior=1)",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "SelectEnd",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -167,24 +167,6 @@ namespace Input
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"": ""SelectStart"",
-                    ""type"": ""Button"",
-                    ""id"": ""dfd02a8d-e375-4f0f-9174-7c7ec06fb338"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""SelectEnd"",
-                    ""type"": ""Button"",
-                    ""id"": ""5c9cf0d2-97a6-472c-a335-a75ce965fb50"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
                     ""name"": ""Command"",
                     ""type"": ""Button"",
                     ""id"": ""a2b9ff05-7614-4d0a-97fa-b632de6144ab"",
@@ -423,28 +405,6 @@ namespace Input
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""PointerPosition"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""36307760-9eeb-4d1b-bfd0-be3982da140c"",
-                    ""path"": ""<Mouse>/leftButton"",
-                    ""interactions"": ""Press"",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""SelectStart"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""1d14e4aa-5567-4b3d-bbbd-2af552f208ef"",
-                    ""path"": ""<Mouse>/leftButton"",
-                    ""interactions"": ""Press(behavior=1)"",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""SelectEnd"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1220,8 +1180,6 @@ namespace Input
             m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
             m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
             m_Player_PointerPosition = m_Player.FindAction("PointerPosition", throwIfNotFound: true);
-            m_Player_SelectStart = m_Player.FindAction("SelectStart", throwIfNotFound: true);
-            m_Player_SelectEnd = m_Player.FindAction("SelectEnd", throwIfNotFound: true);
             m_Player_Command = m_Player.FindAction("Command", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
@@ -1329,8 +1287,6 @@ namespace Input
         private readonly InputAction m_Player_Next;
         private readonly InputAction m_Player_Sprint;
         private readonly InputAction m_Player_PointerPosition;
-        private readonly InputAction m_Player_SelectStart;
-        private readonly InputAction m_Player_SelectEnd;
         private readonly InputAction m_Player_Command;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
@@ -1375,14 +1331,6 @@ namespace Input
             /// Provides access to the underlying input action "Player/PointerPosition".
             /// </summary>
             public InputAction @PointerPosition => m_Wrapper.m_Player_PointerPosition;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/SelectStart".
-            /// </summary>
-            public InputAction @SelectStart => m_Wrapper.m_Player_SelectStart;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/SelectEnd".
-            /// </summary>
-            public InputAction @SelectEnd => m_Wrapper.m_Player_SelectEnd;
             /// <summary>
             /// Provides access to the underlying input action "Player/Command".
             /// </summary>
@@ -1437,12 +1385,6 @@ namespace Input
                 @PointerPosition.started += instance.OnPointerPosition;
                 @PointerPosition.performed += instance.OnPointerPosition;
                 @PointerPosition.canceled += instance.OnPointerPosition;
-                @SelectStart.started += instance.OnSelectStart;
-                @SelectStart.performed += instance.OnSelectStart;
-                @SelectStart.canceled += instance.OnSelectStart;
-                @SelectEnd.started += instance.OnSelectEnd;
-                @SelectEnd.performed += instance.OnSelectEnd;
-                @SelectEnd.canceled += instance.OnSelectEnd;
                 @Command.started += instance.OnCommand;
                 @Command.performed += instance.OnCommand;
                 @Command.canceled += instance.OnCommand;
@@ -1481,12 +1423,6 @@ namespace Input
                 @PointerPosition.started -= instance.OnPointerPosition;
                 @PointerPosition.performed -= instance.OnPointerPosition;
                 @PointerPosition.canceled -= instance.OnPointerPosition;
-                @SelectStart.started -= instance.OnSelectStart;
-                @SelectStart.performed -= instance.OnSelectStart;
-                @SelectStart.canceled -= instance.OnSelectStart;
-                @SelectEnd.started -= instance.OnSelectEnd;
-                @SelectEnd.performed -= instance.OnSelectEnd;
-                @SelectEnd.canceled -= instance.OnSelectEnd;
                 @Command.started -= instance.OnCommand;
                 @Command.performed -= instance.OnCommand;
                 @Command.canceled -= instance.OnCommand;
@@ -1953,20 +1889,6 @@ namespace Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnPointerPosition(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "SelectStart" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnSelectStart(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "SelectEnd" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnSelectEnd(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Command" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
