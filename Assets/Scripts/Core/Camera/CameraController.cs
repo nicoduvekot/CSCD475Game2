@@ -55,19 +55,8 @@ public class CameraController : MonoBehaviour
 
     private void OnValidate()
     {
-        if (cam == null)
-        {
-            Camera foundCam = GetComponentInChildren<Camera>();
-            if (foundCam != null)
-                cam = foundCam.transform;
-            else
-                Debug.LogError("[CameraController] No Camera found in children.");
-        }
-        
-        if (cameraTarget == null)
-            cameraTarget = transform;
-        
         // see region: ValidationHelpers
+        ValidateCameraSetup();
         ValidateZoomRange();
         ValidateInputReferences();
     }
@@ -92,7 +81,7 @@ public class CameraController : MonoBehaviour
     private void Update()
     {
         HandleInput();
-        //TODO: HandleZoom();
+        HandleZoom();
 
         switch (_state)
         {
@@ -175,6 +164,20 @@ public class CameraController : MonoBehaviour
             targetPos,
             damping
         );
+    }
+
+    private void HandleZoom()
+    {
+        float zoomInput = zoomAction.action.ReadValue<float>();
+        if (Mathf.Abs(zoomInput) < 0.01f)
+            return;
+        
+        _targetDistance += -zoomInput * zoomSpeed * Time.unscaledDeltaTime;
+        _targetDistance = Mathf.Clamp(_targetDistance, minZoom, maxZoom);
+        
+        Vector3 targetLocalPos = cam.localRotation * new Vector3(0f, 0f, -_targetDistance);
+
+        cam.localPosition = targetLocalPos;
     }
 
     #region StateMachine
@@ -296,6 +299,49 @@ public class CameraController : MonoBehaviour
                 _zoomActionTypeWarningLogged = false;
             }
         }
+    }
+
+    private void ValidateCameraSetup()
+    {
+        if (cam == null)
+        {
+            Camera foundCam = GetComponentInChildren<Camera>();
+            if (foundCam != null)
+            {
+                cam = foundCam.transform;
+            }
+            else
+            {
+                Debug.LogError("[CameraController] No Camera found in children. Cannot apply camera model.");
+                return; // bail
+            }
+        }
+        
+        if (cameraTarget == null)
+        {
+            cameraTarget = transform;
+        }
+        
+        // rotate cam
+        if (cam.localRotation == Quaternion.identity)
+            cam.localRotation = Quaternion.Euler(60f, 0f, 0f);
+        
+        if (_targetDistance <= 0.01f)
+        {
+            // Project current local position onto camera's backward axis
+            Vector3 backward = cam.localRotation * Vector3.back;
+            _targetDistance = Vector3.Dot(cam.localPosition, backward);
+
+            // If still invalid, default to mid zoom
+            if (_targetDistance <= 0.01f)
+                _targetDistance = (minZoom + maxZoom) * 0.5f;
+        }
+
+        // 3. Clamp zoom
+        _targetDistance = Mathf.Clamp(_targetDistance, minZoom, maxZoom);
+
+        // 4. Apply correct offset (camera sits behind target along its own backward axis)
+        cam.localPosition = cam.localRotation * new Vector3(0f, 0f, -_targetDistance);
     }
 
     #endregion
