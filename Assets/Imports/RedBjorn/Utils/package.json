@@ -1,0 +1,8 @@
+{
+  "name": "com.redbjorn.unity.utils",
+  "version": "1.0.8",
+  "author" : "Red Bjorn <chatme@posteo.net> (https://redbjorn.dev/)"
+  "displayName": "Red Bjorn Utils",
+  "description": "Helpful utilities for Unity engine",
+  "unity": "2020.1"
+}
