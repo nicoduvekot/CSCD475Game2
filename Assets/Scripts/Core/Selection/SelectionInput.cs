@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Selection
 {
@@ -14,15 +16,19 @@ namespace Selection
         
         [Header("References")]
         [SerializeField] private Camera cam;
+        [SerializeField] private GraphicRaycaster uiRaycaster;
+        [SerializeField] private EventSystem eventSystem;
         
         [Header("Selection")]
         [SerializeField] private List<GameObject> selectedObjects = new();
         
-        [Header("Dragging Settings")]
+        private ISelectable _lastHoveredSelectable;
+        
+        // TODO: Possible bring this back for command issuing system
+        /*
+        //[Header("Dragging Settings")]
         //[SerializeField] private float holdThreshold = 0.15f;
         //[SerializeField] private float dragStartDistance = 5f;
-        
-        private ISelectable _lastHoveredSelectable;
         
         //private Vector2 _startPos;
         //private Vector2 _currentPos;
@@ -30,6 +36,7 @@ namespace Selection
         //private bool _isHolding;
         //private bool _isDragging;
         //private float _holdTimer;
+        */
         
         private bool _isAdditive;
         private bool _isAdditiveAtStart;
@@ -96,6 +103,9 @@ namespace Selection
         {
             Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
             
+            if (IsPointerOverUI(pos))
+                return;
+            
             if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
             {
                 if (!_isAdditive)
@@ -112,8 +122,11 @@ namespace Selection
         private void OnCommand(InputAction.CallbackContext ctx)
         {
             Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
-            
+
             if (!TryGetWorldPoint(pos, out Vector3 worldPos))
+                return;
+
+            if (!TryGetSelectableUnderCursor(pos, out ISelectable targetSelectable))
                 return;
 
             // iterate backwards, as we possibly remove from list during iteration
@@ -136,7 +149,7 @@ namespace Selection
                 }
 
                 // valid entry is given command
-                selectable.OnCommand(worldPos);
+                selectable.OnCommand(worldPos, targetSelectable);
             }
         }
         
@@ -201,6 +214,19 @@ namespace Selection
             
             selectedObjects.Add(go);
             selectable.OnSelected();
+        }
+        
+        private bool IsPointerOverUI(Vector2 screenPos)
+        {
+            PointerEventData eventData = new(eventSystem)
+            {
+                position = screenPos
+            };
+
+            List<RaycastResult> results = new();
+            uiRaycaster.Raycast(eventData, results);
+
+            return results.Count > 0;
         }
     }
 }
