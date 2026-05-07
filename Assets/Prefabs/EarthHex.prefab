@@ -46,8 +46,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86bf65d9ace38534da24d61dd793277a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tile_Script
+  x: 0
+  y: 0
+  z: 0
+  tileOccupant: {fileID: 0}
   green: {fileID: 2100000, guid: 869e179ff1d93df4f9914a071a9efe5a, type: 2}
-  brown: {fileID: 2100000, guid: ac60026cc0a82614fb5d18b67ee5bac7, type: 2}
+  defaultDirt: {fileID: 2100000, guid: ac60026cc0a82614fb5d18b67ee5bac7, type: 2}
+  terrain: 0
 --- !u!64 &4881832473619321793
 MeshCollider:
   m_ObjectHideFlags: 0

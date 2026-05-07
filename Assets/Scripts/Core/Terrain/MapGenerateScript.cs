@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class MapGenerateScript : MonoBehaviour
 {
@@ -90,7 +91,16 @@ public class MapGenerateScript : MonoBehaviour
                     GameObject temp = Instantiate(terrainPrefab,transform.position + widthOffset + heightOffset,transform.rotation,transform);
                     width = temp.GetComponent<MeshCollider>().bounds.size.x * 0.79f;
                     height = temp.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
-                    temp.GetComponent<TileScript>().createHex(curX,curY,curZ);
+
+                    int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+
+                    TileScript.terrainType terrain = (TileScript.terrainType)randomType;
+
+
+                    temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
+
+                    
+                    //temp.GetComponent<TileScript>().setTerrian(terrain);
 
                     
                     curX--;
