@@ -59,7 +59,7 @@ public class MouseInput : MonoBehaviour
         Ray ray = MainCamera.ScreenPointToRay(MousePosition);
 
         Physics.Raycast(realPos,ray.direction,out hit,50f);
-        Debug.DrawRay(realPos,ray.direction * 50,Color.red,50f);
+        //Debug.DrawRay(realPos,ray.direction * 50,Color.red,50f);
         if(hit.collider != null){
             if(lastSelected != null){
                 lastSelected.GetComponent<TileScript>().setGreen(false);

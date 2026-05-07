@@ -276,8 +276,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerateScript
   generateMap: 1
-  rows: 10
-  columns: 10
+  rows: 5
+  columns: 20
   terrainPrefab: {fileID: 1144922561277171887, guid: 584c42c8a693a974fa4f092adffd79cf, type: 3}
 --- !u!4 &207995925
 Transform:
