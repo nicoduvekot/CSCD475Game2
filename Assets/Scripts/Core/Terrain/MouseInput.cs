@@ -9,6 +9,7 @@
 //     private InputAction click;
 //     private InputAction mousePos;
 // 
+//     public MapGenerateScript map;
 //     private GameObject lastSelected;
 // 
 //     [SerializeField] private Camera MainCamera;
@@ -70,6 +71,15 @@
 //         }else{
 //             print("Hit nothing");
 //         }
+// 
+//         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
+//         GameObject hexObject = hit.collider.gameObject;
+// 
+//         print($"hit hex is {hex.x},{hex.y},{hex.z}");
+// 
+//         TileScript tempHex = map.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
+// 
+//         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
 //         
 //     }
 // }

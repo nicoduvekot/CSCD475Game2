@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class MapGenerateScript : MonoBehaviour
 {
@@ -33,6 +34,8 @@ public class MapGenerateScript : MonoBehaviour
 
     private int startX;
     private int startZ;
+
+    Dictionary<string,GameObject>  hexStorage = new();
 
     
 
@@ -99,6 +102,8 @@ public class MapGenerateScript : MonoBehaviour
 
                     temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
 
+                    hexStorage.Add("" + curX + "," + curY + "," + curZ,temp);
+
                     
                     //temp.GetComponent<TileScript>().setTerrian(terrain);
 
@@ -131,5 +136,11 @@ public class MapGenerateScript : MonoBehaviour
 
         }
         generateMap = false;
+    }
+
+
+    public GameObject getHex(int x, int y, int z){
+        hexStorage.TryGetValue("" + x + "," + y + "," + z, out GameObject returnObject);
+        return returnObject;
     }
 }
