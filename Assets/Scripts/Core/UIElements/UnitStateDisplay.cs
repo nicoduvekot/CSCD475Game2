@@ -7,20 +7,16 @@ namespace Core.UIElements
     {
         [SerializeField] private TextMeshProUGUI label;
         
-        private IProgressSource _source;
+        private IDisplayStateUI _source;
         private Transform _followTarget;
-        private Camera _uiCamera;
+        private Camera _mainCamera;
         
-        public void Initialize(IProgressSource source, Transform followTarget)
+        public void Initialize(IDisplayStateUI source, Transform followTarget)
         {
             _source = source;
             _followTarget = followTarget;
 
-            Canvas canvas = GetComponentInParent<Canvas>();
-            if (canvas != null)
-                _uiCamera = canvas.worldCamera;
-
-            //gameObject.SetActive(false);
+            _mainCamera = Camera.main;
         }
         
         public void SetText(string text)
@@ -36,21 +32,12 @@ namespace Core.UIElements
                 return;
             }
             
-            if (_source.IsInProgress)
-            {
-                if (!gameObject.activeSelf)
-                    gameObject.SetActive(true);
-
-                label.text = _source.ProgressLabel;
-            }
-            else
-            {
-                label.text = "idle";
-            }
+            label.text = _source.StateLabel;
             
             transform.position = _followTarget.position + Vector3.up * 2f;
             
-            transform.forward = _uiCamera != null ? _uiCamera.transform.forward : Camera.main.transform.forward;
+            if (_mainCamera != null)
+                transform.forward = _mainCamera.transform.forward;
         }
     }
 }
