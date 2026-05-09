@@ -4,7 +4,7 @@ using Core.UIElements;
 
 namespace Selection
 {
-    public class TestSelectableBuilder : MonoBehaviour, ISelectable, IProgressSource
+    public class TestSelectableBuilder : MonoBehaviour, ISelectable, IDisplayStateUI
     {
         public MonoBehaviour Behaviour => this;
         
@@ -24,34 +24,8 @@ namespace Selection
         
         private TestSelectableHex CurrentHex { get; set; }
         private TestSelectableHex TargetHex { get; set; }
-        
-        public bool IsInProgress => 
-            _state == UnitState.Moving || 
-            _state == UnitState.Building;
-        
-        public float Progress01
-        {
-            get
-            {
-                if (_state == UnitState.Moving)
-                {
-                    float dist = Vector3.Distance(transform.position, _targetPos);
-                    return 1f - Mathf.Clamp01(dist / 10f);
-                }
 
-                if (_state == UnitState.Building)
-                    return Mathf.Clamp01(_buildTimer / _buildDuration);
-
-                return 0f;
-            }
-        }
-
-        public string ProgressLabel => _state switch
-        {
-            UnitState.Moving => "moving",
-            UnitState.Building => "building",
-            _ => "idle"
-        };
+        public string StateLabel => _state.ToString();
         
         private void Awake()
         {
