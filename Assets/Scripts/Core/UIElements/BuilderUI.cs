@@ -34,11 +34,8 @@ namespace Core.UIElements
         
         private void Awake()
         {
-            Debug.Log("Awake is called by Builder UI");
             Instance = this;
             
-            //HoverUI.Instance.Show("Hi");
-
             buildFarmButton.onClick.AddListener(() => Build(farmData));
             buildSawmillButton.onClick.AddListener(() => Build(sawmillData));
             demolishButton.onClick.AddListener(Demolish);
