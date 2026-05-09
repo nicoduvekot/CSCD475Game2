@@ -1,0 +1,55 @@
+{
+    "version": 1,
+    "name": "MouseActions",
+    "maps": [
+        {
+            "name": "Clicking",
+            "id": "c55f3bb3-9358-425b-ba17-8a97e80b4ddf",
+            "actions": [
+                {
+                    "name": "Select",
+                    "type": "Button",
+                    "id": "798a0775-51bd-4f9e-ae5c-11c3206db437",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "MousePosition",
+                    "type": "Value",
+                    "id": "5766faa3-7fa3-4b23-99a2-89340bc09704",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "e2be1e49-241d-481b-8ca8-41f35a0c2758",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Select",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "dfadd1d0-52e6-45ae-aef8-f9479ca7fcb6",
+                    "path": "<Mouse>/pointerId",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MousePosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
