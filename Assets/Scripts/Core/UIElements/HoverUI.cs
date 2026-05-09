@@ -12,7 +12,6 @@ namespace Core.UIElements
         
         private void Awake()
         {
-            Debug.Log("Awake is called by Hover UI");
             if (Instance != null)
             {
                 Destroy(gameObject);
