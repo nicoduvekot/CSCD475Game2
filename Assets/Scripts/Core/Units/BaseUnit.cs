@@ -3,6 +3,7 @@ using Core.UIElements;
 using Selection;
 using UnityEngine;
 using HealthSystem;
+using EditorTools.Attributes;
 
 namespace Units
 {
@@ -15,6 +16,11 @@ namespace Units
         protected Health Health { get; private set; }
         protected UnitStats Stats { get; private set; }
         protected UnitStateDisplay StateDisplay { get; private set; }
+
+        [field: ReadOnly]
+        public UnitOwner Owner { get; private set; }
+
+        private bool _ownerInitialized;
 
         protected UnitState _state = UnitState.Idle;
         protected BaseUnit _targetEnemy;
@@ -35,6 +41,12 @@ namespace Units
             if (StateDisplay != null) StateDisplay.Initialize(this, transform);
         }
         
+        protected virtual void Start()
+        {
+            if (!_ownerInitialized)
+                Debug.LogWarning($"{name} was spawned without an owner! This must be set at runtime.");
+        }
+        
         protected virtual void OnDestroy()
         {
             if (Health != null) Health.OnHealthEmpty -= HandleDeath;
@@ -48,6 +60,12 @@ namespace Units
         }
         
         // public API
+        
+        public void InitializeOwner(UnitOwner newOwner)
+        {
+            Owner = newOwner;
+            _ownerInitialized = true;
+        }
         
         public void TakeDamage(float amount)
         {
