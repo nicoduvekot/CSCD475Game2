@@ -16,6 +16,9 @@ namespace Units
         protected Health Health { get; private set; }
         protected UnitStats Stats { get; private set; }
         protected StateDisplayUI StateDisplayUI { get; private set; }
+        
+        protected TestSelectableHex CurrentHex { get; set; }
+        protected TestSelectableHex TargetHex { get; set; }
 
         [field: ReadOnly]
         public UnitOwner Owner { get; private set; }
@@ -71,20 +74,53 @@ namespace Units
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
         {
-            if (targetSelectable is BaseUnit enemy)
+            // 1. If clicked a hex
+            if (targetSelectable is TestSelectableHex hexTile)
             {
-                _targetEnemy = enemy;
-                SetState(UnitState.Engaging);
+                // Check occupancy
+                if (!hexTile.TryGetOccupant(out MonoBehaviour occupant))
+                {
+                    // Hex is empty -> move there
+                    TargetHex = hexTile;
+                    SetState(UnitState.Moving);
+                    return;
+                }
+                
+                // Hex is occupied -> check if it's a unit
+                if (occupant is BaseUnit targetUnit)
+                {
+                    if (TryHandleUnitTarget(targetUnit))
+                        return;
+                }
+                
+                // Hex has a building -> cannot move there
+                Debug.Log($"Hex {hexTile.name} was occupied (not unit) " +
+                          $"(ideally there is a building). Cannot move here.");
                 return;
             }
+            // 2. If clicked a unit directly
+            else if (targetSelectable is BaseUnit targetUnit)
+            {
+                if (TryHandleUnitTarget(targetUnit))
+                    return;
+            }
             
-            // handle movement from command here
+            // 3. If clicked a building directly
+            // if (targetSelectable is Building building)
+            // path to nearest tile adj to building
         }
         
         protected virtual void Update()
         {
             switch (_state)
             {
+                case UnitState.Idle:
+                    break;
+                
+                case UnitState.Moving:
+                    HandleMoving();
+                    break;
+                
                 case UnitState.Engaging:
                     HandleEngaging();
                     break;
@@ -94,8 +130,44 @@ namespace Units
                     break;
                 
                 case UnitState.Dying:
-                    
                     break;
+                
+                default:
+                    Debug.LogWarning($"[BaseUnit] Unhandled state: {_state}. Resetting to Idle.");
+                    SetState(UnitState.Idle);
+                    break;
+            }
+        }
+
+        protected virtual void HandleMoving()
+        {
+            if (TargetHex == null)
+            {
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            Vector3 targetPos = TargetHex.transform.position;
+            
+            TryMoveTowards(targetPos);
+
+            // if significantly close enough to target -> reached
+            if (Vector3.Distance(transform.position, targetPos) < 0.1f)
+            {
+                // Clear hex we came from occupant
+                if (CurrentHex != null)
+                    CurrentHex.TryClearUnitOccupant(this);
+                
+                // set us as occupant of new hex
+                if (TargetHex.TrySetUnitOccupant(this))
+                    CurrentHex = TargetHex;
+                else
+                    Debug.LogError($"Unit {name} reached hex {TargetHex.name} " +
+                                   $"but could not set self as occupant.");
+                
+                // clear target and set to idle
+                TargetHex = null;
+                SetState(UnitState.Idle);
             }
         }
 
@@ -103,6 +175,19 @@ namespace Units
         {
             if (_targetEnemy == null)
             {
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            TestSelectableHex enemyHex = _targetEnemy.CurrentHex;
+            
+            if (enemyHex == null)
+            {
+                Debug.LogError(
+                    $"[BaseUnit] {name} is trying to Engage logic {_targetEnemy.name}, " +
+                    $"but the enemy unit has no CurrentHex assigned. BAIL and Reset self to Idle."
+                );
+
                 SetState(UnitState.Idle);
                 return;
             }
@@ -115,11 +200,10 @@ namespace Units
             {
                 SetState(UnitState.Engaged);
                 _attackCooldownTimer = 0f;
-                return;
             }
-
-            // if out of range => move toward target
-            TryMoveTowards(_targetEnemy.transform.position);
+            
+            Vector3 targetPos = enemyHex.transform.position;
+            TryMoveTowards(targetPos);
         }
 
         protected virtual void HandleEngaged()
@@ -159,7 +243,11 @@ namespace Units
 
         protected virtual void TryMoveTowards(Vector3 targetPos)
         {
-            //Debug.LogWarning("Unit is trying to move : This is not implemented though!");
+            float step = Stats.BaseMoveSpeed * Time.deltaTime;
+
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, step);
+
+            FaceTarget(targetPos);
         }
         
         protected void FaceTarget(Vector3 targetPos)
@@ -170,7 +258,26 @@ namespace Units
             if (dir.sqrMagnitude > Mathf.Epsilon)
                 transform.rotation = Quaternion.LookRotation(dir);
         }
-        
+
+        protected bool TryHandleUnitTarget(BaseUnit other)
+        {
+            if (other ==null) return false;
+
+            // other is same faction
+            if (other.Owner == this.Owner)
+            {
+                Debug.Log($"{name} targeted a friendly unit ({other.name}). No logic set");
+                return true;
+            }
+            
+            // else other is a target
+            _targetEnemy = other;
+            SetState(UnitState.Engaging);
+            return true;
+        }
+
+        #region DeathStateLogic
+
         private void HandleDeath()
         {
             if (_state == UnitState.Dying) return;
@@ -196,6 +303,8 @@ namespace Units
         {
             Destroy(gameObject);
         }
+
+        #endregion
 
         #region State Machine
 
