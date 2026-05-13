@@ -4,11 +4,11 @@ using Core.UIElements;
 
 namespace Selection
 {
-    public class TestSelectableBuilder : MonoBehaviour, ISelectable, IDisplayStateUI
+    public class TestSelectableBuilder : MonoBehaviour, ISelectable
     {
         public MonoBehaviour Behaviour => this;
         
-        [SerializeField] private UnitStateDisplay stateDisplay;
+        [SerializeField] private StateDisplayUI stateDisplayUI;
         
         private UnitState _state = UnitState.Idle;
         
@@ -24,12 +24,10 @@ namespace Selection
         
         private TestSelectableHex CurrentHex { get; set; }
         private TestSelectableHex TargetHex { get; set; }
-
-        public string StateLabel => _state.ToString();
         
         private void Awake()
         {
-            stateDisplay.Initialize(this, transform);
+            stateDisplayUI.Initialize(transform);
             SetState(UnitState.Idle);
         }
 
@@ -109,7 +107,7 @@ namespace Selection
             //Debug.Log($"{name} selected");
             
             _isSelected = true;
-            stateDisplay.gameObject.SetActive(true);
+            stateDisplayUI.gameObject.SetActive(true);
             
             if (CurrentHex != null)
                 BuilderUI.Instance.ShowOptionsFor(CurrentHex, this);
@@ -179,15 +177,15 @@ namespace Selection
             switch (_state)
             {
                 case UnitState.Idle:
-                    stateDisplay.SetText("idle");
+                    stateDisplayUI.SetText("idle");
                     break;
 
                 case UnitState.Moving:
-                    stateDisplay.SetText("moving");
+                    stateDisplayUI.SetText("moving");
                     break;
 
                 case UnitState.Building:
-                    stateDisplay.SetText("building");
+                    stateDisplayUI.SetText("building");
                     break;
             }
         }
