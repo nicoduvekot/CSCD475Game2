@@ -96,13 +96,11 @@ namespace Units
                 // Hex has a building -> cannot move there
                 Debug.Log($"Hex {hexTile.name} was occupied (not unit) " +
                           $"(ideally there is a building). Cannot move here.");
-                return;
             }
             // 2. If clicked a unit directly
             else if (targetSelectable is BaseUnit targetUnit)
             {
-                if (TryHandleUnitTarget(targetUnit))
-                    return;
+                if (TryHandleUnitTarget(targetUnit)) return;
             }
             
             // 3. If clicked a building directly
