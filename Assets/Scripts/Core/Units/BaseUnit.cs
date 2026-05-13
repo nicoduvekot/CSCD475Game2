@@ -9,13 +9,13 @@ namespace Units
 {
     [RequireComponent(typeof(Health))]
     [RequireComponent(typeof(UnitStats))]
-    public abstract class BaseUnit : MonoBehaviour, ISelectable, IDisplayStateUI
+    public abstract class BaseUnit : MonoBehaviour, ISelectable
     {
         public MonoBehaviour Behaviour => this;
 
         protected Health Health { get; private set; }
         protected UnitStats Stats { get; private set; }
-        protected UnitStateDisplay StateDisplay { get; private set; }
+        protected StateDisplayUI StateDisplayUI { get; private set; }
 
         [field: ReadOnly]
         public UnitOwner Owner { get; private set; }
@@ -37,26 +37,23 @@ namespace Units
             Health.InitializeHealth(Stats.BaseMaxHealth);
             Health.OnHealthEmpty += HandleDeath;
             
-            StateDisplay = GetComponentInChildren<UnitStateDisplay>();
-            if (StateDisplay != null) StateDisplay.Initialize(this, transform);
+            StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
+            if (StateDisplayUI != null) 
+                StateDisplayUI.Initialize(transform);
         }
         
         protected virtual void Start()
         {
             if (!_ownerInitialized)
                 Debug.LogWarning($"{name} was spawned without an owner! This must be set at runtime.");
+            
+            if (StateDisplayUI != null)
+                StateDisplayUI.SetText(_state.ToString());
         }
         
         protected virtual void OnDestroy()
         {
             if (Health != null) Health.OnHealthEmpty -= HandleDeath;
-        }
-
-        public string StateLabel => GetStateDisplayText();
-        
-        protected virtual string GetStateDisplayText()
-        {
-            return _state.ToString();
         }
         
         // public API
@@ -214,6 +211,9 @@ namespace Units
         protected void SetState(UnitState newState)
         {
             _state = newState;
+            
+            if (StateDisplayUI != null)
+                StateDisplayUI.SetText(_state.ToString());
             // if we do anims, the transitions can happen here?
         }
 
