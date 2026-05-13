@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5eca76b7ddfb44ea8a555ffa44ce3ff0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Selection.TestSelectableBuilder
-  stateDisplay: {fileID: 710319305}
+  stateDisplayUI: {fileID: 710319305}
   baseMoveSpeed: 4
 --- !u!4 &25440245
 Transform:
@@ -1963,7 +1963,7 @@ MonoBehaviour:
   moveAction: {fileID: -5069790595646765498, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   zoomAction: {fileID: -2729193623664858001, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   inputDeadZone: 0.1
-  moveSpeed: 20
+  moveSpeed: 60
   acceleration: 10
   decelerationTime: 0.5
   positionDamping: 15
