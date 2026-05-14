@@ -7,10 +7,14 @@
 // 
 //     public MouseActions mouseInput;
 //     private InputAction click;
+// 
+//     private InputAction rightClick;
 //     private InputAction mousePos;
 // 
 //     public MapGenerateScript map;
 //     private GameObject lastSelected;
+// 
+//     private string terrainType = "dirt";
 // 
 //     [SerializeField] private Camera MainCamera;
 // 
@@ -24,6 +28,12 @@
 //         click.Enable();
 //         click.performed += Select;
 // 
+//         rightClick = mouseInput.Clicking.RightClick;
+//         rightClick.Enable();
+//         rightClick.performed += changeTerrainType;
+// 
+//         
+// 
 //         mousePos = mouseInput.Clicking.MousePosition;
 //         mousePos.Enable();
 //         
@@ -33,6 +43,7 @@
 //     void OnDisable(){
 //         click.Disable();
 //         mousePos.Disable();
+//         rightClick.Disable();
 //     }
 //     // Start is called once before the first execution of Update after the MonoBehaviour is created
 //     void Start()
@@ -62,11 +73,18 @@
 //         Physics.Raycast(realPos,ray.direction,out hit,50f);
 //         //Debug.DrawRay(realPos,ray.direction * 50,Color.red,50f);
 //         if(hit.collider != null){
-//             if(lastSelected != null){
-//                 lastSelected.GetComponent<TileScript>().setGreen(false);
-//             }
+//             
 // 
-//             hit.collider.gameObject.GetComponent<TileScript>().setGreen(true);
+//             GameObject inverseTile;
+//             TileScript inverseTileScript = hit.collider.gameObject.GetComponent<TileScript>();
+//             hit.collider.gameObject.GetComponent<TileScript>().setTerrain(terrainType);
+// 
+// 
+// 
+//             inverseTile = map.getHex(-inverseTileScript.z,-inverseTileScript.y,-inverseTileScript.x);
+// 
+//             inverseTile.GetComponent<TileScript>().setTerrain(terrainType);
+// 
 //             lastSelected = hit.collider.gameObject;
 //         }else{
 //             print("Hit nothing");
@@ -81,5 +99,24 @@
 // 
 //         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
 //         
+//     }
+// 
+//     public void changeTerrainType(InputAction.CallbackContext context){
+//         if(terrainType == "dirt"){
+//             terrainType = "grass";
+//         }else if(terrainType == "grass"){
+//             terrainType = "forest";
+//         }else if(terrainType == "forest"){
+//             terrainType = "mountain";
+//         }else if(terrainType == "mountain"){
+//             terrainType = "water";
+//         }else if(terrainType == "water"){
+//             terrainType = "desert";
+//         }else if(terrainType == "desert"){
+//             terrainType = "snow";
+//         }else if(terrainType == "snow"){
+//             terrainType = "dirt";
+//         }
+//         print("terrain type is + " + terrainType);
 //     }
 // }

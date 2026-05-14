@@ -109,6 +109,15 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""RightClick"",
+                    ""type"": ""Button"",
+                    ""id"": ""8721e728-c298-442d-b25f-47d447f3f99a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -133,6 +142,17 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
                     ""action"": ""MousePosition"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8ed88bf0-6415-48aa-8d9c-8c53f1044691"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""RightClick"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -143,6 +163,7 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
         m_Clicking = asset.FindActionMap("Clicking", throwIfNotFound: true);
         m_Clicking_Select = m_Clicking.FindAction("Select", throwIfNotFound: true);
         m_Clicking_MousePosition = m_Clicking.FindAction("MousePosition", throwIfNotFound: true);
+        m_Clicking_RightClick = m_Clicking.FindAction("RightClick", throwIfNotFound: true);
     }
 
     ~@MouseActions()
@@ -225,6 +246,7 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
     private List<IClickingActions> m_ClickingActionsCallbackInterfaces = new List<IClickingActions>();
     private readonly InputAction m_Clicking_Select;
     private readonly InputAction m_Clicking_MousePosition;
+    private readonly InputAction m_Clicking_RightClick;
     /// <summary>
     /// Provides access to input actions defined in input action map "Clicking".
     /// </summary>
@@ -244,6 +266,10 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Clicking/MousePosition".
         /// </summary>
         public InputAction @MousePosition => m_Wrapper.m_Clicking_MousePosition;
+        /// <summary>
+        /// Provides access to the underlying input action "Clicking/RightClick".
+        /// </summary>
+        public InputAction @RightClick => m_Wrapper.m_Clicking_RightClick;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -276,6 +302,9 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
             @MousePosition.started += instance.OnMousePosition;
             @MousePosition.performed += instance.OnMousePosition;
             @MousePosition.canceled += instance.OnMousePosition;
+            @RightClick.started += instance.OnRightClick;
+            @RightClick.performed += instance.OnRightClick;
+            @RightClick.canceled += instance.OnRightClick;
         }
 
         /// <summary>
@@ -293,6 +322,9 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
             @MousePosition.started -= instance.OnMousePosition;
             @MousePosition.performed -= instance.OnMousePosition;
             @MousePosition.canceled -= instance.OnMousePosition;
+            @RightClick.started -= instance.OnRightClick;
+            @RightClick.performed -= instance.OnRightClick;
+            @RightClick.canceled -= instance.OnRightClick;
         }
 
         /// <summary>
@@ -347,5 +379,12 @@ public partial class @MouseActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMousePosition(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "RightClick" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRightClick(InputAction.CallbackContext context);
     }
 }
