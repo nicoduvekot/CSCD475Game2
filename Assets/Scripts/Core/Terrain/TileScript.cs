@@ -19,7 +19,7 @@ public class TileScript : MonoBehaviour
    
 
     public enum terrainType{
-        dirt, grass, forest, mountain, water, desert, snow
+        dirt, grass, forest, mountain, water, desert, snow, building
     }
 
     [SerializeField]
@@ -42,9 +42,9 @@ public class TileScript : MonoBehaviour
         this.y = y;
         this.z = z;
         
-        incomingTerrain = terrainType.dirt;
+        
 
-        terrain = incomingTerrain;
+        
 
 
         switch (terrain){
@@ -53,6 +53,7 @@ public class TileScript : MonoBehaviour
                 if(materialType != "dirt"){
                     
                     ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
+                    terrain = terrainType.dirt;
                 }
                 break;
             case terrainType.grass:
@@ -60,38 +61,51 @@ public class TileScript : MonoBehaviour
                 if(materialType != "grass"){
                     
                     ground = Resources.Load("Material/grass", typeof(Material)) as Material;
+                    terrain = terrainType.grass;
                 }
                 break;
             case terrainType.forest:
                 movementPoints = 2;
                 if(materialType != "forest"){
                     ground = Resources.Load("Material/forest", typeof(Material)) as Material;
+                    terrain = terrainType.forest;
                 }
                 break;
             case terrainType.mountain:
                 movementPoints = 3;
                 if(materialType != "mountain"){
                     ground = Resources.Load("Material/mountain", typeof(Material)) as Material;
+                    terrain = terrainType.mountain;
                 }
                 break;
             case terrainType.water:
                 movementPoints = -1;
                 if(materialType != "water"){
                     ground = Resources.Load("Material/water", typeof(Material)) as Material;
+                    terrain = terrainType.water;
                 }
                 break;
             case terrainType.desert:
                 movementPoints = 1;
                 if(materialType != "desert"){
                     ground = Resources.Load("Material/desert", typeof(Material)) as Material; 
+                    terrain = terrainType.desert;
                 }
                 break;
             case terrainType.snow:
                 movementPoints = 2;
                 if(materialType != "snow"){
                     ground = Resources.Load("Material/snow", typeof(Material)) as Material;
+                    terrain = terrainType.snow;
                 }
-                break;    
+                break;
+            case terrainType.building:
+                movementPoints = -1;
+                if(materialType != "building"){
+                    ground = Resources.Load("Material/building", typeof(Material)) as Material;
+                    terrain = terrainType.building;
+                }
+                break;   
         }
         
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
@@ -103,25 +117,40 @@ public class TileScript : MonoBehaviour
         if(type == "dirt"){
             ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.dirt;
         }else if(type == "grass"){
             ground = Resources.Load("Material/grass", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.grass;
         }else if(type == "forest"){
             ground = Resources.Load("Material/forest", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.forest;
         }else if(type == "mountain"){
             ground = Resources.Load("Material/mountain", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.mountain;
         }else if(type == "water"){
             ground = Resources.Load("Material/water", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.water;
         }else if(type == "desert"){
             ground = Resources.Load("Material/desert", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.desert;
         }else if(type == "snow"){
             ground = Resources.Load("Material/snow", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.snow;
+        }else if(type == "building"){
+            ground = Resources.Load("Material/building", typeof(Material)) as Material;
+            transform.Find("Hex").GetComponent<Renderer>().material = ground;
+            terrain = terrainType.building;
         }
+    }
+
+    public terrainType getTerrain(){
+        return terrain;
     }
 
     

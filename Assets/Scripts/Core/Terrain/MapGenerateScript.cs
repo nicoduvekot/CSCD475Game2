@@ -43,6 +43,7 @@ public class MapGenerateScript : MonoBehaviour
 
     private Vector3Int maxCords;
     private Vector3Int minCords;
+    public bool refreshMaterial = false;
 
 
     
@@ -78,6 +79,9 @@ public class MapGenerateScript : MonoBehaviour
                 
                 TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
+                if(refreshMaterial){
+                    childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
+                }
 
             }
             
@@ -156,9 +160,9 @@ public class MapGenerateScript : MonoBehaviour
                     width = temp.GetComponent<MeshCollider>().bounds.size.x * 0.79f;
                     height = temp.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
 
-                    int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = (TileScript.terrainType)randomType;
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
