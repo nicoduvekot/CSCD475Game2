@@ -176,5 +176,10 @@ public class TileScript : MonoBehaviour
 
     
     
-
+    //remove later, only used for testing
+    public int getMovement()
+    {
+        return movementPoints;
+    }
+    //
 }
