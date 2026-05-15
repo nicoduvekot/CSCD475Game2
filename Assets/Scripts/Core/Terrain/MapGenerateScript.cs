@@ -22,6 +22,8 @@ public class MapGenerateScript : MonoBehaviour
 
     private bool flipOffset = true;
 
+    private static Dictionary<Vector3Int,GameObject>  hexStorage;
+
     // all of these values are used to track the xyz position of the hex
     private int curX = 0;
     private int curY = 0;
@@ -35,7 +37,14 @@ public class MapGenerateScript : MonoBehaviour
     private int startX;
     private int startZ;
 
-    Dictionary<string,GameObject>  hexStorage = new();
+    public int addColumns = 0;
+
+    public int addRows = 0;
+
+    private Vector3Int maxCords;
+    private Vector3Int minCords;
+    public bool refreshMaterial = false;
+
 
     
 
@@ -62,25 +71,81 @@ public class MapGenerateScript : MonoBehaviour
         if(columnsLeft % 2 != 0){
             startX++;
         }
+
+        hexStorage = new();
+        if(!generateMap){
+            
+            for(int i = 0; i < transform.childCount; i++){
+                
+                TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
+                hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
+                if(refreshMaterial){
+                    childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
+                }
+
+            }
+            
+            
+            
+
+            findMaxCords(hexStorage);
+
+            for(int i = 0; i < addRows; i++){
+                addRow();
+                findMaxCords(hexStorage);
+            }
+            addRows = 0;
+
+            for(int i = 0; i < addColumns; i++){
+                addColumn();
+                findMaxCords(hexStorage);
+            }
+            addColumns = 0;
+        }
         
     }
+
+    private void findMaxCords(Dictionary<Vector3Int,GameObject> cordMap){
+
+        int minX = 0,maxX = 0,minY = 0,maxY = 0,minZ = 0,maxZ = 0;
+
+        foreach(Vector3Int cord in cordMap.Keys){
+            if(minX > cord.x){
+                minX = cord.x;
+            }else if(maxX < cord.x){
+                maxX = cord.x;
+            }
+
+            if(minY > cord.y){
+                minY = cord.y;
+            }else if(maxY < cord.y){
+                maxY = cord.y;
+            }
+
+            if(minZ > cord.z){
+                minZ = cord.z;
+            }else if(maxZ < cord.z){
+                maxZ = cord.z;
+            }
+        }
+
+        minCords = new Vector3Int(minX,minY,minZ);
+        maxCords = new Vector3Int(maxX,maxY,maxZ);
+
+        
+
+        
+        
+    }
+
+    
 
     // Update is called once per frame
     void Update()
     {
         if(generateMap){
             
-            // print("columns left + " + columnsLeft);
-            // 
-            // print("rows down + " + rowsDown);
-            // print("startX " + startX);
-            // print("startZ " + startZ);
-
-            // print("bounds are " + temp.GetComponent<MeshCollider>().bounds);
-            // print("width is " + width + " height is " + height);
-            // Debug.DrawRay(transform.position,transform.right * width,Color.red,50f);
-            // Debug.DrawRay(transform.position,transform.forward * height,Color.red,50f);
-
+            
             for(int i = 0; i < columns; i++){
 
                 curZ = startZ - rows;
@@ -95,14 +160,14 @@ public class MapGenerateScript : MonoBehaviour
                     width = temp.GetComponent<MeshCollider>().bounds.size.x * 0.79f;
                     height = temp.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
 
-                    int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = (TileScript.terrainType)randomType;
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
 
-                    hexStorage.Add("" + curX + "," + curY + "," + curZ,temp);
+                    hexStorage.Add(new Vector3Int(curX,curY,curZ),temp);
 
                     
                     //temp.GetComponent<TileScript>().setTerrian(terrain);
@@ -131,16 +196,216 @@ public class MapGenerateScript : MonoBehaviour
 
 
             }
-            
+            findMaxCords(hexStorage);
 
 
         }
         generateMap = false;
+        
     }
 
 
-    public GameObject getHex(int x, int y, int z){
-        hexStorage.TryGetValue("" + x + "," + y + "," + z, out GameObject returnObject);
+    public static GameObject getHex(int x, int y, int z){
+
+
+        hexStorage.TryGetValue(new Vector3Int(x,y,z), out GameObject returnObject);
+
         return returnObject;
+    }
+
+    public void addRow(){
+        
+        
+
+            int size = transform.childCount;
+
+            for(int i = 0; i < size;i++ ){
+
+                TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
+                
+
+                if(childTile.x < childTile.z && Mathf.Abs(childTile.x) + Mathf.Abs(childTile.z) >= rows - 2){ // combined x and z will equal the top row or the top row - 1, 
+                                                                                                            // if x is less than z then this is the bottom row
+
+                    
+                    height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
+                    GameObject temp = Instantiate(terrainPrefab,childTile.transform.position + new Vector3(0,0,-height),transform.rotation,transform);
+                    
+                    
+
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+
+                    int x = childTile.x - 1;
+                    int y = childTile.y;
+                    int z = childTile.z + 1;
+                    
+
+
+                    temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
+
+                    hexStorage.Add(new Vector3Int(x,y,z),temp);
+                }else if(childTile.x > childTile.z && Mathf.Abs(childTile.x) + Mathf.Abs(childTile.z) >= rows - 1){
+
+                    height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
+                    GameObject temp = Instantiate(terrainPrefab,childTile.transform.position + new Vector3(0,0,height),transform.rotation,transform);
+                    
+                    
+
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+
+                    int x = childTile.x + 1;
+                    int y = childTile.y;
+                    int z = childTile.z - 1;               
+
+
+                    temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
+                    hexStorage.Add(new Vector3Int(x,y,z),temp);
+                }
+
+            }
+            rows += 2;
+
+        
+        
+
+    }
+
+    public void addColumn(){
+        int size = transform.childCount;
+
+            for(int i = 0; i < size;i++ ){
+
+                TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
+
+                
+                
+
+                if(childTile.y == minCords.y){ // left side 
+                    
+                    List<Vector3Int> leftColumn = getColumn(childTile.y);
+
+                    int localMaxX = leftColumn[0].x;
+                    int localMinZ = leftColumn[0].z;
+                    // int localMaxZ = leftColumn[0].x;
+                    // int localMinX = leftColumn[0].z;
+
+                    foreach(Vector3Int hex in leftColumn){
+                        if(localMaxX < hex.x){
+                            localMaxX = hex.x;
+                        }
+                        if(localMinZ > hex.z){
+                            localMinZ = hex.z;
+                        }
+
+                        // if(localMinX > hex.x){
+                        //     localMinX = hex.x;
+                        // }
+                        // if(localMaxZ < hex.z){
+                        //     localMaxZ = hex.z;
+                        // }
+                    }
+
+                    
+
+                    int x = childTile.x;
+                    int y = childTile.y - 1;
+                    int z = childTile.z;
+                    
+                    if(getHex(localMaxX + 1,childTile.y + 1,localMinZ) != null){ // this means the column will be shifted up
+                        height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f / 2;
+                        z--;
+
+                    }else{ // this means the column will be shifted down
+                    
+                        height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f / -2;
+                        x--;
+
+                    }
+                    width = childTile.GetComponent<MeshCollider>().bounds.size.x * 0.79f;
+                    
+                    GameObject temp = Instantiate(terrainPrefab,childTile.transform.position + new Vector3(0,0,height) + new Vector3(-width,0,0),transform.rotation,transform);
+                    
+                    
+
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    
+
+
+                    temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
+
+                    hexStorage.Add(new Vector3Int(x,y,z),temp);
+                }else if(childTile.y == maxCords.y){ // right side
+
+                    List<Vector3Int> leftColumn = getColumn(childTile.y);
+
+                    int localMaxX = leftColumn[0].x;
+                    int localMinZ = leftColumn[0].z;
+                    // int localMaxZ = leftColumn[0].x;
+                    // int localMinX = leftColumn[0].z;
+
+                    foreach(Vector3Int hex in leftColumn){
+                        if(localMaxX < hex.x){
+                            localMaxX = hex.x;
+                        }
+                        if(localMinZ > hex.z){
+                            localMinZ = hex.z;
+                        }
+
+                        // if(localMinX > hex.x){
+                        //     localMinX = hex.x;
+                        // }
+                        // if(localMaxZ < hex.z){
+                        //     localMaxZ = hex.z;
+                        // }
+                    }
+
+                    int x = childTile.x;
+                    int y = childTile.y + 1;
+                    int z = childTile.z;
+
+                    if(getHex(localMaxX,childTile.y - 1,localMinZ - 1) != null){// column will be shifted up
+                        height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f / 2;
+                        x++;
+
+                    }else{// column will be shifted down
+                        height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f / -2;
+                        z++;
+
+                    }
+                    width = childTile.GetComponent<MeshCollider>().bounds.size.x * 0.79f;
+
+                    GameObject temp = Instantiate(terrainPrefab,childTile.transform.position + new Vector3(0,0,height) + new Vector3(width,0,0),transform.rotation,transform);
+                    
+                    
+
+                    //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
+
+                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+
+
+                    temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
+                    hexStorage.Add(new Vector3Int(x,y,z),temp);
+                }
+
+            }
+            columns += 2;
+
+    }
+
+    public List<Vector3Int> getColumn(int y){
+        List<Vector3Int> hexColumn = new();
+        foreach(Vector3Int cord in hexStorage.Keys){
+            if(cord.y == y){
+                hexColumn.Add(new Vector3Int(cord.x,cord.y,cord.z));
+                
+            }
+        }
+        return hexColumn;
     }
 }
