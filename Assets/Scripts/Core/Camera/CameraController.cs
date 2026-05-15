@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 public class CameraController : MonoBehaviour
 {
     [Header("References")] 
-    [SerializeField] private Transform cam;
-    [SerializeField] private Transform cameraTarget;
+    private Transform _mainCamera;
+    private Transform _cameraTarget;
     
     [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
@@ -18,10 +18,10 @@ public class CameraController : MonoBehaviour
     [Header("Movement Settings")]
     
     [Tooltip("Base movement speed of the camera. \nHigher = faster panning.")]
-    [SerializeField] private float moveSpeed = 20f;
+    [SerializeField] private float moveSpeed = 100f;
     
     [Tooltip("How quickly the camera accelerates to full speed. \nHigher = snappier start.")]
-    [SerializeField] private float acceleration = 10f;
+    [SerializeField] private float acceleration = 40f;
     
     [Tooltip("How long (in seconds) it takes to fully stop after releasing input. \nLower = faster stop.")]
     [SerializeField] private float decelerationTime = 0.5f;
@@ -42,10 +42,13 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float zoomSpeed = 50f;
     
     [Tooltip("Closest allowed zoom distance. \nMust be lower than Max Zoom")]
-    [SerializeField] private float minZoom = 10f;
+    [SerializeField] private float minZoom = 2f;
 
     [Tooltip("Farthest allowed zoom distance.\nMust be higher than Min Zoom")]
-    [SerializeField] private float maxZoom = 15f;
+    [SerializeField] private float maxZoom = 16f;
+
+    [Tooltip("Initial zoom position as a percentage \n0 is fully zoomed in \n1 is fully zoomed out")]
+    [SerializeField, Range(0f, 1f)] private float startZoomPercentage = 0.25f;
     
     private float _targetDistance;
     
@@ -55,14 +58,14 @@ public class CameraController : MonoBehaviour
 
     private void OnValidate()
     {
-        ValidateCameraSetup();
         ValidateZoomRange();
         ValidateInputReferences();
     }
 
-    private void Start()
+    private void Awake()
     {
-        _targetDistance = -cam.localPosition.z;
+        InitCameraReferences();
+        InitCameraSetup();
     }
     
     private void OnEnable()
@@ -108,11 +111,11 @@ public class CameraController : MonoBehaviour
         Vector2 moveInput = moveAction.action.ReadValue<Vector2>();
         _hasMoveInput = moveInput.sqrMagnitude > inputDeadZone * inputDeadZone;
             
-        Vector3 forward = cam.transform.forward;
+        Vector3 forward = _mainCamera.transform.forward;
         forward.y = 0f;
         forward.Normalize();
             
-        Vector3 right = cam.transform.right;
+        Vector3 right = _mainCamera.transform.right;
         right.y = 0f;
         right.Normalize();
             
@@ -131,49 +134,23 @@ public class CameraController : MonoBehaviour
         _targetDistance += -zoomInput * zoomSpeed * Time.unscaledDeltaTime;
         _targetDistance = Mathf.Clamp(_targetDistance, minZoom, maxZoom);
         
-        Vector3 targetLocalPos = cam.localRotation * new Vector3(0f, 0f, -_targetDistance);
+        Vector3 targetLocalPos = _mainCamera.localRotation * new Vector3(0f, 0f, -_targetDistance);
 
-        cam.localPosition = targetLocalPos;
+        _mainCamera.localPosition = targetLocalPos;
     }
 
     private void UpdateMovement()
     {
-        if (_hasMoveInput) // "accelerating"
-        {
-            Vector3 targetVelocity = _moveInput3D * moveSpeed;
-            
-            float maxDelta = acceleration * Time.unscaledDeltaTime;
-            
-            _currentVelocity = Vector3.MoveTowards(
-                _currentVelocity,
-                targetVelocity,
-                maxDelta
-            );
-            
-            _decelerationTimer = 0f;
-            _decelerationStartVelocity = _currentVelocity;
-        }
-        else // "decelerating"
-        {
-            float normalizedTime = decelerationTime > Mathf.Epsilon
-                ? _decelerationTimer / decelerationTime
-                : 1f;
-            
-            _currentVelocity = Vector3.Lerp(
-                _decelerationStartVelocity,
-                Vector3.zero,
-                normalizedTime
-            );
-
-            _decelerationTimer = Mathf.Min(_decelerationTimer + Time.unscaledDeltaTime, decelerationTime);
-        }
-        // apply movement
-        Vector3 targetPos = cameraTarget.position + _currentVelocity * Time.unscaledDeltaTime;
+        if (!_hasMoveInput) return;
+        
+        Vector3 delta = _moveInput3D * (moveSpeed * Time.unscaledDeltaTime);
+        
+        Vector3 targetPos = _cameraTarget.position + delta;
         
         float damping = 1f - Mathf.Exp(-positionDamping * Time.unscaledDeltaTime);
         
-        cameraTarget.position = Vector3.Lerp(
-            cameraTarget.position,
+        _cameraTarget.position = Vector3.Lerp(
+            _cameraTarget.position,
             targetPos,
             damping
         );
@@ -191,6 +168,38 @@ public class CameraController : MonoBehaviour
     private void ChangeState(EState newState)
     {
         _state = newState;
+    }
+
+    #endregion
+
+    #region Awake Helpers
+
+    private void InitCameraReferences()
+    {
+        if (_mainCamera == null)
+        {
+            Camera foundCam = GetComponentInChildren<Camera>();
+            if (foundCam != null)
+                _mainCamera = foundCam.transform;
+            else
+                Debug.LogError("[CameraController] No Camera found in children. Cannot apply camera model.");
+        }
+        
+        if (_cameraTarget == null)
+            _cameraTarget = transform;
+    }
+    
+    private void InitCameraSetup()
+    {
+        if (_mainCamera.localRotation == Quaternion.identity)
+            _mainCamera.localRotation = Quaternion.Euler(60f, 0f, 0f);
+        
+        float initialDistance = Mathf.Lerp(minZoom, maxZoom, startZoomPercentage);
+        
+        _targetDistance = Mathf.Clamp(initialDistance, minZoom, maxZoom);
+        
+        _mainCamera.localPosition = 
+            _mainCamera.localRotation * new Vector3(0f, 0f, -_targetDistance);
     }
 
     #endregion
@@ -298,49 +307,6 @@ public class CameraController : MonoBehaviour
                 _zoomActionTypeWarningLogged = false;
             }
         }
-    }
-    
-    private void ValidateCameraSetup()
-    {
-        if (cam == null)
-        {
-            Camera foundCam = GetComponentInChildren<Camera>();
-            if (foundCam != null)
-            {
-                cam = foundCam.transform;
-            }
-            else
-            {
-                Debug.LogError("[CameraController] No Camera found in children. Cannot apply camera model.");
-                return; // bail
-            }
-        }
-        
-        if (cameraTarget == null)
-        {
-            cameraTarget = transform;
-        }
-        
-        // rotate cam
-        if (cam.localRotation == Quaternion.identity)
-            cam.localRotation = Quaternion.Euler(60f, 0f, 0f);
-        
-        if (_targetDistance <= 0.01f)
-        {
-            // Project current local position onto camera's backward axis
-            Vector3 backward = cam.localRotation * Vector3.back;
-            _targetDistance = Vector3.Dot(cam.localPosition, backward);
-
-            // If still invalid, default to mid zoom
-            if (_targetDistance <= 0.01f)
-                _targetDistance = (minZoom + maxZoom) * 0.5f;
-        }
-
-        // 3. Clamp zoom
-        _targetDistance = Mathf.Clamp(_targetDistance, minZoom, maxZoom);
-
-        // 4. Apply correct offset (camera sits behind target along its own backward axis)
-        cam.localPosition = cam.localRotation * new Vector3(0f, 0f, -_targetDistance);
     }
 
     #endregion
