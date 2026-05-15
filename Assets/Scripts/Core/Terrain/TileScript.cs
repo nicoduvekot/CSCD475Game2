@@ -136,5 +136,10 @@ public class TileScript : MonoBehaviour
 
     // Update is called once per frame
     
-
+    //remove later, only used for testing
+    public int getMovement()
+    {
+        return movementPoints;
+    }
+    //
 }
