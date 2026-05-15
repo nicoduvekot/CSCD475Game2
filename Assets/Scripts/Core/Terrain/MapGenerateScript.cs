@@ -22,7 +22,7 @@ public class MapGenerateScript : MonoBehaviour
 
     private bool flipOffset = true;
 
-    private Dictionary<Vector3Int,GameObject>  hexStorage;
+    private static Dictionary<Vector3Int,GameObject>  hexStorage;
 
     // all of these values are used to track the xyz position of the hex
     private int curX = 0;
@@ -205,7 +205,7 @@ public class MapGenerateScript : MonoBehaviour
     }
 
 
-    public GameObject getHex(int x, int y, int z){
+    public static GameObject getHex(int x, int y, int z){
 
 
         hexStorage.TryGetValue(new Vector3Int(x,y,z), out GameObject returnObject);

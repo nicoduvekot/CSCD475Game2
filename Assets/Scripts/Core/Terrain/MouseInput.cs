@@ -81,7 +81,7 @@ public class MouseInput : MonoBehaviour
 
 
 
-            inverseTile = map.getHex(-inverseTileScript.z,-inverseTileScript.y,-inverseTileScript.x);
+            inverseTile = MapGenerateScript.getHex(-inverseTileScript.z,-inverseTileScript.y,-inverseTileScript.x);
 
             inverseTile.GetComponent<TileScript>().setTerrain(terrainType);
 
@@ -95,7 +95,7 @@ public class MouseInput : MonoBehaviour
 
         print($"hit hex is {hex.x},{hex.y},{hex.z}");
 
-        TileScript tempHex = map.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
+        TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
 
         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
         
