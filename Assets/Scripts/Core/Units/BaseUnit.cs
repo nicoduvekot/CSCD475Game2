@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using Core.UIElements;
 using Selection;
 using UnityEngine;
@@ -13,12 +14,25 @@ namespace Units
     {
         public MonoBehaviour Behaviour => this;
 
+        public UnitPathing Pathing { get; set; }
+
         protected Health Health { get; private set; }
         protected UnitStats Stats { get; private set; }
         protected StateDisplayUI StateDisplayUI { get; private set; }
+
+        [SerializeField] private TileScript startingHex;
+        protected TileScript CurrentHex { get; set; }
+        protected TileScript TargetHex { get; set; }
+
+        protected TileScript PathingHex { get; set; }
+
+        protected GameObject PathingGameObject { get; set; }
         
-        protected TestSelectableHex CurrentHex { get; set; }
-        protected TestSelectableHex TargetHex { get; set; }
+        private List<TileScript> _previewPath = new(16);
+        
+        private static readonly Vector3 PathingGizmoOffset = new(0, 0.5f, 0);
+
+        protected List<TestSelectableHex> HexPath = new(16);
 
         [field: ReadOnly]
         public UnitOwner Owner { get; private set; }
@@ -36,6 +50,8 @@ namespace Units
         {
             Health = GetComponent<Health>();
             Stats = GetComponent<UnitStats>();
+
+            Pathing = GetComponent<UnitPathing>();
             
             Health.InitializeHealth(Stats.BaseMaxHealth);
             Health.OnHealthEmpty += HandleDeath;
@@ -52,6 +68,8 @@ namespace Units
             
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
+
+            CurrentHex = startingHex;
         }
         
         protected virtual void OnDestroy()
@@ -75,13 +93,16 @@ namespace Units
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
         {
             // 1. If clicked a hex
-            if (targetSelectable is TestSelectableHex hexTile)
+            if (targetSelectable is TileScript hexTile)
             {
                 // Check occupancy
                 if (!hexTile.TryGetOccupant(out MonoBehaviour occupant))
                 {
                     // Hex is empty -> move there
                     TargetHex = hexTile;
+                    
+                    GeneratePreviewPath();
+                    
                     SetState(UnitState.Moving);
                     return;
                 }
@@ -145,7 +166,20 @@ namespace Units
                 return;
             }
             
-            Vector3 targetPos = TargetHex.transform.position;
+            Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
+            Pathing.setTarget(TargetHex.x, TargetHex.y, TargetHex.z);
+
+            List<int[]> pathList = new();
+            pathList = Pathing.findPath();
+
+            int[] nextHexCoordinates = new int[3];
+            nextHexCoordinates = pathList[1];
+            
+            PathingGameObject = MapGenerateScript.getHex(nextHexCoordinates[0], nextHexCoordinates[1], nextHexCoordinates[2]);
+            
+            PathingHex = PathingGameObject.GetComponent<TileScript>();
+            
+            Vector3 targetPos = PathingHex.transform.position;
             
             TryMoveTowards(targetPos);
 
@@ -157,14 +191,20 @@ namespace Units
                     CurrentHex.TryClearUnitOccupant(this);
                 
                 // set us as occupant of new hex
-                if (TargetHex.TrySetUnitOccupant(this))
-                    CurrentHex = TargetHex;
+                if (PathingHex.TrySetUnitOccupant(this))
+                    CurrentHex = PathingHex;
                 else
                     Debug.LogError($"Unit {name} reached hex {TargetHex.name} " +
                                    $"but could not set self as occupant.");
                 
                 // clear target and set to idle
-                TargetHex = null;
+                int[] nextTargetHexCoordinates = new int[3];
+                nextHexCoordinates = pathList[2];
+                
+                PathingGameObject = MapGenerateScript.getHex(nextHexCoordinates[0], nextHexCoordinates[1], nextHexCoordinates[2]);
+
+                
+                TargetHex = PathingGameObject.GetComponent<TileScript>();
                 SetState(UnitState.Idle);
             }
         }
@@ -177,7 +217,7 @@ namespace Units
                 return;
             }
             
-            TestSelectableHex enemyHex = _targetEnemy.CurrentHex;
+            TileScript enemyHex = _targetEnemy.CurrentHex;
             
             if (enemyHex == null)
             {
@@ -325,6 +365,37 @@ namespace Units
         }
 
         #endregion // state machine
+
+        private void GeneratePreviewPath()
+        {
+            _previewPath.Clear();
+            
+            if (CurrentHex == null || TargetHex == null)
+            {
+                Debug.LogError("Tried to get path, but current or target was null");
+                return;
+            }
+            
+            Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
+            Pathing.setTarget(TargetHex.x, TargetHex.y, TargetHex.z);
+            
+            List<int[]> pathList = Pathing.findPath();
+            if (pathList == null || pathList.Count == 0)
+            {
+                Debug.LogError("Pathing list was null or empty after algorithm");
+                return;
+            }
+            
+            for (int i = 0; i < pathList.Count; i++)
+            {
+                int[] coords = pathList[i];
+                GameObject hexObj = MapGenerateScript.getHex(coords[0], coords[1], coords[2]);
+        
+                if (hexObj != null && hexObj.TryGetComponent(out TileScript tile))
+                    _previewPath.Add(tile);
+            }
+        }
+        
         
 
         protected virtual void OnDrawGizmos()
@@ -337,6 +408,30 @@ namespace Units
 
             Gizmos.DrawLine(start, end);
             Gizmos.DrawSphere(end, 0.05f);
+            
+            // drawing for preview path aborts if nothing in preview path
+            if (_previewPath == null || _previewPath.Count == 0)
+                return;
+            
+            Gizmos.color = Color.yellow;
+            
+            for (int i = 0; i < _previewPath.Count; i++)
+            {
+                TileScript hex = _previewPath[i];
+                if (hex == null) continue;
+        
+                Vector3 pos = hex.transform.position + PathingGizmoOffset;
+        
+                // Draw node
+                Gizmos.DrawSphere(pos + Vector3.up * 0.2f, 0.2f);
+        
+                // Draw line to next
+                if (i < _previewPath.Count - 1)
+                {
+                    Vector3 nextPos = _previewPath[i + 1].transform.position + PathingGizmoOffset;
+                    Gizmos.DrawLine(pos + Vector3.up * 0.2f, nextPos + Vector3.up * 0.2f);
+                }
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ public class UnitPathing : MonoBehaviour
     // Gets the reference to the object on startup.
     void Start()
     {
-        map = GameObject.Find("MapGenerater").GetComponent<MapGenerateScript>();
+        //map = GameObject.Find("MapGenerater").GetComponent<MapGenerateScript>();
     }
 
     // sets the position of the start point
@@ -49,7 +49,7 @@ public class UnitPathing : MonoBehaviour
     {
         if (direction < 1 || direction > 6)
         {
-            Debug.LogError("Direction must be 1–6");
+            Debug.LogError("Direction must be 1ï¿½6");
             return new int[] { 0, 0, 0 };
         }
 
@@ -103,10 +103,10 @@ public class UnitPathing : MonoBehaviour
                 string nextKey = key(next);
 
                 // Skip invalid tiles
-                if (map.getHex(next[0], next[1], next[2]) == null || map.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement() < 0)
+                if (MapGenerateScript.getHex(next[0], next[1], next[2]) == null || MapGenerateScript.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement() < 0)
                     continue;
 
-                int newCost = costSoFar[currentKey] + map.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement();
+                int newCost = costSoFar[currentKey] + MapGenerateScript.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement();
 
                 if (!costSoFar.ContainsKey(nextKey) || newCost < costSoFar[nextKey])
                 {
