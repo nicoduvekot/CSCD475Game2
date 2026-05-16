@@ -450,6 +450,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5073067250564442398, guid: 30bc73f5671f444409b23cf25acf09d1, type: 3}
+      propertyPath: moveSpeed
+      value: 40
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -688,8 +692,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3783bd6c913c2a04ea8cc5b83f58d2fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Mouse_Input
-  map: {fileID: 0}
-  MainCamera: {fileID: 0}
 --- !u!1 &1986567505 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4334130218707734005, guid: e758761e5cebdad41b09386c1e07bc0f, type: 3}
