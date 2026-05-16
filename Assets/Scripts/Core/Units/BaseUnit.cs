@@ -30,7 +30,9 @@ namespace Units
         
         private List<TileScript> _previewPath = new(16);
         
-        private static readonly Vector3 PathingGizmoOffset = new(0, 0.5f, 0);
+        private Queue<TileScript> _movementQueue = new(16);
+        
+        private readonly Vector3 PathingGizmoOffset = new(0, 0.5f, 0);
 
         protected List<TestSelectableHex> HexPath = new(16);
 
@@ -103,6 +105,15 @@ namespace Units
                     
                     GeneratePreviewPath();
                     
+                    _movementQueue.Clear();
+
+                    foreach (var tile in _previewPath)
+                        _movementQueue.Enqueue(tile);
+                    
+                    // this dequeues the current Hex, if it is first
+                    if (_movementQueue.Count > 0 && _movementQueue.Peek() == CurrentHex)
+                            _movementQueue.Dequeue();
+                    
                     SetState(UnitState.Moving);
                     return;
                 }
@@ -160,26 +171,14 @@ namespace Units
 
         protected virtual void HandleMoving()
         {
-            if (TargetHex == null)
+            if (_movementQueue == null || _movementQueue.Count == 0)
             {
                 SetState(UnitState.Idle);
                 return;
             }
             
-            Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
-            Pathing.setTarget(TargetHex.x, TargetHex.y, TargetHex.z);
-
-            List<int[]> pathList = new();
-            pathList = Pathing.findPath();
-
-            int[] nextHexCoordinates = new int[3];
-            nextHexCoordinates = pathList[1];
-            
-            PathingGameObject = MapGenerateScript.getHex(nextHexCoordinates[0], nextHexCoordinates[1], nextHexCoordinates[2]);
-            
-            PathingHex = PathingGameObject.GetComponent<TileScript>();
-            
-            Vector3 targetPos = PathingHex.transform.position;
+            TileScript nextHex = _movementQueue.Peek();
+            Vector3 targetPos = nextHex.transform.position;
             
             TryMoveTowards(targetPos);
 
@@ -191,21 +190,21 @@ namespace Units
                     CurrentHex.TryClearUnitOccupant(this);
                 
                 // set us as occupant of new hex
-                if (PathingHex.TrySetUnitOccupant(this))
-                    CurrentHex = PathingHex;
+                if (nextHex.TrySetUnitOccupant(this))
+                    CurrentHex = nextHex;
                 else
-                    Debug.LogError($"Unit {name} reached hex {TargetHex.name} " +
+                    Debug.LogError($"Unit {name} reached hex {nextHex.name} " +
                                    $"but could not set self as occupant.");
-                
-                // clear target and set to idle
-                int[] nextTargetHexCoordinates = new int[3];
-                nextHexCoordinates = pathList[2];
-                
-                PathingGameObject = MapGenerateScript.getHex(nextHexCoordinates[0], nextHexCoordinates[1], nextHexCoordinates[2]);
 
+                // Remove this step from the queue
+                _movementQueue.Dequeue();
                 
-                TargetHex = PathingGameObject.GetComponent<TileScript>();
-                SetState(UnitState.Idle);
+                // if end of queue, set to idle
+                if (_movementQueue.Count == 0)
+                {
+                    TargetHex = CurrentHex;
+                    SetState(UnitState.Idle);
+                }
             }
         }
 
