@@ -58,7 +58,7 @@ public class GameManager : MonoBehaviour
         enemy[0]  = a; enemy[1]  = b; enemy[2]  = c;
     }
 
-    // Adds resources of the type 
+    // Adds resources of the type using 0 index
     // Might need to change depending on 
     public void addResource(int type, int amount)
     {
