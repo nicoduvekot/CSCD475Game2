@@ -1,3 +1,4 @@
+using Units;
 using UnityEngine;
 
 public class TileScript : MonoBehaviour
@@ -8,7 +9,7 @@ public class TileScript : MonoBehaviour
 
     public int z;
 
-    public GameObject tileOccupant;
+    public UnitOwner tileOccupant;
 
     public Material green;
 
@@ -16,6 +17,7 @@ public class TileScript : MonoBehaviour
 
     private int movementPoints;
 
+    public bool buildingTile = false;
    
 
     public enum terrainType{
@@ -27,6 +29,7 @@ public class TileScript : MonoBehaviour
 
     private string materialType = "";
     private Material ground;
+    private int realMovement = 0;
 
     void Start()
     {
@@ -105,9 +108,15 @@ public class TileScript : MonoBehaviour
                     ground = Resources.Load("Material/building", typeof(Material)) as Material;
                     terrain = terrainType.building;
                 }
+
+                if(!buildingTile){
+                    Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position ,transform.rotation,transform);
+                    buildingTile = true;
+                }
+
                 break;   
         }
-        
+        realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
 
         
@@ -146,7 +155,9 @@ public class TileScript : MonoBehaviour
             ground = Resources.Load("Material/building", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
             terrain = terrainType.building;
+
         }
+        realMovement = movementPoints;
     }
 
     public terrainType getTerrain(){
@@ -156,22 +167,26 @@ public class TileScript : MonoBehaviour
     
     
 
-    public GameObject getOccupant(){
+    public UnitOwner getOccupant(){
         return tileOccupant;
     }
 
-    public GameObject removeOccupant(){
-        GameObject r = tileOccupant;
+    public UnitOwner removeOccupant(){
+        tileOccupant = UnitOwner.World;
+        UnitOwner r = tileOccupant;
+        movementPoints = realMovement;
         return r;
     }
 
-    public bool addOccupant(GameObject incomingOccupant){
-        if(tileOccupant != null){
+    public bool addOccupant(UnitOwner incomingOccupant){
+        movementPoints = -1;
+        if(tileOccupant != UnitOwner.World){
             return false;
         }else{
             tileOccupant = incomingOccupant;
             return true;
         }
+        
     }
 
     
