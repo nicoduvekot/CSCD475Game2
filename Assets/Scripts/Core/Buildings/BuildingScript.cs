@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Units;
 
-public class Building : MonoBehaviour
+public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
@@ -12,10 +12,11 @@ public class Building : MonoBehaviour
 
     private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
 
-    public int captureTime = 30;
-    public Material neutral;
+    //public int captureTime = 30;
+    // public Material neutral;
     public Material player1Material;
     public Material player2Material;
+    public Sprite neutralControl;
 
     private bool isCaptured = false;
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
@@ -26,7 +27,7 @@ public class Building : MonoBehaviour
 
     private resourceType resource;
 
-    private List<TileScript> surroundingTiles;
+    private List<TileScript> surroundingTiles = new();
     private GameObject occupantTile;
 
     
@@ -53,25 +54,29 @@ public class Building : MonoBehaviour
         
     }
 
-    public void createBuilding(GameObject currentTile, string resourceType){
+    public void createBuilding(GameObject currentTile, string incomingResourceType){
+        
         occupantTile = currentTile;
-        if(resourceType == "Wood"){
-            resource = Building.resourceType.Wood;
-        }else if(resourceType == "Iron"){
-            resource = Building.resourceType.Iron;
+        if(incomingResourceType == "Wood"){
+            resource = resourceType.Wood;
+        }else if(incomingResourceType == "Iron"){
+            resource = resourceType.Iron;
         }else{
-            resource = Building.resourceType.Food;
+            resource = resourceType.Food;
         }
         
         TileScript tile = occupantTile.GetComponent<TileScript>();
 
-
+       
         TileScript hex = MapGenerateScript.getHex(tile.x + 1,tile.y,tile.z - 1).GetComponent<TileScript>();
         TileScript hex2 = MapGenerateScript.getHex(tile.x + 1,tile.y + 1,tile.z).GetComponent<TileScript>();
         TileScript hex3 = MapGenerateScript.getHex(tile.x,tile.y + 1,tile.z + 1).GetComponent<TileScript>();
         TileScript hex4 = MapGenerateScript.getHex(tile.x - 1,tile.y,tile.z + 1).GetComponent<TileScript>();
         TileScript hex5 = MapGenerateScript.getHex(tile.x - 1,tile.y - 1,tile.z).GetComponent<TileScript>();
         TileScript hex6 = MapGenerateScript.getHex(tile.x,tile.y - 1,tile.z - 1).GetComponent<TileScript>();
+
+        
+        
         if(hex != null){
             surroundingTiles.Add(hex);
         }
@@ -90,7 +95,10 @@ public class Building : MonoBehaviour
         if(hex6 != null){
             surroundingTiles.Add(hex6);
         }
-        
+        // occupantTile.AddComponent<SpriteRenderer>();
+        // occupantTile.GetComponent<SpriteRenderer>().sprite = neutralControl;
+
+        print("hexes fonud");
     }
 
     

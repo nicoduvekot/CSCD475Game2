@@ -45,6 +45,8 @@ public class MapGenerateScript : MonoBehaviour
     private Vector3Int minCords;
     public bool refreshMaterial = false;
 
+    private List<BuildingScript> buildings;
+
 
     
 
@@ -74,18 +76,32 @@ public class MapGenerateScript : MonoBehaviour
 
         hexStorage = new();
         if(!generateMap){
+
+            List<GameObject> buildingHexes = new();
             
             for(int i = 0; i < transform.childCount; i++){
                 
-                TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
+                GameObject childObj = transform.GetChild(i).gameObject;
+                TileScript childTile = childObj.GetComponent<TileScript>();
+
+                if(childTile.getTerrain() == TerrainType.building){
+                    buildingHexes.Add(childObj);
+                }
+                
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
                 if(refreshMaterial){
                     childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
                 }
+                
 
             }
-            
-            
+            print("finished setup buildingHexes size is " + buildingHexes.Count);
+
+            foreach(GameObject hex in buildingHexes ){
+                hex.GetComponent<TileScript>().createBuilding("Wood");
+                print(hex.transform.Find("Building").GetComponent<BuildingScript>());
+                buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
+            }
             
 
             findMaxCords(hexStorage);
@@ -162,7 +178,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
@@ -235,7 +251,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
                     int x = childTile.x - 1;
                     int y = childTile.y;
@@ -255,7 +271,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
                     int x = childTile.x + 1;
                     int y = childTile.y;
@@ -333,7 +349,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
                     
 
 
@@ -386,7 +402,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(x,y,z,terrain);

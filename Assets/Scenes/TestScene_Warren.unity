@@ -297,17 +297,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &743746928 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2230835420376746434, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
-  m_PrefabInstance: {fileID: 1573192030}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0523c77185cae948b0a1454c8d84c68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MapGenerateScript
 --- !u!1 &961739749
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,7 +458,7 @@ MonoBehaviour:
   minZoom: 10
   maxZoom: 15
   startZoomPercentage: 0.25
---- !u!1001 &1573192030
+--- !u!1001 &1585689298
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -479,15 +468,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1819056536915911563, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -32.383297
+      value: -35.858402
       objectReference: {fileID: 0}
     - target: {fileID: 1819056536915911563, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.00000086300633
+      value: 0.5000004
       objectReference: {fileID: 0}
     - target: {fileID: 1819056536915911563, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.7139494
+      value: -4.346992
       objectReference: {fileID: 0}
     - target: {fileID: 1819056536915911563, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
       propertyPath: m_LocalRotation.w
@@ -570,7 +559,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3783bd6c913c2a04ea8cc5b83f58d2fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Mouse_Input
-  map: {fileID: 743746928}
+  map: {fileID: 0}
   MainCamera: {fileID: 961739752}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -580,4 +569,4 @@ SceneRoots:
   - {fileID: 203844589}
   - {fileID: 1809511785}
   - {fileID: 207995925}
-  - {fileID: 1573192030}
+  - {fileID: 1585689298}
