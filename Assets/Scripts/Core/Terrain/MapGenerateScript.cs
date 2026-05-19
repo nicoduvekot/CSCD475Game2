@@ -45,7 +45,7 @@ public class MapGenerateScript : MonoBehaviour
     private Vector3Int minCords;
     public bool refreshMaterial = false;
 
-    private List<BuildingScript> buildings;
+    private List<BuildingScript> buildings = new();
 
 
     
@@ -95,12 +95,12 @@ public class MapGenerateScript : MonoBehaviour
                 
 
             }
-            print("finished setup buildingHexes size is " + buildingHexes.Count);
+            
 
             foreach(GameObject hex in buildingHexes ){
                 hex.GetComponent<TileScript>().createBuilding("Wood");
-                print(hex.transform.Find("Building").GetComponent<BuildingScript>());
                 buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
+                
             }
             
 

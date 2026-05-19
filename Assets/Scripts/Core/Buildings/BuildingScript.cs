@@ -98,7 +98,7 @@ public class BuildingScript : MonoBehaviour
         // occupantTile.AddComponent<SpriteRenderer>();
         // occupantTile.GetComponent<SpriteRenderer>().sprite = neutralControl;
 
-        print("hexes fonud");
+        
     }
 
     
