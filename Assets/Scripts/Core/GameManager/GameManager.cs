@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using Units;       // Imports the name space for the enum types. 
 
 public class GameManager : MonoBehaviour
 {
@@ -60,31 +61,58 @@ public class GameManager : MonoBehaviour
 
     // Adds resources of the type using 0 index
     // Might need to change depending on 
-    public void addResource(int type, int amount)
+    public void addResource(UnitOwner owner, int type, int amount)
     {
         if(type > 2 || type < 0)
         {
             return;
         }
 
-        player[type] = amount + player[type];
+        if (owner == UnitOwner.Player)
+        {
+            player[type] += amount;
+        }
+        else if (owner == UnitOwner.Enemy)
+        {
+            enemy[type] += amount;
+        }
     }
 
     //spends resources of the amounts
-    public bool spendResources(int a, int b, int c)
+    public bool spendResources(UnitOwner owner, int a, int b, int c)
     {
-        // Only triggers if there are not enough
-        if (a < player[0] || b < player[1] || c < player[2])
+        if (owner == UnitOwner.Player)
         {
-            return false;
+            // Only triggers if there are not enough
+            if (a < player[0] || b < player[1] || c < player[2])
+            {
+                return false;
+            }
+            else
+            {
+                player[0] -= a;
+                player[1] -= b;
+                player[2] -= c;
+                return true;
+            }
         }
-        else
+        else if (owner == UnitOwner.Enemy)
         {
-            player[0] =+ a;
-            player[1] -= b;
-            enemy[0] -= c;
-            return true;
+            // Only triggers if there are not enough
+            if (a < enemy[0] || b < enemy[1] || c < enemy[2])
+            {
+                return false;
+            }
+            else
+            {
+                enemy[0] -= a;
+                enemy[1] -= b;
+                enemy[2] -= c;
+                return true;
+            }
         }
+
+        return false;
     }
 
     private void displayResources()
