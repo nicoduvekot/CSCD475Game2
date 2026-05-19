@@ -17,11 +17,13 @@ public class BuildingScript : MonoBehaviour
     public Material player1Material;
     public Material player2Material;
     public Sprite neutralControl;
+    public Sprite playerControl;
+    public Sprite enemyControl;
 
     private bool isCaptured = false;
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
 
-    private float controlPercent = 0; // this relates to the current owner or capturer of the building
+    private float controlPercent = 100; // this relates to the current owner or capturer of the building
 
     private float timePassed = 0;
 
@@ -41,16 +43,29 @@ public class BuildingScript : MonoBehaviour
     void Update()
     {
         
-
-        if(capturing != 0){
-            controlPercent += 30 / (capturing * Time.deltaTime);
+        if(capturing > 0){
+            timePassed += Time.deltaTime * capturing;
+        }else if(capturing < 0){
+            timePassed += Time.deltaTime * capturing;
         }
+        
+        if(timePassed > 5f){
+            timePassed = 0f;
+            controlPercent += 25;
+        }else if(timePassed < -5f){
+            timePassed = 0f;
+            controlPercent -= 50;
+        }
+        
 
         if(controlPercent < 0){
+            print("control changed");
             controller = getNewCapturer();
             capturing = getCapturingCount();
+            updateVisuals(controller);
         }
-
+        print("controlPercent is " + controlPercent);
+        print("capturing count is " + capturing);
         
     }
 
@@ -79,37 +94,44 @@ public class BuildingScript : MonoBehaviour
         
         if(hex != null){
             surroundingTiles.Add(hex);
+            hex.addInitialOverlay(neutralControl,this);
         }
         if(hex2 != null){
             surroundingTiles.Add(hex2);
+            hex2.addInitialOverlay(neutralControl,this);
         }
         if(hex3 != null){
             surroundingTiles.Add(hex3);
+            hex3.addInitialOverlay(neutralControl,this);
         }
         if(hex4 != null){
             surroundingTiles.Add(hex4);
+            hex4.addInitialOverlay(neutralControl,this);
         }
         if(hex5 != null){
             surroundingTiles.Add(hex5);
+            hex5.addInitialOverlay(neutralControl,this);
         }
         if(hex6 != null){
             surroundingTiles.Add(hex6);
+            hex6.addInitialOverlay(neutralControl,this);
         }
         // occupantTile.AddComponent<SpriteRenderer>();
         // occupantTile.GetComponent<SpriteRenderer>().sprite = neutralControl;
-
+        occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
         
     }
 
     
 
-    public void moveIntoHex(int unitOwnerID){
-        UnitOwner ID = (UnitOwner)unitOwnerID;
-        if(ID == controller){
+    public void moveIntoHex(UnitOwner unitOwnerID){
+        
+        if(unitOwnerID == controller){
             capturing++;
         }else{
             capturing--;
         }
+        print("capturing is now " + capturing);
     }
 
     
@@ -122,17 +144,14 @@ public class BuildingScript : MonoBehaviour
             }
         }
 
-        int largest = player[0];
-        int index = 0;
-
-        for(int i = 0; i < player.Length; i++){
-            if(player[i] > largest){
-                largest = player[i];
-                index = i;
-            }
+        if(player[0] > player[1]){
+            return UnitOwner.Player;
+        }else{
+            return UnitOwner.Enemy;
         }
 
-        return (UnitOwner)index;
+        
+        
         
     }
 
@@ -145,11 +164,14 @@ public class BuildingScript : MonoBehaviour
                 num--;
             }
         }
+        print("num is " + num);
         return num;
     }
 
-    private void updateVisuals(int controller){
-        
+    private void updateVisuals(UnitOwner controller){
+        if(controller == UnitOwner.Player){
+            occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
+        }
     }
 
     public void updateResource(){

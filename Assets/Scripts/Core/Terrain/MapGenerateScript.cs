@@ -159,6 +159,7 @@ public class MapGenerateScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         if(generateMap){
             
             

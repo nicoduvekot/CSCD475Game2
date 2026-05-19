@@ -10,8 +10,9 @@ public class TileScript : MonoBehaviour
     public int z;
 
     public UnitOwner tileOccupant;
-
-    private int movementPoints;
+    private GameObject OwnerOutline;
+    private BuildingScript attachedBuilding;
+  
 
     public bool buildingTile = false;
    
@@ -23,7 +24,12 @@ public class TileScript : MonoBehaviour
 
     private string materialType = "";
     private Material ground;
+
+    //static value, will always be the cost to move on this terrain type
     private int realMovement = 0;
+
+    // dynamic value, will be changed based on what is on the tile
+    private int movementPoints;
 
     void Start()
     {
@@ -32,6 +38,11 @@ public class TileScript : MonoBehaviour
         
     }
 
+    void Update(){
+        
+    }
+
+    // initialize the hexes values
     public void createHex(int x, int y, int z,TerrainType incomingTerrain){
         // this.row = row;
         // this.column = column;
@@ -113,6 +124,7 @@ public class TileScript : MonoBehaviour
         
     }
 
+    // sets the terrain of the tile after creation
     public void setTerrain(string type){
         if(type == "dirt"){
             ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
@@ -151,7 +163,7 @@ public class TileScript : MonoBehaviour
         realMovement = movementPoints;
     }
 
-    public GameObject createBuilding(string resource){// only to be used for initial creation of the buildings must be called after map is set up
+    public GameObject createBuilding(string resource){//must be called after map is set up
         GameObject tempBuilding;
         if(!buildingTile){
             tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position ,transform.rotation,transform);
@@ -162,6 +174,7 @@ public class TileScript : MonoBehaviour
             tempBuilding = transform.Find("Building").gameObject;
             tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
         }
+        attachedBuilding = tempBuilding.GetComponent<BuildingScript>();
         return tempBuilding;
     }
 
@@ -184,7 +197,15 @@ public class TileScript : MonoBehaviour
     }
 
     public bool addOccupant(UnitOwner incomingOccupant){
+        
         movementPoints = -1;
+
+        if(attachedBuilding != null){
+            attachedBuilding.moveIntoHex(incomingOccupant);
+        }
+       
+
+
         if(tileOccupant != UnitOwner.World){
             return false;
         }else{
@@ -192,6 +213,25 @@ public class TileScript : MonoBehaviour
             return true;
         }
         
+        
+    }
+
+    // this adds the hex overlay to view who controls the tile, used on and around buildings
+    public void addOverlay(Sprite sprite){
+        if(OwnerOutline == null){
+            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+        }
+        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        
+    }
+
+    public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
+        
+        float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+        OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+        attachedBuilding = incomingBuilding;
+        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
     }
 
     

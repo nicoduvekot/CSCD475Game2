@@ -93,6 +93,11 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
+        
+        hit.collider.gameObject.GetComponent<TileScript>().addOccupant(0);
+        
+        
+
         print($"hit hex is {hex.x},{hex.y},{hex.z}");
 
         TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
