@@ -17,14 +17,6 @@ public class UnitPathing : MonoBehaviour
         new int[] { 0, -1, -1 }
     };
 
-    private MapGenerateScript map;
-
-    // Gets the reference to the object on startup.
-    void Start()
-    {
-        map = GameObject.Find("MapGenerater").GetComponent<MapGenerateScript>();
-    }
-
     // sets the position of the start point
     public void setPosition(int x, int y, int z)
     {
