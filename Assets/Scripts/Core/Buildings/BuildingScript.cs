@@ -19,6 +19,7 @@ public class BuildingScript : MonoBehaviour
     public Sprite neutralControl;
     public Sprite playerControl;
     public Sprite enemyControl;
+    public int resourceGeneration = 5;
 
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
 
@@ -211,12 +212,13 @@ public class BuildingScript : MonoBehaviour
         }
     }
 
-    public void updateResource(){
+    public List<int> updateResource(){
+        List<int> resourceList = new();
         if(controller != UnitOwner.World){
-            //GameManager.addResource(controller,(int)resource,5);
-        }else{
-            return;
+            resourceList.Add((int)controller);
+            resourceList.Add(resourceGeneration);
         }
+        return resourceList;
     }
 
     
