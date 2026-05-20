@@ -65,9 +65,11 @@ public class BuildingScript : MonoBehaviour
             controller = getNewCapturer();
             if(controller == UnitOwner.World){
                 capturing = 0;
+            }else{
+                capturing = getCapturingCount();
             }
 
-            capturing = getCapturingCount();
+            
             updateVisuals(controller);
             controlPercent = 0;
         }
