@@ -9,7 +9,7 @@ public class TileScript : MonoBehaviour
 
     public int z;
 
-    public UnitOwner tileOccupant;
+    private UnitOwner tileOccupant = UnitOwner.World;
     private GameObject OwnerOutline;
     private BuildingScript attachedBuilding;
   
@@ -33,12 +33,8 @@ public class TileScript : MonoBehaviour
 
     void Start()
     {
-
-        ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
         
-    }
-
-    void Update(){
+        ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
         
     }
 
@@ -160,7 +156,7 @@ public class TileScript : MonoBehaviour
             terrain = TerrainType.building;
 
         }
-        realMovement = movementPoints;
+        
     }
 
     public GameObject createBuilding(string resource){//must be called after map is set up
@@ -190,21 +186,41 @@ public class TileScript : MonoBehaviour
     }
 
     public UnitOwner removeOccupant(){
-        tileOccupant = UnitOwner.World;
+
+        if(tileOccupant == UnitOwner.World){
+            movementPoints = realMovement;
+            return UnitOwner.World;
+        }
+
+        OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+
         UnitOwner r = tileOccupant;
+
+        tileOccupant = UnitOwner.World;
+
+        print("real movement is " + realMovement);
+
         movementPoints = realMovement;
+
         return r;
     }
 
     public bool addOccupant(UnitOwner incomingOccupant){
+
+        if(tileOccupant != UnitOwner.World || movementPoints == -1){
+            print("tile occupied by " + tileOccupant);
+            print("movement points were " + movementPoints);
+            return false;
+        }
         
         movementPoints = -1;
 
         if(attachedBuilding != null){
-            attachedBuilding.moveIntoHex(incomingOccupant);
+            
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(incomingOccupant);
         }
        
-
+        tileOccupant = incomingOccupant;
 
         if(tileOccupant != UnitOwner.World){
             return false;

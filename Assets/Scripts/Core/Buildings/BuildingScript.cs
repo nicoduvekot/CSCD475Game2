@@ -20,7 +20,6 @@ public class BuildingScript : MonoBehaviour
     public Sprite playerControl;
     public Sprite enemyControl;
 
-    private bool isCaptured = false;
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
 
     private float controlPercent = 100; // this relates to the current owner or capturer of the building
@@ -39,7 +38,7 @@ public class BuildingScript : MonoBehaviour
         
     }
 
-    // Update is called once per frame
+    
     void Update()
     {
         
@@ -51,21 +50,29 @@ public class BuildingScript : MonoBehaviour
         
         if(timePassed > 5f){
             timePassed = 0f;
-            controlPercent += 25;
+            controlPercent += 15;
+            print("control percentage is " + controlPercent + "%");
         }else if(timePassed < -5f){
             timePassed = 0f;
-            controlPercent -= 50;
+            controlPercent -= 15;
+            print("control percentage is " + controlPercent + "%");
         }
+
+        controlPercent = controlPercent > 100 ? 100:controlPercent;
         
 
         if(controlPercent < 0){
-            print("control changed");
             controller = getNewCapturer();
+            if(controller == UnitOwner.World){
+                capturing = 0;
+            }
+
             capturing = getCapturingCount();
             updateVisuals(controller);
+            controlPercent = 0;
         }
-        print("controlPercent is " + controlPercent);
-        print("capturing count is " + capturing);
+        
+        
         
     }
 
@@ -116,22 +123,43 @@ public class BuildingScript : MonoBehaviour
             surroundingTiles.Add(hex6);
             hex6.addInitialOverlay(neutralControl,this);
         }
-        // occupantTile.AddComponent<SpriteRenderer>();
-        // occupantTile.GetComponent<SpriteRenderer>().sprite = neutralControl;
+
         occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
+
+        
         
     }
 
     
 
-    public void moveIntoHex(UnitOwner unitOwnerID){
+    public Sprite moveIntoHex(UnitOwner unitOwnerID){
         
         if(unitOwnerID == controller){
             capturing++;
         }else{
             capturing--;
         }
-        print("capturing is now " + capturing);
+
+        print("capturing count is " + capturing);
+        
+        if(unitOwnerID == UnitOwner.Player){
+            return playerControl;
+        }else{
+            return enemyControl;
+        }
+        
+    }
+
+    public Sprite moveOutOfHex(UnitOwner unitOwnerID){
+        if(unitOwnerID == controller){
+            capturing--;
+        }else{
+            capturing++;
+        }
+
+        print("capturing count is " + capturing);
+
+        return neutralControl;
     }
 
     
@@ -139,9 +167,13 @@ public class BuildingScript : MonoBehaviour
     public UnitOwner getNewCapturer(){
         int[] player = new int[2];
         foreach(TileScript tile in surroundingTiles){
-            if(tile.tileOccupant != UnitOwner.World){
-                player[(int)tile.tileOccupant] += 1;
+            if(tile.getOccupant() != UnitOwner.World){
+                player[(int)tile.getOccupant()] += 1;
             }
+        }
+
+        if(player[0] == player[1]){
+            return UnitOwner.World;
         }
 
         if(player[0] > player[1]){
@@ -158,9 +190,10 @@ public class BuildingScript : MonoBehaviour
     public int getCapturingCount(){
         int num = 0;
         foreach(TileScript tile in surroundingTiles){
-            if(tile.tileOccupant == controller){
+            if(tile.getOccupant() == controller){
+                print("tile owner is " + tile.getOccupant());
                 num++;
-            }else if(tile.tileOccupant != UnitOwner.World){
+            }else if(tile.getOccupant() != UnitOwner.World){
                 num--;
             }
         }
@@ -171,12 +204,14 @@ public class BuildingScript : MonoBehaviour
     private void updateVisuals(UnitOwner controller){
         if(controller == UnitOwner.Player){
             occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
+        }else if(controller == UnitOwner.Enemy){
+            occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
         }
     }
 
     public void updateResource(){
-        if(controller != UnitOwner.World && isCaptured){
-            // CALL NAthAN FUNCTION
+        if(controller != UnitOwner.World){
+            //GameManager.addResource(controller,(int)resource,5);
         }else{
             return;
         }

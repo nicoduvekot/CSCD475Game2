@@ -51,7 +51,7 @@ MonoBehaviour:
   player2Material: {fileID: 2100000, guid: aa46d60f8e34307469d58dcf63f9d22a, type: 2}
   neutralControl: {fileID: 21300000, guid: 129d76147bce50c4ea94267a4d51ff76, type: 3}
   playerControl: {fileID: 21300000, guid: 7022b441232a9af43b16f3f756551993, type: 3}
-  enemyControl: {fileID: 0}
+  enemyControl: {fileID: 21300000, guid: 01c45b28a79d3a649a6378cdd32d60e2, type: 3}
 --- !u!1 &4568254375255169850
 GameObject:
   m_ObjectHideFlags: 0
