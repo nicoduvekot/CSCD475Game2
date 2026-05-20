@@ -1,8 +1,17 @@
+using Selection;
 using UnityEngine;
+using Units;
 
-public class TileScript : MonoBehaviour
+public class TileScript : MonoBehaviour, ISelectable
 {
 
+    // ISelectable requirement
+    public MonoBehaviour Behaviour => this;
+    private BaseUnit _occupyingUnit;
+    
+    // NOTES: This can change out of being a MonoBehaviour, was set up as such just to provide intended usage 
+    private MonoBehaviour _occupyingBuilding;
+    
     public int x;
     public int y;
 
@@ -182,4 +191,88 @@ public class TileScript : MonoBehaviour
         return movementPoints;
     }
     //
+
+    #region Occupancy Operations
+
+    /// <summary>
+    /// Will give out the occupant, if there is, false return means no occupant
+    ///
+    /// Intended to a means of detecting occupation prior to movement
+    /// </summary>
+    /// <param name="occupant"></param>
+    /// <returns></returns>
+    public bool TryGetOccupant(out MonoBehaviour occupant)
+    {
+        if (_occupyingBuilding != null)
+        {
+            occupant = _occupyingBuilding;
+            return true;
+        }
+
+        if (_occupyingUnit != null)
+        {
+            occupant = _occupyingUnit;
+            return true;
+        }
+
+        occupant = null;
+        return false;
+    }
+    
+    
+    /// <summary>
+    /// Will Try to Set the unit as the occupant, false return means it failed
+    ///
+    /// Intended to be called by a unit trying to occupy
+    /// </summary>
+    /// <param name="unit"></param>
+    /// <returns></returns>
+    public bool TrySetUnitOccupant(BaseUnit unit)
+    {
+        if (_occupyingBuilding != null)
+        {
+            Debug.LogError($"Hex {name} has a building. Units cannot occupy this hex.");
+            return false;
+        }
+
+        _occupyingUnit = unit;
+        return true;
+    }
+    
+    /// <summary>
+    /// Will Try to clearn the occupant from the tile. Must be the occupant who does currently occupy.
+    /// False return means a failure (this will cause a LogError with reasoning to fix)
+    ///
+    /// Intended to be called by the occupying unit, when they no longer occupy
+    /// </summary>
+    /// <param name="unit"></param>
+    /// <returns></returns>
+    public bool TryClearUnitOccupant(BaseUnit unit)
+    {
+        if (unit == null)
+        {
+            Debug.LogError($"Hex {name}: TryClearUnitOccupant called with null requester.");
+            return false;
+        }
+            
+        if (_occupyingUnit == null)
+        {
+            Debug.LogError($"Hex {name}: No unit to clear, but {unit.name} attempted to clear occupancy.");
+            return false;
+        }
+            
+        if (_occupyingUnit != unit)
+        {
+            Debug.LogError(
+                $"Hex {name}: {unit.name} attempted to clear occupancy, " +
+                $"but the current occupant is {_occupyingUnit.name}. Only the occupant should clear itself."
+            );
+            return false;
+        }
+
+        _occupyingUnit = null;
+        return true;
+    }
+
+    #endregion
 }
