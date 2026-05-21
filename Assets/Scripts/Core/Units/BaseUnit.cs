@@ -389,6 +389,12 @@ namespace Units
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
             // if we do anims, the transitions can happen here?
+
+            if (unitAnimator != null)
+            {
+                bool walking = _state == UnitState.Moving;
+                unitAnimator.SetWalking(walking);
+            }
         }
 
         #endregion // state machine
