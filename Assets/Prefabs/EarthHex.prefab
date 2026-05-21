@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3763287542558954382}
   - component: {fileID: 4661559659654716851}
   - component: {fileID: 4881832473619321793}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: EarthHex
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -87,7 +87,7 @@ GameObject:
   - component: {fileID: 1743795351699127496}
   - component: {fileID: 8134926190489571094}
   - component: {fileID: 265921096907417558}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Hex
   m_TagString: Untagged
   m_Icon: {fileID: 0}

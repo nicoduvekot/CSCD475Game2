@@ -27,7 +27,6 @@ namespace Selection
         
         private void Awake()
         {
-            stateDisplayUI.Initialize(transform);
             SetState(UnitState.Idle);
         }
 

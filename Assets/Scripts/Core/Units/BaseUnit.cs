@@ -15,6 +15,8 @@ namespace Units
     {
         public MonoBehaviour Behaviour => this;
         
+        [SerializeField] private UnitAnimator unitAnimator;
+        
         public UnitPathing Pathing { get; set; }
 
         protected Health Health { get; private set; }
@@ -58,8 +60,6 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
-            if (StateDisplayUI != null) 
-                StateDisplayUI.Initialize(_transform);
 
             if (startingHex == null)
             {
@@ -308,7 +308,7 @@ namespace Units
 
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
 
-            FaceTarget(targetPos);
+            //FaceTarget(targetPos);
         }
         
         protected void FaceTarget(Vector3 targetPos)

@@ -7,12 +7,13 @@ namespace Core.UIElements
     {
         [SerializeField] private TextMeshProUGUI label;
         
-        private Transform _followTarget;
+        [SerializeField] private Transform followTarget;
+        [SerializeField] private float verticalOffset = 0.3f;
+        
         private Camera _mainCamera;
         
-        public void Initialize(Transform followTarget)
+        public void Start()
         {
-            _followTarget = followTarget;
             _mainCamera = Camera.main;
         }
         
@@ -20,13 +21,12 @@ namespace Core.UIElements
         {
             label.text = text;
         }
-        
-        private void Update()
+
+        private void LateUpdate()
         {
-            if (_followTarget == null)
-                return;
+            if (followTarget == null) return;
             
-            transform.position = _followTarget.position + Vector3.up * 2f;
+            transform.position = followTarget.position + followTarget.up * verticalOffset;
             
             if (_mainCamera != null)
                 transform.forward = _mainCamera.transform.forward;
