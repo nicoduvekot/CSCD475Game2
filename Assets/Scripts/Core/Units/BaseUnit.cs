@@ -16,6 +16,7 @@ namespace Units
         public MonoBehaviour Behaviour => this;
         
         [SerializeField] private UnitAnimator unitAnimator;
+        [SerializeField] private SpriteRenderer spriteRenderer;
         
         public UnitPathing Pathing { get; set; }
 
@@ -326,6 +327,10 @@ namespace Units
 
         protected virtual void TryMoveTowards(Vector3 targetPos)
         {
+            Vector3 dir = targetPos - _transform.position;
+            
+            HandleFlipSprite(dir);
+            
             float step = Stats.BaseMoveSpeed * Time.deltaTime;
 
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
@@ -487,6 +492,17 @@ namespace Units
                 _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
             
             return true;
+        }
+        
+        protected virtual void HandleFlipSprite(Vector3 direction)
+        {
+            // negligible movement → do nothing
+            if (Mathf.Abs(direction.x) < 0.01f)
+                return;
+
+            // flip if moving left
+            if (spriteRenderer != null)
+                spriteRenderer.flipX = direction.x < 0f;
         }
 
 
