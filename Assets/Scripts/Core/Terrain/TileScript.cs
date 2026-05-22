@@ -199,31 +199,6 @@ public class TileScript : MonoBehaviour, ISelectable
         return tileOccupant;
     }
 
-    public UnitOwner removeOccupant(){
-
-        if(tileOccupant == UnitOwner.World){
-            movementPoints = realMovement;
-            return UnitOwner.World;
-        }
-
-        if(OwnerOutline != null){
-            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
-        }
-
-        UnitOwner r = tileOccupant;
-
-        tileOccupant = UnitOwner.World;
-
-        print("real movement is " + realMovement);
-
-        movementPoints = realMovement;
-
-        
-        fogRemovalCalculations();
-
-        return r;
-    }
-
     private void fogRemovalCalculations(){
         int viewRange = 3;
 
@@ -318,33 +293,6 @@ public class TileScript : MonoBehaviour, ISelectable
         return false;
     }
 
-    public bool addOccupant(UnitOwner incomingOccupant){
-
-        if(tileOccupant != UnitOwner.World || movementPoints == -1){
-            print("tile occupied by " + tileOccupant);
-            print("movement points were " + movementPoints);
-            return false;
-        }
-        
-        movementPoints = -1;
-
-        if(attachedBuilding != null){
-            
-            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(incomingOccupant);
-        }
-       
-        tileOccupant = incomingOccupant;
-
-
-        removeFog();
-        canView(x,y,z,3,true);
-        
-        return true;
-        
-        
-        
-    }
-
     // this adds the hex overlay to view who controls the tile, used on and around buildings
     public void addOverlay(Sprite sprite){
         if(OwnerOutline == null){
@@ -383,6 +331,7 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TryGetOccupant(out MonoBehaviour occupant)
     {
+        
         if (_occupyingBuilding != null)
         {
             occupant = _occupyingBuilding;
@@ -409,13 +358,31 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TrySetUnitOccupant(BaseUnit unit)
     {
+
         if (_occupyingBuilding != null)
         {
             Debug.LogError($"Hex {name} has a building. Units cannot occupy this hex.");
             return false;
         }
 
+        if(tileOccupant != UnitOwner.World || movementPoints == -1){
+            print("tile is occupied by another player or is not an occupiable tile");
+            return false;
+        }
+
+
+        movementPoints = -1;
+
+        if(attachedBuilding != null){
+            
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(unit.Owner);
+        }
+       
+        removeFog();
+        canView(x,y,z,3,true);
+
         _occupyingUnit = unit;
+        tileOccupant = unit.Owner;
         return true;
     }
     
@@ -429,6 +396,13 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TryClearUnitOccupant(BaseUnit unit)
     {
+
+        if(tileOccupant == UnitOwner.World){
+            print("tileOwner is world, cannot clear tile");
+            movementPoints = realMovement;
+            return false;
+        }
+
         if (unit == null)
         {
             Debug.LogError($"Hex {name}: TryClearUnitOccupant called with null requester.");
@@ -450,7 +424,20 @@ public class TileScript : MonoBehaviour, ISelectable
             return false;
         }
 
+        
+
+        if(OwnerOutline != null){
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+        }
+
+        tileOccupant = UnitOwner.World;
+
+        movementPoints = realMovement;
+        
+        fogRemovalCalculations();
+
         _occupyingUnit = null;
+
         return true;
     }
 
@@ -468,7 +455,7 @@ public class TileScript : MonoBehaviour, ISelectable
         try{
             fog = transform.Find("Fog").gameObject;
         }catch (System.NullReferenceException e){
-            print("no fog found");
+            
         }
         if(fog != null){
             Destroy(fog);
