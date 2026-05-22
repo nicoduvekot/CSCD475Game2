@@ -123,6 +123,7 @@ public class MapGenerateScript : MonoBehaviour
             addColumns = 0;
         }
         
+        
     }
 
     private void findMaxCords(Dictionary<Vector3Int,GameObject> cordMap){

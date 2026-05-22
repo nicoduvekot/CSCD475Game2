@@ -82,8 +82,10 @@ namespace Units
             CurrentHex = startingHex;
             // TEMP SOLUTION for getting unit to start at the hex and be set as occupant
             // Expect a more rigid solution in the future
+
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
+            
         }
         
         protected virtual void OnDestroy()
