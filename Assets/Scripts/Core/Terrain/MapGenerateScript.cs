@@ -1,6 +1,8 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 
 public class MapGenerateScript : MonoBehaviour
 {
@@ -47,7 +49,7 @@ public class MapGenerateScript : MonoBehaviour
 
     private List<BuildingScript> buildings = new();
 
-
+    private Dictionary<Vector3Int,bool> visibleHexes = new();
     
 
     
@@ -89,6 +91,7 @@ public class MapGenerateScript : MonoBehaviour
                 }
                 
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
+                visibleHexes.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),false);
                 if(refreshMaterial){
                     childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
                 }
@@ -103,6 +106,7 @@ public class MapGenerateScript : MonoBehaviour
                 
             }
             
+
 
             findMaxCords(hexStorage);
 
@@ -424,5 +428,22 @@ public class MapGenerateScript : MonoBehaviour
             }
         }
         return hexColumn;
+    }
+
+    public bool getVisible(int x, int y, int z){
+
+        bool canSee = false;
+        visibleHexes.TryGetValue(new Vector3Int(x,y,z),out canSee);
+        return canSee;
+    }
+
+    public void setVisible(int x, int y, int z){
+
+        visibleHexes[new Vector3Int(x,y,z)] = true;
+    }
+
+    public void removeVisible(int x, int y, int z){
+
+        visibleHexes[new Vector3Int(x,y,z)] = false;
     }
 }

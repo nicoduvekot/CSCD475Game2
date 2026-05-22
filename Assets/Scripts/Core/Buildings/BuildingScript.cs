@@ -7,9 +7,10 @@ public class BuildingScript : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     private enum resourceType{
-        Wood, Iron, Food
+        Wood, Iron, Food, Fort
     }
 
+    private bool isFort = false;
     private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
 
     //public int captureTime = 30;
@@ -63,10 +64,16 @@ public class BuildingScript : MonoBehaviour
         
 
         if(controlPercent < 0){
-            controller = getNewCapturer();
-            if(controller == UnitOwner.World){
+            UnitOwner newCapture = getNewCapturer();
+            if(newCapture == UnitOwner.World){
                 capturing = 0;
+                occupantTile.GetComponent<TileScript>().removeBuildingOwner();
             }else{
+                if(newCapture != controller){
+                    occupantTile.GetComponent<TileScript>().removeBuildingOwner();
+                    occupantTile.GetComponent<TileScript>().addBuildingOwner(newCapture);
+                }
+                controller = newCapture;
                 capturing = getCapturingCount();
             }
 
@@ -86,8 +93,10 @@ public class BuildingScript : MonoBehaviour
             resource = resourceType.Wood;
         }else if(incomingResourceType == "Iron"){
             resource = resourceType.Iron;
-        }else{
+        }else if(incomingResourceType == "Food"){
             resource = resourceType.Food;
+        }else if(incomingResourceType == "Fort"){
+            resource = resourceType.Fort;
         }
         
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -213,15 +222,28 @@ public class BuildingScript : MonoBehaviour
     }
 
     public List<int> updateResource(){
+        if(resource == resourceType.Fort){
+            return null;
+        }
         List<int> resourceList = new();
         if(controller != UnitOwner.World){
             resourceList.Add((int)controller);
+            resourceList.Add((int)resource);
             resourceList.Add(resourceGeneration);
         }
         return resourceList;
     }
 
-    
+    public void recruitUnits(int type){
+        
+        if(type == 0){
+            
+        }else if(type == 1){
+
+        }else if(type == 2){
+
+        }
+    }
 
 
 }

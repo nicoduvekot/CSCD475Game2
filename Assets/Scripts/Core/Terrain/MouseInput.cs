@@ -102,6 +102,8 @@ public class MouseInput : MonoBehaviour
         }else{
             hit.collider.gameObject.GetComponent<TileScript>().removeOccupant();
         }
+
+        //hit.collider.gameObject.GetComponent<TileScript>().removeFog();
         
         
 

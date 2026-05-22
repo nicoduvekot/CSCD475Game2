@@ -1,5 +1,6 @@
 using Units;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class TileScript : MonoBehaviour
 {
@@ -30,6 +31,8 @@ public class TileScript : MonoBehaviour
 
     // dynamic value, will be changed based on what is on the tile
     private int movementPoints;
+
+    private bool hasFog = true;
 
     void Start()
     {
@@ -114,6 +117,9 @@ public class TileScript : MonoBehaviour
 
                 break;   
         }
+
+        addFog();
+
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
 
@@ -192,7 +198,9 @@ public class TileScript : MonoBehaviour
             return UnitOwner.World;
         }
 
-        OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+        if(OwnerOutline != null){
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+        }
 
         UnitOwner r = tileOccupant;
 
@@ -202,7 +210,104 @@ public class TileScript : MonoBehaviour
 
         movementPoints = realMovement;
 
+        
+        fogRemovalCalculations();
+
         return r;
+    }
+
+    private void fogRemovalCalculations(){
+        int viewRange = 3;
+
+        
+        
+
+        int currentRows = viewRange + 1;
+        // int rowsViewed = 0;
+
+        int topX = 0;
+        int topZ = 0 - viewRange;
+
+        for(int topY = -viewRange; topY <= viewRange; topY++){
+
+            
+            
+            if(topY != -viewRange){
+                if(topY <= 0){
+                    topX++;
+                    currentRows++;
+                }else{
+                    topZ++;
+                    currentRows--;
+                }
+            }
+
+            for(int i = 0; i < currentRows; i++){
+
+                //if(!(topX - i + x == x && topY + y == y)){// dont check the tile your on or it will crash
+                    GameObject nextHex = MapGenerateScript.getHex(topX - i + x,topY + y,topZ + i + z);
+                    if(nextHex!= null){
+                        if(!canView(topX - i + x,topY + y,topZ + i + z,viewRange,false) && !nextHex.GetComponent<TileScript>().getFog()){
+                            nextHex.GetComponent<TileScript>().addFog();
+                        }
+                    }
+                //}
+            }
+
+
+        }
+    }
+
+    public void addBuildingOwner(UnitOwner owner){
+        tileOccupant = owner;
+        canView(x,y,z,3,true);
+    }
+
+    public void removeBuildingOwner(){
+        tileOccupant = UnitOwner.World;
+        fogRemovalCalculations();
+    }
+
+    private bool canView(int hexX, int hexY, int hexZ, int viewDistance,bool clearFog){
+        
+        int viewRange = viewDistance;
+
+        int currentRows = viewRange + 1;
+
+        int topX = 0;
+        int topZ = 0 - viewRange;
+
+        for(int topY = -viewRange; topY <= viewRange; topY++){
+
+            
+            
+            if(topY != -viewRange){
+                if(topY <= 0){
+                    topX++;
+                    currentRows++;
+                }else{
+                    topZ++;
+                    currentRows--;
+                }
+            }
+
+            for(int i = 0; i < currentRows; i++){
+                
+                //if(!(topX - i + hexX == hexX && topY + hexY == hexY)){// dont check the tile your on or it will crash
+                    if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ) != null){
+                        if(clearFog){
+                            MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().removeFog();
+                        }else if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().tileOccupant == UnitOwner.Player){
+                            return true;
+                        }
+                    }
+                //}
+            }
+
+
+        }
+
+        return false;
     }
 
     public bool addOccupant(UnitOwner incomingOccupant){
@@ -222,12 +327,12 @@ public class TileScript : MonoBehaviour
        
         tileOccupant = incomingOccupant;
 
-        if(tileOccupant != UnitOwner.World){
-            return false;
-        }else{
-            tileOccupant = incomingOccupant;
-            return true;
-        }
+
+        removeFog();
+        canView(x,y,z,3,true);
+        
+        return true;
+        
         
         
     }
@@ -258,4 +363,28 @@ public class TileScript : MonoBehaviour
         return movementPoints;
     }
     //
+
+    public void addFog(){
+        float height = GetComponent<MeshCollider>().bounds.size.y /1.7f;
+        GameObject fog  =Instantiate(Resources.Load("Prefabs/Hidden", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),transform.rotation,transform);
+        fog.name = "Fog";
+        hasFog = true;
+    }
+
+    public void removeFog(){
+        GameObject fog = null;
+        try{
+            fog = transform.Find("Fog").gameObject;
+        }catch (System.NullReferenceException e){
+            print("no fog found");
+        }
+        if(fog != null){
+            Destroy(fog);
+            hasFog = false;
+        }
+    }
+
+    public bool getFog(){
+        return hasFog;
+    }
 }
