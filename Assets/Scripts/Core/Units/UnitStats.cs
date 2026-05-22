@@ -19,7 +19,7 @@ namespace Units
         [SerializeField] private float baseAttackPower = 10f;
         [Tooltip("Base attack per second value")]
         [SerializeField] private float baseAttackSpeed = 1f;
-        [Tooltip("Base attack range")]
+        [Tooltip("Base attack range \nThis is an int for Tile Distance")]
         [SerializeField] private int baseAttackRange = 1;
         
 
