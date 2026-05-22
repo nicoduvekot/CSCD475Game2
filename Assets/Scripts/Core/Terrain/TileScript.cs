@@ -466,4 +466,16 @@ public class TileScript : MonoBehaviour, ISelectable
     public bool getFog(){
         return hasFog;
     }
+
+    public bool canMakeUnit(){
+        if(tileOccupant == UnitOwner.World && movementPoints != -1){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public void makeUnit(GameObject unit){
+        //Instantiate(unit,)
+    }
 }

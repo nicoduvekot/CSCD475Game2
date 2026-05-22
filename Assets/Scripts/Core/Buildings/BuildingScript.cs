@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Units;
+using Unity.Collections;
 
 public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
-    private enum resourceType{
+    public  enum ResourceType{
         Wood, Iron, Food, Fort
     }
 
@@ -28,7 +29,7 @@ public class BuildingScript : MonoBehaviour
 
     private float timePassed = 0;
 
-    private resourceType resource;
+    private ResourceType resource;
 
     private List<TileScript> surroundingTiles = new();
     private GameObject occupantTile;
@@ -90,13 +91,13 @@ public class BuildingScript : MonoBehaviour
         
         occupantTile = currentTile;
         if(incomingResourceType == "Wood"){
-            resource = resourceType.Wood;
+            resource = ResourceType.Wood;
         }else if(incomingResourceType == "Iron"){
-            resource = resourceType.Iron;
+            resource = ResourceType.Iron;
         }else if(incomingResourceType == "Food"){
-            resource = resourceType.Food;
+            resource = ResourceType.Food;
         }else if(incomingResourceType == "Fort"){
-            resource = resourceType.Fort;
+            resource = ResourceType.Fort;
         }
         
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -221,27 +222,54 @@ public class BuildingScript : MonoBehaviour
         }
     }
 
-    public List<int> updateResource(){
-        if(resource == resourceType.Fort){
-            return null;
-        }
-        List<int> resourceList = new();
-        if(controller != UnitOwner.World){
-            resourceList.Add((int)controller);
-            resourceList.Add((int)resource);
-            resourceList.Add(resourceGeneration);
-        }
-        return resourceList;
+    // public List<int> updateResource(){
+    //     if(resource == resourceType.Fort){
+    //         return null;
+    //     }
+    //     List<int> resourceList = new();
+    //     if(controller != UnitOwner.World){
+    //         resourceList.Add((int)controller);
+    //         resourceList.Add((int)resource);
+    //         resourceList.Add(resourceGeneration);
+    //     }
+    //     return resourceList;
+    // }
+
+    public UnitOwner getOwner(){
+        return controller;
+    }
+
+    public ResourceType getResource(){
+        return resource;
+    }
+
+    public void setResource(ResourceType r){ // ONLY used 
+        resource = r;
     }
 
     public void recruitUnits(int type){
+
+        TileScript openHex = null;
+        TileScript tile = occupantTile.GetComponent<TileScript>();
+        
+
+
+        for(int i = 1; i < 6; i++){
+            int[] nextHex = UnitPathing.hexNeighbor(new int[] {tile.x,tile.y,tile.z},i);
+            if(MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]) != null 
+            && MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]).GetComponent<TileScript>().canMakeUnit()){
+                
+                openHex = MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]).GetComponent<TileScript>();
+                break;
+            }
+        }
         
         if(type == 0){
-            
+            openHex.makeUnit(Resources.Load("Prefabs/Soldier", typeof (GameObject)) as GameObject);
         }else if(type == 1){
-
+            openHex.makeUnit(Resources.Load("Prefabs/Archer", typeof (GameObject)) as GameObject);
         }else if(type == 2){
-
+            openHex.makeUnit(Resources.Load("Prefabs/Hork", typeof (GameObject)) as GameObject);
         }
     }
 
