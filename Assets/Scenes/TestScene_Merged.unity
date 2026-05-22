@@ -529,9 +529,9 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1247541547 stripped
+--- !u!114 &699846576 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 131335265594195114, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
+  m_CorrespondingSourceObject: {fileID: 1175817856984354289, guid: 28ed7cd89826c304690c49c3ff7012a0, type: 3}
   m_PrefabInstance: {fileID: 1573192030}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
@@ -612,7 +612,7 @@ PrefabInstance:
     - target: {fileID: 3343524875448468025, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
       propertyPath: startingHex
       value: 
-      objectReference: {fileID: 1247541547}
+      objectReference: {fileID: 699846576}
     - target: {fileID: 6376197070409863825, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
       propertyPath: m_LocalPosition.x
       value: -32.21

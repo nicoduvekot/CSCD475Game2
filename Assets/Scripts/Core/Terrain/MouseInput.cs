@@ -95,13 +95,13 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
-        if(controller == 0){
-            hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Player);
-        }else if(controller == 1){
-            hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Enemy);
-        }else{
-            hit.collider.gameObject.GetComponent<TileScript>().removeOccupant();
-        }
+        // if(controller == 0){
+        //     hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Player);
+        // }else if(controller == 1){
+        //     hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Enemy);
+        // }else{
+        //     hit.collider.gameObject.GetComponent<TileScript>().removeOccupant();
+        // }
 
         //hit.collider.gameObject.GetComponent<TileScript>().removeFog();
         

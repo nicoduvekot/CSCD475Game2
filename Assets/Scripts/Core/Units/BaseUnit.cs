@@ -61,7 +61,18 @@ namespace Units
             if (StateDisplayUI != null) 
                 StateDisplayUI.Initialize(_transform);
 
-            if (startingHex == null)
+            
+        }
+        
+        protected virtual void Start()
+        {
+            if (!_ownerInitialized)
+                Debug.LogWarning($"CAUTION: {name} was spawned with default ownership of {Owner}");
+            
+            if (StateDisplayUI != null)
+                StateDisplayUI.SetText(_state.ToString());
+
+                if (startingHex == null)
             {
                 Debug.LogError($"[BaseUnit] no starting hex assigned for {name}, disabling unit");
                 enabled = false;
@@ -73,15 +84,6 @@ namespace Units
             // Expect a more rigid solution in the future
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
-        }
-        
-        protected virtual void Start()
-        {
-            if (!_ownerInitialized)
-                Debug.LogWarning($"CAUTION: {name} was spawned with default ownership of {Owner}");
-            
-            if (StateDisplayUI != null)
-                StateDisplayUI.SetText(_state.ToString());
         }
         
         protected virtual void OnDestroy()
@@ -420,6 +422,7 @@ namespace Units
             {
                 int[] coords = pathList[i];
                 PathingGameObject = MapGenerateScript.getHex(coords[0], coords[1], coords[2]);
+                
 
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
                     _previewPath.Add(tile);

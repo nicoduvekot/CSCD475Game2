@@ -228,8 +228,8 @@ public class MapGenerateScript : MonoBehaviour
 
     public static GameObject getHex(int x, int y, int z){
 
-
-        hexStorage.TryGetValue(new Vector3Int(x,y,z), out GameObject returnObject);
+        GameObject returnObject = null;
+        hexStorage.TryGetValue(new Vector3Int(x,y,z), out returnObject);
 
         return returnObject;
     }
