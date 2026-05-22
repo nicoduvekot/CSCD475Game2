@@ -100,6 +100,7 @@ namespace Units
         public void TakeDamage(float amount)
         {
             Health.ApplyDamage(amount);
+            unitAnimator.PlayHurt();
         }
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
@@ -113,7 +114,7 @@ namespace Units
                     // TargetHex is empty -> generate path and move to it
                     TargetHex = hexTile;
 
-                    GeneratePreviewPath();
+                    TryGeneratePath(0);
 
                     _pathIndex = 0;
                     
@@ -234,58 +235,72 @@ namespace Units
 
         protected virtual void HandleEngaging()
         {
+            // target become null during engaging step?
+            // to be replaced with event system maybe
             if (_targetEnemy == null)
             {
                 SetState(UnitState.Idle);
                 return;
             }
             
-            TileScript enemyHex = _targetEnemy.CurrentHex;
-            
-            if (enemyHex == null)
+            // path is empty, we are in range
+            if (_previewPath.Count == 0)
             {
-                Debug.LogError(
-                    $"[BaseUnit] {name} is trying to Engage logic {_targetEnemy.name}, " +
-                    $"but the enemy unit has no CurrentHex assigned. BAIL and Reset self to Idle."
-                );
-
+                SetState(UnitState.Engaged);
+                _attackCooldownTimer = 0f;
+                return;
+            }
+            
+            if (_pathIndex >= _previewPath.Count)
+            {
+                SetState(UnitState.Engaged);
+                _attackCooldownTimer = 0f;
+                return;
+            }
+            
+            NextHex = _previewPath[_pathIndex];
+            
+            // safety edge case
+            if (NextHex == null)
+            {
+                Debug.LogError($"{name} encountered null hex in engage path");
                 SetState(UnitState.Idle);
                 return;
             }
             
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if in range => engage
-            if (distance <= Stats.BaseAttackRange)
-            {
-                SetState(UnitState.Engaged);
-                _attackCooldownTimer = 0f;
-            }
-            
-            Vector3 targetPos = enemyHex.transform.position;
+            Vector3 targetPos = NextHex.transform.position;
             TryMoveTowards(targetPos);
+            
+            if ((_transform.position - targetPos).sqrMagnitude < 0.01f)
+            {
+                CurrentHex?.TryClearUnitOccupant(this);
+
+                if (NextHex.TrySetUnitOccupant(this))
+                    CurrentHex = NextHex;
+
+                _pathIndex++;
+
+                if (_pathIndex >= _previewPath.Count)
+                {
+                    SetState(UnitState.Engaged);
+                    _attackCooldownTimer = 0f;
+                }
+            }
         }
 
         protected virtual void HandleEngaged()
         {
+            // if target becomes null during combat: bail and idle
+            // to be replaced with event logic system maybe
             if (_targetEnemy == null)
             {
                 SetState(UnitState.Idle);
                 return;
             }
             
-            FaceTarget(_targetEnemy._transform.position);
+            //FaceTarget(_targetEnemy._transform.position);
             
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if unit moved out of range logic
-            if (distance > Stats.BaseAttackRange)
-            {
-                SetState(UnitState.Engaging);
-                return;
-            }
+            // TODO: detection of if enemy moved? Hopefully event trigger maybe?
             
             // else attack logic
             _attackCooldownTimer -= Time.deltaTime;
@@ -293,7 +308,14 @@ namespace Units
             if (_attackCooldownTimer <= 0f)
             {
                 _attackCooldownTimer = 1f / Stats.BaseAttackSpeed;
+                
+                unitAnimator.SetAttacking(true);
+                
                 Attack(_targetEnemy);
+            }
+            else
+            {
+                unitAnimator.SetAttacking(false);
             }
         }
         
@@ -325,17 +347,27 @@ namespace Units
 
         protected bool TryHandleUnitTarget(BaseUnit other)
         {
+            // Safety: if unit is null somehow, bail (should I LogError?)
             if (other ==null) return false;
 
             // other is same faction
             if (other.Owner == this.Owner)
             {
-                Debug.Log($"{name} targeted a friendly unit ({other.name}). No logic set");
+                Debug.LogWarning($"{name} targeted a friendly unit ({other.name}). No logic set yet");
                 return true;
             }
             
             // else other is a target
             _targetEnemy = other;
+            TargetHex = other.CurrentHex;
+
+            TryGeneratePath(Stats.BaseAttackRange);
+            
+            _pathIndex = 0;
+            
+            if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
+                _pathIndex = 1;
+            
             SetState(UnitState.Engaging);
             return true;
         }
@@ -348,7 +380,8 @@ namespace Units
 
             SetState(UnitState.Dying);
 
-            OnDeathAnimationStarted();
+            unitAnimator.PlayDeath();
+            //OnDeathAnimationStarted();
         }
         
         protected virtual void OnDeathAnimationStarted()
@@ -363,7 +396,7 @@ namespace Units
             OnDeathAnimationCompleted();
         }
         
-        protected virtual void OnDeathAnimationCompleted()
+        public void OnDeathAnimationCompleted()
         {
             CurrentHex.TryClearUnitOccupant(this);
             Destroy(gameObject);
@@ -397,9 +430,9 @@ namespace Units
             }
         }
 
-        #endregion // state machine
+        #endregion // end state machine
 
-        private void GeneratePreviewPath()
+        private bool TryGeneratePath(int rangeIndex)
         {
             _previewPath.Clear();
 
@@ -407,7 +440,7 @@ namespace Units
             if (CurrentHex == null || TargetHex == null)
             {
                 Debug.LogError("[BaseUnit] Tried to get path, but current or target was null");
-                return;
+                return false;
             }
             
             Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
@@ -419,7 +452,7 @@ namespace Units
                 Debug.LogError("Pathing list was null or empty after algorithm");
                 _previewPath.Clear();
                 TargetHex = null;
-                return;
+                return false;
             }
 
             for (int i = 0; i < pathList.Count; i++)
@@ -430,6 +463,30 @@ namespace Units
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
                     _previewPath.Add(tile);
             }
+            
+            if (_previewPath.Count == 0)
+                return false;
+            
+            // no range for movement
+            if (rangeIndex <= 0)
+                return true;
+            
+            // how far target is currently in hex spaces
+            int hexDistance = _previewPath.Count - 1;
+
+            // already in range
+            if (hexDistance <= rangeIndex)
+            {
+                _previewPath.Clear();
+                return true;
+            }
+            
+            int stopIndex = hexDistance - rangeIndex;
+            
+            if (stopIndex < _previewPath.Count - 1)
+                _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
+            
+            return true;
         }
 
 
