@@ -572,6 +572,10 @@ PrefabInstance:
       propertyPath: unitAnimator
       value: 
       objectReference: {fileID: 1879713137}
+    - target: {fileID: 3343524875448468025, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
+      propertyPath: spriteRenderer
+      value: 
+      objectReference: {fileID: 1879713140}
     - target: {fileID: 3572436406309330626, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
       propertyPath: followTarget
       value: 
@@ -4235,6 +4239,10 @@ PrefabInstance:
       propertyPath: unitAnimator
       value: 
       objectReference: {fileID: 2020763726}
+    - target: {fileID: 3343524875448468025, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
+      propertyPath: spriteRenderer
+      value: 
+      objectReference: {fileID: 2020763723}
     - target: {fileID: 3572436406309330626, guid: 2702ffd7e090d6a45a1211de5a3f156d, type: 3}
       propertyPath: followTarget
       value: 
