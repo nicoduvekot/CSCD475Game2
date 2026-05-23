@@ -12,8 +12,11 @@ namespace Units
     public class UnitStats : MonoBehaviour
     {
         [Header("Base Stats (before modifiers)")]
+        
         [SerializeField] private float baseMaxHealth = 100f;
-        [SerializeField] private float baseMoveSpeed = 4f;
+        
+        [Min(1f)]
+        [SerializeField] private float baseMoveSpeed = 1f;
         
         [Tooltip("Base attack damage value")]
         [SerializeField] private float baseAttackPower = 10f;
@@ -24,7 +27,7 @@ namespace Units
         
 
         public float BaseMaxHealth => baseMaxHealth;
-        public float BaseMoveSpeed => baseMoveSpeed;
+        public float BaseMoveSpeed => Mathf.Max(1f, baseMoveSpeed);
         
         public float BaseAttackPower => baseAttackPower;
         public float BaseAttackSpeed => baseAttackSpeed;
