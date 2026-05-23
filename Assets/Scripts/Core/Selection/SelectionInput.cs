@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
@@ -10,14 +12,13 @@ namespace Selection
     {
         [Header("Input")]
         [SerializeField] private InputActionReference pointerPositionAction;
-        [SerializeField] private InputActionReference selectAdditiveAction;
         [SerializeField] private InputActionReference selectAction;
         [SerializeField] private InputActionReference commandAction;
         
         [Header("References")]
-        [SerializeField] private Camera cam;
-        [SerializeField] private GraphicRaycaster uiRaycaster;
-        [SerializeField] private EventSystem eventSystem;
+        private Camera _mainCamera;
+        private GraphicRaycaster _uiRaycaster;
+        private EventSystem _eventSystem;
         
         [Header("Layer Mask")]
         [SerializeField] private LayerMask unitLayerMask;
@@ -26,57 +27,80 @@ namespace Selection
         private LayerMask _allSelectableLayerMask;
         
         [Header("Selection")]
-        [SerializeField] private List<GameObject> selectedObjects = new();
         
+        [Tooltip("This is for Debug purposes only!\nDragging something in here will not work")]
+        [SerializeField] [UsedImplicitly] private GameObject selectedObjectDebug;
+        
+        private ISelectable _selectedObject;
         private ISelectable _lastHoveredSelectable;
+
+        [Header("Command System Fields")] 
+        private bool _isCommandPreviewActive;
+        private Vector3 _previewWorldPos;
+        private ISelectable _previewTarget;
         
-        // TODO: Possible bring this back for command issuing system
-        /*
-        //[Header("Dragging Settings")]
-        //[SerializeField] private float holdThreshold = 0.15f;
-        //[SerializeField] private float dragStartDistance = 5f;
+        private Action<InputAction.CallbackContext> _pointerMovedHandler;
+
+        private void OnValidate()
+        {
+            ValidateInputActionReferences();
+        }
         
-        //private Vector2 _startPos;
-        //private Vector2 _currentPos;
-        
-        //private bool _isHolding;
-        //private bool _isDragging;
-        //private float _holdTimer;
-        */
-        
-        private bool _isAdditive;
-        private bool _isAdditiveAtStart;
-        
-        private System.Action<InputAction.CallbackContext> _pointerMovedHandler;
+        private void Awake()
+        {
+            _mainCamera = Camera.main;
+            if (_mainCamera == null)
+                Debug.LogError("SelectionInput: No MainCamera found in scene.");
+            
+            _eventSystem = EventSystem.current;
+            if (_eventSystem == null)
+                Debug.LogError("SelectionInput: No EventSystem found in scene.");
+            
+            _uiRaycaster = FindFirstObjectByType<GraphicRaycaster>();
+            if (_uiRaycaster == null)
+                Debug.LogWarning("SelectionInput: No GraphicRaycaster found. UI blocking will not work.");
+        }
+
+        private bool InputActionsValid =>
+            pointerPositionAction != null && pointerPositionAction.action != null &&
+            selectAction != null && selectAction.action != null &&
+            commandAction != null && commandAction.action != null;
         
         private void OnEnable()
         {
+            // safety bail
+            if (!InputActionsValid)
+            {
+                Debug.LogError("SelectionInput: InputActionReferences are not assigned. Aborting setup.");
+                enabled = false;
+                return;
+            }
+            
             pointerPositionAction.action.Enable();
-            selectAdditiveAction.action.Enable();
             selectAction.action.Enable();
             commandAction.action.Enable();
 
             _pointerMovedHandler = ctx => OnPointerMoved(ctx.ReadValue<Vector2>());
             
             pointerPositionAction.action.performed += _pointerMovedHandler;
-            selectAdditiveAction.action.performed += OnAdditiveChanged;
-            selectAdditiveAction.action.canceled  += OnAdditiveChanged;
             selectAction.action.performed += OnSelectAction;
-            commandAction.action.started += OnCommand;
+            commandAction.action.started  += OnCommandStarted;
+            commandAction.action.canceled += OnCommandReleased;
         }
 
         private void OnDisable()
         {
+            if (!InputActionsValid)
+                return;
+            
             pointerPositionAction.action.Disable();
-            selectAdditiveAction.action.Disable();
             selectAction.action.Disable();
             commandAction.action.Disable();
 
             pointerPositionAction.action.performed -= _pointerMovedHandler;
-            selectAdditiveAction.action.performed -= OnAdditiveChanged;
-            selectAdditiveAction.action.canceled  -= OnAdditiveChanged;
-            selectAction.action.performed += OnSelectAction;
-            commandAction.action.started -= OnCommand;
+            selectAction.action.performed -= OnSelectAction;
+            commandAction.action.started  -= OnCommandStarted;
+            commandAction.action.canceled -= OnCommandReleased;
         }
 
         private void Start()
@@ -88,12 +112,13 @@ namespace Selection
         {
             if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
             {
-                if (_lastHoveredSelectable == selectable)
-                    return;
-
-                _lastHoveredSelectable?.OnHoverExit();
-                _lastHoveredSelectable = selectable;
-                selectable.OnHoverEnter();
+                // only update the hovered ISelectable when it is a new ISelectable
+                if (!ReferenceEquals(_lastHoveredSelectable, selectable))
+                {
+                    _lastHoveredSelectable?.OnHoverExit();
+                    _lastHoveredSelectable = selectable;
+                    selectable.OnHoverEnter();
+                }
             }
             else
             {
@@ -103,15 +128,31 @@ namespace Selection
                     _lastHoveredSelectable = null;
                 }
             }
-        }
-
-        private void OnAdditiveChanged(InputAction.CallbackContext ctx)
-        {
-            _isAdditive = ctx.performed;
+            
+            // command is held + pointer is being moved = ask for preview update logic
+            if (_isCommandPreviewActive && _selectedObject != null)
+            {
+                if (!ReferenceEquals(_previewTarget, _lastHoveredSelectable))
+                    _previewTarget = _lastHoveredSelectable;
+                
+                if (TryGetWorldPoint(pos, out Vector3 newWorldPos))
+                {
+                    // Only update preview if world position changed
+                    if ((newWorldPos - _previewWorldPos).sqrMagnitude > 0.0001f)
+                    {
+                        _previewWorldPos = newWorldPos;
+                        _selectedObject.OnPreviewCommand(_previewWorldPos, _previewTarget);
+                    }
+                }
+            }
         }
 
         private void OnSelectAction(InputAction.CallbackContext ctx)
         {
+            // NRE safety bail
+            if (pointerPositionAction == null)
+                return;
+            
             Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
             
             if (IsPointerOverUI(pos))
@@ -119,125 +160,141 @@ namespace Selection
             
             if (TryGetSelectableUnderCursor(pos, out ISelectable selectable))
             {
-                if (!_isAdditive)
-                    ClearSelection();
-
-                AddToSelection(selectable);
+                ClearSelected();
+                SetSelected(selectable);
             }
             else
             {
-                ClearSelection();
+                ClearSelected();
             }
         }
-
-        private void OnCommand(InputAction.CallbackContext ctx)
+        
+        private void OnCommandStarted(InputAction.CallbackContext ctx)
         {
+            // if nothing is selected, nothing can be commanded
+            // and NRE safety bail
+            if (_selectedObject == null || pointerPositionAction == null) 
+                return;
+            
             Vector2 pos = pointerPositionAction.action.ReadValue<Vector2>();
-
-            if (!TryGetWorldPoint(pos, out Vector3 worldPos))
+            
+            if (IsPointerOverUI(pos)) 
                 return;
-
-            if (!TryGetSelectableUnderCursor(pos, out ISelectable targetSelectable))
+            
+            // flag for OnPointerMoved to do preview update logic
+            _isCommandPreviewActive = true;
+            
+            // do the first preview - OnPointerMoved handles updating from here
+            if (TryGetWorldPoint(pos, out Vector3 startWorldPos))
+                _previewWorldPos = startWorldPos;
+            
+            _previewTarget = _lastHoveredSelectable;
+            
+            _selectedObject.OnPreviewCommand(_previewWorldPos, _previewTarget);
+        }
+        
+        private void OnCommandReleased(InputAction.CallbackContext ctx)
+        {
+            // bail if Command System is not actually active
+            if (!_isCommandPreviewActive) 
                 return;
-
-            // iterate backwards, as we possibly remove from list during iteration
-            for (int i = selectedObjects.Count - 1; i >= 0; i--)
+            
+            // flag for OnPointerMoved to stop doing preview updates
+            _isCommandPreviewActive = false;
+            
+            if (_selectedObject != null)
             {
-                GameObject obj = selectedObjects[i];
-
-                // NRE - destroyed object or otherwise
-                if (obj == null)
-                {
-                    selectedObjects.RemoveAt(i);
-                    continue;
-                }
-
-                // Somehow a non-ISelectable is in list
-                if (!obj.TryGetComponent(out ISelectable selectable))
-                {
-                    selectedObjects.RemoveAt(i);
-                    continue;
-                }
-
-                // valid entry is given command
-                selectable.OnCommand(worldPos, targetSelectable);
+                _selectedObject.OnCommand(_previewWorldPos, _previewTarget);
+                _selectedObject.OnPreviewCancel();
             }
+            
+            _previewTarget = null;
         }
         
         private bool TryGetWorldPoint(Vector2 screenPos, out Vector3 worldPos)
         {
-            Ray ray = cam.ScreenPointToRay(screenPos);
-
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                worldPos = hit.point;
-                return true;
-            }
+            // set default out
             worldPos = default;
-            return false;
+            
+            // safety bail
+            if (_mainCamera == null)
+                return false;
+            
+            Ray ray = _mainCamera.ScreenPointToRay(screenPos);
+
+            if (!Physics.Raycast(ray, out RaycastHit hit)) return false;
+            
+            worldPos = hit.point;
+            return true;
         }
 
         private bool TryGetSelectableUnderCursor(Vector2 pos, out ISelectable selectable)
         {
-            Ray ray = cam.ScreenPointToRay(pos);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, _allSelectableLayerMask))
-            {
-                selectable = hit.collider.GetComponentInParent<ISelectable>();
-                return selectable != null;
-            }
-
+            // set default out
             selectable = null;
-            return false;
-        }
-        
-        private void ClearSelection()
-        {
-            for (int i = selectedObjects.Count - 1; i >= 0; i--)
-            {
-                GameObject obj = selectedObjects[i];
-
-                // NRE in list
-                if (obj == null)
-                {
-                    selectedObjects.RemoveAt(i);
-                    continue;
-                }
-
-                // Non-ISelectable object
-                if (!obj.TryGetComponent(out ISelectable selectable))
-                {
-                    selectedObjects.RemoveAt(i);
-                    continue;
-                }
-
-                // valid entry is given deselect and removed
-                selectable.OnDeselected();
-                selectedObjects.RemoveAt(i);
-            }
-        }
-        
-        private void AddToSelection(ISelectable selectable)
-        {
-            GameObject go = selectable.Behaviour.gameObject;
-
-            if (selectedObjects.Contains(go)) return;
             
-            selectedObjects.Add(go);
-            selectable.OnSelected();
+            // safety bail
+            if (_mainCamera == null)
+                return false;
+            
+            Ray ray = _mainCamera.ScreenPointToRay(pos);
+
+            if (!Physics.Raycast(ray, out RaycastHit hit, 1000f, _allSelectableLayerMask)) return false;
+            
+            selectable = hit.collider.GetComponentInParent<ISelectable>();
+            return selectable != null;
         }
         
+        private void ClearSelected()
+        {
+            _selectedObject?.OnDeselected();
+            _selectedObject = null;
+            selectedObjectDebug = null;
+        }
+        
+        private void SetSelected(ISelectable selectable)
+        {
+            _selectedObject = selectable;
+            selectedObjectDebug = selectable?.Behaviour != null 
+                ? selectable.Behaviour.gameObject 
+                : null;
+            _selectedObject.OnSelected();
+        }
+
         private bool IsPointerOverUI(Vector2 screenPos)
         {
-            PointerEventData eventData = new(eventSystem)
+            // safety bails
+            if (_uiRaycaster == null || _eventSystem == null)
+                return false;
+
+            PointerEventData eventData = new(_eventSystem)
             {
                 position = screenPos
             };
 
             List<RaycastResult> results = new();
-            uiRaycaster.Raycast(eventData, results);
+            _uiRaycaster.Raycast(eventData, results);
 
             return results.Count > 0;
+        }
+
+        private void ValidateInputActionReferences()
+        {
+            ValidateAction(pointerPositionAction, "Pointer Position");
+            ValidateAction(selectAction, "Select");
+            ValidateAction(commandAction, "Command");
+        }
+
+        private void ValidateAction(InputActionReference actionReference, string actionName)
+        {
+            if (actionReference == null)
+            {
+                Debug.LogWarning($"[SelectionInput] {actionName} ActionReference is not assigned.");
+                return;
+            }
+
+            if (actionReference.action == null)
+                Debug.LogWarning($"[SelectionInput] {actionName} ActionReference has no action bound");
         }
     }
 }
