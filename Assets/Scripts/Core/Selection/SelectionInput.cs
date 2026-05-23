@@ -19,6 +19,12 @@ namespace Selection
         [SerializeField] private GraphicRaycaster uiRaycaster;
         [SerializeField] private EventSystem eventSystem;
         
+        [Header("Layer Mask")]
+        [SerializeField] private LayerMask unitLayerMask;
+        [SerializeField] private LayerMask tileLayerMask;
+        
+        private LayerMask _allSelectableLayerMask;
+        
         [Header("Selection")]
         [SerializeField] private List<GameObject> selectedObjects = new();
         
@@ -71,6 +77,11 @@ namespace Selection
             selectAdditiveAction.action.canceled  -= OnAdditiveChanged;
             selectAction.action.performed += OnSelectAction;
             commandAction.action.started -= OnCommand;
+        }
+
+        private void Start()
+        {
+            _allSelectableLayerMask = unitLayerMask | tileLayerMask;
         }
 
         private void OnPointerMoved(Vector2 pos)
@@ -170,7 +181,7 @@ namespace Selection
         {
             Ray ray = cam.ScreenPointToRay(pos);
 
-            if (Physics.Raycast(ray, out RaycastHit hit))
+            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, _allSelectableLayerMask))
             {
                 selectable = hit.collider.GetComponentInParent<ISelectable>();
                 return selectable != null;
