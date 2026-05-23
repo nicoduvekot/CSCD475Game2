@@ -44,7 +44,7 @@ namespace Units
         private UnitState _state = UnitState.Idle;
         private BaseUnit _targetEnemy;
         
-        private float _attackCooldownTimer;
+        //private float _attackCooldownTimer;
         
         private Transform _transform;
 
@@ -247,6 +247,7 @@ namespace Units
 
         protected virtual void HandleEngaging()
         {
+            // target null mid-tracking - bail and idle
             if (_targetEnemy == null)
             {
                 _unitAnimator.SetWalking(false);
@@ -257,24 +258,20 @@ namespace Units
             // path is empty means we are already in range
             if (_previewPath.Count == 0)
             {
-                _unitAnimator.SetWalking(false);
-                SetState(UnitState.Engaged);
-                _attackCooldownTimer = 0f;
+                EnterEngagedState();
                 return;
             }
 
             // end of path means we are in range
             if (_pathIndex >= _previewPath.Count)
             {
-                _unitAnimator.SetWalking(false);
-                SetState(UnitState.Engaged);
-                _attackCooldownTimer = 0f;
+                EnterEngagedState();
                 return;
             }
             
             NextHex = _previewPath[_pathIndex];
 
-            // safety edge case check
+            // safety edge case check and bail
             if (NextHex == null)
             {
                 Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
@@ -300,34 +297,36 @@ namespace Units
                 // end of path logic
                 if (_pathIndex >= _previewPath.Count)
                 {
-                    _unitAnimator.SetWalking(false);
-                    SetState(UnitState.Engaged);
-                    _attackCooldownTimer = 0f;
+                    EnterEngagedState();
                 }
             }
         }
 
-        protected virtual void HandleEngaged()
+        private void EnterEngagedState()
         {
+            // stop walking if we were
+            _unitAnimator.SetWalking(false);
+            
+            // if target no longer exists. bail
             if (_targetEnemy == null)
             {
                 SetState(UnitState.Idle);
                 return;
             }
             
-            // else attack logic
-            _attackCooldownTimer -= Time.deltaTime;
+            SetState(UnitState.Engaged);
+            
+            _unitAnimator.SetAttackSpeed(Stats.BaseAttackSpeed);
+            
+            _unitAnimator.SetAttacking(true);
+        }
 
-            if (_attackCooldownTimer <= 0f)
-            {
-                _attackCooldownTimer = 1f / Stats.BaseAttackSpeed;
-                _unitAnimator.SetAttacking(true);
-                Attack(_targetEnemy);
-            }
-            else
-            {
-                _unitAnimator.SetAttacking(false);
-            }
+        protected virtual void HandleEngaged()
+        {
+            if (_targetEnemy != null) return;
+            
+            _unitAnimator.SetAttacking(false);
+            SetState(UnitState.Idle);
         }
         
         protected virtual void Attack(BaseUnit enemy)
@@ -373,6 +372,12 @@ namespace Units
             
             SetState(UnitState.Engaging);
             return true;
+        }
+
+        public virtual void OnAttackHit()
+        {
+            if (_targetEnemy != null)
+                Attack(_targetEnemy);
         }
 
         #region DeathStateLogic
