@@ -1,16 +1,16 @@
 using UnityEngine;
+using Units;       // Imports the name space for the enum types. 
 
 public class techController : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+
+    private double[] playerUnitUpgrades = { 1.0, 1.0, 1.0 };
+    private double[] enemyUnitUpgrades = { 1.0, 1.0, 1.0 };
+
+    public void upgrade(UnitOwner owner, int type)
     {
-        
+
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    public double getCost()
 }
