@@ -203,45 +203,60 @@ namespace Units
                 SetState(UnitState.Idle);
                 return;
             }
-            
-            NextHex = _previewPath[_pathIndex];
-            // bail out if NextHex somehow is null
-            if (NextHex == null)
-            {
-                Debug.LogError($"[BaseUnit] {name} path reached a null tile at index {_pathIndex}. Resetting to Idle.");
-                _unitAnimator.SetWalking(false);
-                TargetHex = null;
-                SetState(UnitState.Idle);
-                return;
-            }
-            
-            Vector3 targetPos = NextHex.transform.position;
-            TryMoveTowards(targetPos);
 
-            // if significantly close enough to target -> reached
-            if ((_transform.position - targetPos).sqrMagnitude < 0.01f)
+            // if we are not currently stepping, begin a new step
+            if (!_isStepping)
             {
-                // Clear hex we came from occupant
-                if (CurrentHex != null)
-                    CurrentHex.TryClearUnitOccupant(this);
+                NextHex = _previewPath[_pathIndex];
                 
-                // set us as occupant of new hex
-                if (NextHex.TrySetUnitOccupant(this))
-                    CurrentHex = NextHex;
-                else
-                    Debug.LogError($"Unit {name} reached hex but could not set self as occupant." +
-                                   $"TargetHex was {(TargetHex ? TargetHex.name : "NULL")}");
-
-                // Dequeue the step we just took
-                _pathIndex++;
-
-                // reached Target
-                if (_pathIndex >= _previewPath.Count)
+                // bail if NextHex was found to be null
+                if (NextHex == null)
                 {
+                    Debug.LogError($"{name} encountered null tile at index {_pathIndex}");
                     _unitAnimator.SetWalking(false);
                     TargetHex = null;
                     SetState(UnitState.Idle);
+                    return;
                 }
+                
+                BeginStep(NextHex);
+                _isStepping = true;
+                return;
+            }
+
+            // if we are currently stepping - increment timer
+            _currentStepTimer -= Time.deltaTime;
+            
+            // timer not completed yet
+            if (_currentStepTimer > 0f)
+                return;
+            
+            // step completed
+            // clear from current
+            if (CurrentHex != null)
+                CurrentHex.TryClearUnitOccupant(this);
+            
+            // set as occupants of the one we moved into
+            if (NextHex.TrySetUnitOccupant(this))
+                CurrentHex = NextHex;
+            else
+                Debug.LogError($"Unit {name} reached hex but could not set self as occupant." +
+                               $"TargetHex was {(TargetHex ? TargetHex.name : "NULL")}");
+            
+            // immediate snap to nextHex location ??
+            _transform.position = NextHex.transform.position;
+            
+            // iterate pathIndex
+            _pathIndex++;
+            // reset stepping flag = next frame start next step calculations
+            _isStepping = false;
+
+            // if path is complete set to idle
+            if (_pathIndex >= _previewPath.Count)
+            {
+                _unitAnimator.SetWalking(false);
+                TargetHex = null;
+                SetState(UnitState.Idle);
             }
         }
 
@@ -519,6 +534,29 @@ namespace Units
                     Gizmos.DrawLine(pos + Vector3.up * 0.2f, nextPos + Vector3.up * 0.2f);
                 }
             }
+        }
+
+        private bool _isStepping;
+        private float _currentStepTimer;
+        private float _currentStepDuration;
+        
+        private void BeginStep(TileScript nextHex)
+        {
+            // if nextHex somehow null at this point, safety bail
+            if (nextHex == null)
+            {
+                Debug.LogError($"[BaseUnit] {name} tried to begin step with null NextHex.");
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            int tileCost = nextHex.getMovement();
+            float moveSpeed = Stats.BaseMoveSpeed;
+            
+            _currentStepDuration = tileCost / moveSpeed;
+            _currentStepTimer = _currentStepDuration;
+            
+            _unitAnimator.SetWalking(true);
         }
     }
 }
