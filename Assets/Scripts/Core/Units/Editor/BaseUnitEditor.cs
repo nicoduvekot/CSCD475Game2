@@ -46,11 +46,11 @@ namespace Units.Editor
             _debugDamage = EditorGUILayout.FloatField("Damage Amount", _debugDamage);
 
             // Apply damage button
-            if (GUILayout.Button("Apply Damage"))
-            {
-                unit.TakeDamage(_debugDamage);
-                Debug.Log($"[Editor] {unit.name} took {_debugDamage} damage from editor action");
-            }
+            // if (GUILayout.Button("Apply Damage"))
+            // {
+            //     unit.TakeDamage(_debugDamage);
+            //     Debug.Log($"[Editor] {unit.name} took {_debugDamage} damage from editor action");
+            // }
         }
     }
 }
