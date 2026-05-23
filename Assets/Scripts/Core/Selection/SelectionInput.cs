@@ -273,7 +273,12 @@ namespace Selection
             };
 
             List<RaycastResult> results = new();
+            
             _uiRaycaster.Raycast(eventData, results);
+            
+            // for debug purposes
+            // foreach (RaycastResult r in results)
+            //     Debug.Log("UI Hit: " + r.gameObject.name);
 
             return results.Count > 0;
         }
