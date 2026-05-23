@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using Core.UIElements;
 using Selection;
@@ -102,9 +102,11 @@ namespace Units
             _ownerInitialized = true;
         }
         
-        public void TakeDamage(float amount)
+        public void TakeDamage(float amount, BaseUnit attacker)
         {
             Health.ApplyDamage(amount);
+            
+            Debug.Log($"{attacker.name} damaged {this.name} with {amount} damage");
         }
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
@@ -118,7 +120,7 @@ namespace Units
                     // TargetHex is empty -> generate path and move to it
                     TargetHex = hexTile;
 
-                    GeneratePreviewPath();
+                    TryGeneratePath(0);
 
                     _pathIndex = 0;
                     
@@ -129,6 +131,7 @@ namespace Units
                     // only set to moving if there was a path retrieved?
                     if (_previewPath.Count > _pathIndex)
                         SetState(UnitState.Moving);
+                    
                     return;
                 }
                 
@@ -245,31 +248,53 @@ namespace Units
                 return;
             }
             
-            TileScript enemyHex = _targetEnemy.CurrentHex;
-            
-            if (enemyHex == null)
+            // path is empty means we are already in range
+            if (_previewPath.Count == 0)
             {
-                Debug.LogError(
-                    $"[BaseUnit] {name} is trying to Engage logic {_targetEnemy.name}, " +
-                    $"but the enemy unit has no CurrentHex assigned. BAIL and Reset self to Idle."
-                );
+                SetState(UnitState.Engaged);
+                _attackCooldownTimer = 0f;
+                return;
+            }
 
+            // end of path means we are in range
+            if (_pathIndex >= _previewPath.Count)
+            {
+                SetState(UnitState.Engaged);
+                _attackCooldownTimer = 0f;
+                return;
+            }
+            
+            NextHex = _previewPath[_pathIndex];
+
+            // safety edge case check
+            if (NextHex == null)
+            {
+                Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
                 SetState(UnitState.Idle);
                 return;
             }
             
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if in range => engage
-            if (distance <= Stats.BaseAttackRange)
-            {
-                SetState(UnitState.Engaged);
-                _attackCooldownTimer = 0f;
-            }
-            
-            Vector3 targetPos = enemyHex.transform.position;
+            Vector3 targetPos = NextHex.transform.position;
             TryMoveTowards(targetPos);
+
+            if ((_transform.position - targetPos).sqrMagnitude < 0.01f)
+            {
+                // clear from previous
+                CurrentHex?.TryClearUnitOccupant(this);
+                
+                // set into target
+                if (NextHex.TrySetUnitOccupant(this))
+                    CurrentHex = NextHex;
+                
+                _pathIndex++;
+                
+                // end of path logic
+                if (_pathIndex >= _previewPath.Count)
+                {
+                    SetState(UnitState.Engaged);
+                    _attackCooldownTimer = 0f;
+                }
+            }
         }
 
         protected virtual void HandleEngaged()
@@ -280,52 +305,37 @@ namespace Units
                 return;
             }
             
-            FaceTarget(_targetEnemy._transform.position);
-            
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if unit moved out of range logic
-            if (distance > Stats.BaseAttackRange)
-            {
-                SetState(UnitState.Engaging);
-                return;
-            }
-            
             // else attack logic
             _attackCooldownTimer -= Time.deltaTime;
 
             if (_attackCooldownTimer <= 0f)
             {
                 _attackCooldownTimer = 1f / Stats.BaseAttackSpeed;
+                _unitAnimator.SetAttacking(true);
                 Attack(_targetEnemy);
+            }
+            else
+            {
+                _unitAnimator.SetAttacking(false);
             }
         }
         
         protected virtual void Attack(BaseUnit enemy)
         {
-            enemy.TakeDamage(Stats.BaseAttackPower);
+            enemy.TakeDamage(Stats.BaseAttackPower, this);
         }
 
         protected virtual void TryMoveTowards(Vector3 targetPos)
         {
+            Vector3 direction = targetPos - transform.position;
+            
+            HandleSpriteFlip(direction);
+            
             float step = Stats.BaseMoveSpeed * Time.deltaTime;
 
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
 
-            FaceTarget(targetPos);
-        }
-        
-        protected void FaceTarget(Vector3 targetPos)
-        {
-            Vector3 dir = targetPos - _transform.position;
-            dir.y = 0f;
-
-            if (dir.sqrMagnitude > Mathf.Epsilon)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(dir);
-                _transform.rotation = Quaternion.RotateTowards(_transform.rotation, targetRot, 720f * Time.deltaTime);
-            }
+            //FaceTarget(targetPos);
         }
 
         protected bool TryHandleUnitTarget(BaseUnit other)
@@ -341,6 +351,15 @@ namespace Units
             
             // else other is a target
             _targetEnemy = other;
+            TargetHex = other.CurrentHex;
+
+            TryGeneratePath(Stats.BaseAttackRange);
+            
+            _pathIndex = 0;
+            
+            if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
+                _pathIndex = 1;
+            
             SetState(UnitState.Engaging);
             return true;
         }
@@ -386,7 +405,7 @@ namespace Units
 
         #endregion // state machine
 
-        private void GeneratePreviewPath()
+        private bool TryGeneratePath(int rangeIndex)
         {
             _previewPath.Clear();
 
@@ -394,7 +413,7 @@ namespace Units
             if (CurrentHex == null || TargetHex == null)
             {
                 Debug.LogError("[BaseUnit] Tried to get path, but current or target was null");
-                return;
+                return false;
             }
             
             Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
@@ -406,7 +425,7 @@ namespace Units
                 Debug.LogError("Pathing list was null or empty after algorithm");
                 _previewPath.Clear();
                 TargetHex = null;
-                return;
+                return false;
             }
 
             for (int i = 0; i < pathList.Count; i++)
@@ -418,6 +437,36 @@ namespace Units
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
                     _previewPath.Add(tile);
             }
+
+            if (_previewPath.Count == 0)
+                return false;
+            
+            if (rangeIndex <= 0)
+                return true;
+
+            int hexDistance = _previewPath.Count - 1;
+
+            if (hexDistance <= rangeIndex)
+            {
+                _previewPath.Clear();
+                return true;
+            }
+            
+            int stopIndex = hexDistance - rangeIndex;
+            
+            if (stopIndex < _previewPath.Count - 1)
+                _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
+            
+            return true;
+        }
+
+        protected virtual void HandleSpriteFlip(Vector3 direction)
+        {
+            if (Math.Abs(direction.x) < Mathf.Epsilon)
+                return;
+            
+            if (_spriteRenderer != null)
+                _spriteRenderer.flipX = direction.x < 0f;
         }
 
 
