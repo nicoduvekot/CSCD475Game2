@@ -550,6 +550,10 @@ namespace Units
                 return;
             }
             
+            // sprite flip logic
+            Vector3 direction = nextHex.transform.position - _transform.position;
+            HandleSpriteFlip(direction);
+            
             int tileCost = nextHex.getMovement();
             float moveSpeed = Stats.BaseMoveSpeed;
             
