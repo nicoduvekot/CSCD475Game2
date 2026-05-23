@@ -18,20 +18,20 @@ namespace Units
         private UnitAnimator _unitAnimator;
         private SpriteRenderer _spriteRenderer;
         
-        public UnitPathing Pathing { get; set; }
+        private UnitPathing Pathing { get; set; }
 
-        protected Health Health { get; private set; }
-        protected UnitStats Stats { get; private set; }
-        protected StateDisplayUI StateDisplayUI { get; private set; }
+        private Health Health { get; set; }
+        private UnitStats Stats { get; set; }
+        private StateDisplayUI StateDisplayUI { get; set; }
         
         [Header("Tile Pathing")]
         // TEMP SOLUTION - changes to this unit to unit will reflect a change in prefab
         // SerializeField is not ideal solution - expect this to change if I have time
         [SerializeField] private TileScript startingHex;
-        protected TileScript CurrentHex { get; set; }
-        protected TileScript TargetHex { get; set; }
-        protected TileScript NextHex { get; set; }
-        protected GameObject PathingGameObject { get; set; }
+        private TileScript CurrentHex { get; set; }
+        private TileScript TargetHex { get; set; }
+        private TileScript NextHex { get; set; }
+        private GameObject PathingGameObject { get; set; }
         private readonly List<TileScript> _previewPath = new(16);
         private readonly Vector3 _pathingGizmoOffset = new(0, 0.5f, 0);
         private int _pathIndex;
@@ -41,12 +41,11 @@ namespace Units
 
         private bool _ownerInitialized;
 
-        protected UnitState _state = UnitState.Idle;
-        protected BaseUnit _targetEnemy;
+        private UnitState _state = UnitState.Idle;
+        private BaseUnit _targetEnemy;
         
-        protected float _attackCooldownTimer;
-
-        private const float FakeDeathAnimTime = 1.5f;
+        private float _attackCooldownTimer;
+        
         private Transform _transform;
 
         protected virtual void Awake()
@@ -105,7 +104,7 @@ namespace Units
             _ownerInitialized = true;
         }
         
-        public void TakeDamage(float amount, BaseUnit attacker)
+        private void TakeDamage(float amount, BaseUnit attacker)
         {
             Health.ApplyDamage(amount);
             
@@ -350,7 +349,7 @@ namespace Units
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
         }
 
-        protected bool TryHandleUnitTarget(BaseUnit other)
+        private bool TryHandleUnitTarget(BaseUnit other)
         {
             if (other ==null) return false;
 
