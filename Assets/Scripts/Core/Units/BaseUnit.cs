@@ -61,6 +61,9 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
+            
+            _unitAnimator = GetComponentInChildren<UnitAnimator>();
+            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
 
             
         }
@@ -196,6 +199,7 @@ namespace Units
             // bail out if no path
             if (_previewPath == null || _previewPath.Count == 0 || _pathIndex >= _previewPath.Count)
             {
+                _unitAnimator.SetWalking(false);
                 TargetHex = null;
                 SetState(UnitState.Idle);
                 return;
@@ -206,6 +210,7 @@ namespace Units
             if (NextHex == null)
             {
                 Debug.LogError($"[BaseUnit] {name} path reached a null tile at index {_pathIndex}. Resetting to Idle.");
+                _unitAnimator.SetWalking(false);
                 TargetHex = null;
                 SetState(UnitState.Idle);
                 return;
@@ -234,6 +239,7 @@ namespace Units
                 // reached Target
                 if (_pathIndex >= _previewPath.Count)
                 {
+                    _unitAnimator.SetWalking(false);
                     TargetHex = null;
                     SetState(UnitState.Idle);
                 }
@@ -244,6 +250,7 @@ namespace Units
         {
             if (_targetEnemy == null)
             {
+                _unitAnimator.SetWalking(false);
                 SetState(UnitState.Idle);
                 return;
             }
@@ -251,6 +258,7 @@ namespace Units
             // path is empty means we are already in range
             if (_previewPath.Count == 0)
             {
+                _unitAnimator.SetWalking(false);
                 SetState(UnitState.Engaged);
                 _attackCooldownTimer = 0f;
                 return;
@@ -259,6 +267,7 @@ namespace Units
             // end of path means we are in range
             if (_pathIndex >= _previewPath.Count)
             {
+                _unitAnimator.SetWalking(false);
                 SetState(UnitState.Engaged);
                 _attackCooldownTimer = 0f;
                 return;
@@ -270,6 +279,7 @@ namespace Units
             if (NextHex == null)
             {
                 Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
+                _unitAnimator.SetWalking(false);
                 SetState(UnitState.Idle);
                 return;
             }
@@ -291,6 +301,7 @@ namespace Units
                 // end of path logic
                 if (_pathIndex >= _previewPath.Count)
                 {
+                    _unitAnimator.SetWalking(false);
                     SetState(UnitState.Engaged);
                     _attackCooldownTimer = 0f;
                 }
@@ -332,10 +343,11 @@ namespace Units
             HandleSpriteFlip(direction);
             
             float step = Stats.BaseMoveSpeed * Time.deltaTime;
+            
+            if (direction.sqrMagnitude > Mathf.Epsilon)
+                _unitAnimator.SetWalking(true);
 
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
-
-            //FaceTarget(targetPos);
         }
 
         protected bool TryHandleUnitTarget(BaseUnit other)
@@ -400,7 +412,6 @@ namespace Units
             
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
-            // if we do anims, the transitions can happen here?
         }
 
         #endregion // state machine
