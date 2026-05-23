@@ -20,7 +20,7 @@ namespace Units
         [Tooltip("Base attack per second value")]
         [SerializeField] private float baseAttackSpeed = 1f;
         [Tooltip("Base attack range")]
-        [SerializeField] private float baseAttackRange = 1.5f;
+        [SerializeField] private int baseAttackRange = 1;
         
 
         public float BaseMaxHealth => baseMaxHealth;
@@ -28,6 +28,6 @@ namespace Units
         
         public float BaseAttackPower => baseAttackPower;
         public float BaseAttackSpeed => baseAttackSpeed;
-        public float BaseAttackRange => baseAttackRange;
+        public int BaseAttackRange => baseAttackRange;
     }
 }
