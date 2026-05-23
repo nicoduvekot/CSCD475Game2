@@ -61,8 +61,6 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
-            if (StateDisplayUI != null) 
-                StateDisplayUI.Initialize(_transform);
 
             
         }
