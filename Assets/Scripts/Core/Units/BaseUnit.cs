@@ -15,6 +15,9 @@ namespace Units
     {
         public MonoBehaviour Behaviour => this;
         
+        private UnitAnimator _unitAnimator;
+        private SpriteRenderer _spriteRenderer;
+        
         public UnitPathing Pathing { get; set; }
 
         protected Health Health { get; private set; }
@@ -352,22 +355,10 @@ namespace Units
 
             SetState(UnitState.Dying);
 
-            OnDeathAnimationStarted();
+            _unitAnimator.TriggerDeath();
         }
         
-        protected virtual void OnDeathAnimationStarted()
-        {
-            StartCoroutine(FakeDeathAnimationRoutine());
-        }
-        
-        private IEnumerator FakeDeathAnimationRoutine()
-        {
-            Debug.LogWarning("Base Unit is faking death animation");
-            yield return new WaitForSeconds(FakeDeathAnimTime);
-            OnDeathAnimationCompleted();
-        }
-        
-        protected virtual void OnDeathAnimationCompleted()
+        public void OnDeathAnimationCompleted()
         {
             CurrentHex.TryClearUnitOccupant(this);
             Destroy(gameObject);
