@@ -63,8 +63,6 @@ namespace Units
             
             _unitAnimator = GetComponentInChildren<UnitAnimator>();
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-
-            
         }
         
         protected virtual void Start()
@@ -88,7 +86,6 @@ namespace Units
 
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
-            
         }
         
         protected virtual void OnDestroy()
@@ -130,6 +127,11 @@ namespace Units
                     }
 
                     _pathIndex = 0;
+                    
+                    _isStepping = false;
+                    _currentStepTimer = 0f;
+                    NextHex = null;
+                    
                     SetState(UnitState.Moving);
                     
                     return;
@@ -230,16 +232,24 @@ namespace Units
                 return;
             
             // step completed
-            // clear from current
-            if (CurrentHex != null)
-                CurrentHex.TryClearUnitOccupant(this);
             
-            // set as occupants of the one we moved into
-            if (NextHex.TrySetUnitOccupant(this))
-                CurrentHex = NextHex;
-            else
-                Debug.LogError($"Unit {name} reached hex but could not set self as occupant." +
-                               $"TargetHex was {(TargetHex ? TargetHex.name : "NULL")}");
+            // attempt to claim the step hex
+            if (!NextHex.TrySetUnitOccupant(this))
+            {
+                Debug.LogWarning("[BaseUnit]-[HandleMoving] Unit could not set a next hex, currently aborting logic");
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+
+            // clear from current
+            if (!CurrentHex.TryClearUnitOccupant(this))
+            {
+                Debug.LogError("Unit failed to clear the tile it came from");
+            }
+            
+            // update current
+            CurrentHex = NextHex;
             
             // immediate snap to nextHex location ??
             _transform.position = NextHex.transform.position;
@@ -310,10 +320,23 @@ namespace Units
             if (_currentStepTimer > 0f)
                 return;
             
-            CurrentHex?.TryClearUnitOccupant(this);
+            // attempt to claim the step hex
+            if (!NextHex.TrySetUnitOccupant(this))
+            {
+                Debug.LogWarning("[BaseUnit]-[HandleEngaging] Unit could not set a next hex, currently aborting logic");
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
             
-            if (NextHex.TrySetUnitOccupant(this))
-                CurrentHex = NextHex;
+            // clear from current
+            if (!CurrentHex.TryClearUnitOccupant(this))
+            {
+                Debug.LogError("Unit failed to clear the tile it came from");
+            }
+            
+            // update current
+            CurrentHex = NextHex;
             
             _transform.position = NextHex.transform.position;
 
@@ -474,11 +497,18 @@ namespace Units
                 
 
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
+                {
+                    // if the tile is the one we are on, skip it
+                    if (tile.x == CurrentHex.x &&
+                        tile.y == CurrentHex.y &&
+                        tile.z == CurrentHex.z)
+                    {
+                        continue;
+                    }
+
                     _previewPath.Add(tile);
+                }
             }
-            
-            if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
-                _previewPath.RemoveAt(0);
 
             if (_previewPath.Count == 0)
                 return false;
