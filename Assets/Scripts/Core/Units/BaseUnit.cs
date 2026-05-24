@@ -75,7 +75,7 @@ namespace Units
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
 
-                if (startingHex == null)
+            if (startingHex == null)
             {
                 Debug.LogError($"[BaseUnit] no starting hex assigned for {name}, disabling unit");
                 enabled = false;
@@ -122,17 +122,15 @@ namespace Units
                     // TargetHex is empty -> generate path and move to it
                     TargetHex = hexTile;
 
-                    TryGeneratePath(0);
+                    if (!TryGeneratePath(0))
+                    {
+                        TargetHex = null;
+                        SetState(UnitState.Idle);
+                        return;
+                    }
 
                     _pathIndex = 0;
-                    
-                    // Safety: skip current hex if first node is current
-                    if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
-                        _pathIndex = 1;
-                    
-                    // only set to moving if there was a path retrieved?
-                    if (_previewPath.Count > _pathIndex)
-                        SetState(UnitState.Moving);
+                    SetState(UnitState.Moving);
                     
                     return;
                 }
@@ -246,18 +244,17 @@ namespace Units
             // immediate snap to nextHex location ??
             _transform.position = NextHex.transform.position;
             
-            // iterate pathIndex
-            _pathIndex++;
-            // reset stepping flag = next frame start next step calculations
-            _isStepping = false;
-
-            // if path is complete set to idle
-            if (_pathIndex >= _previewPath.Count)
+            if (!TryGeneratePath(0))
             {
                 _unitAnimator.SetWalking(false);
                 TargetHex = null;
                 SetState(UnitState.Idle);
+                return;
             }
+
+            // reset stepping flag = next frame start next step calculations
+            _pathIndex = 0;
+            _isStepping = false;
         }
 
         protected virtual void HandleEngaging()
@@ -270,6 +267,18 @@ namespace Units
                 return;
             }
             
+            // set target as enemy location
+            TargetHex = _targetEnemy.CurrentHex;
+            
+            // recalculate path to target
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                // No path → stop engaging
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
             // path is empty means we are already in range
             if (_previewPath.Count == 0)
             {
@@ -277,43 +286,42 @@ namespace Units
                 return;
             }
 
-            // end of path means we are in range
-            if (_pathIndex >= _previewPath.Count)
+            _pathIndex = 0;
+            
+            if (!_isStepping)
+            {
+                NextHex = _previewPath[_pathIndex];
+
+                if (NextHex == null)
+                {
+                    Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
+                    _unitAnimator.SetWalking(false);
+                    SetState(UnitState.Idle);
+                    return;
+                }
+                
+                BeginStep(NextHex);
+                _isStepping = true;
+                return;
+            }
+            
+            _currentStepTimer -= Time.deltaTime;
+            
+            if (_currentStepTimer > 0f)
+                return;
+            
+            CurrentHex?.TryClearUnitOccupant(this);
+            
+            if (NextHex.TrySetUnitOccupant(this))
+                CurrentHex = NextHex;
+            
+            _transform.position = NextHex.transform.position;
+
+            _isStepping = false;
+            
+            if (_previewPath.Count == 0)
             {
                 EnterEngagedState();
-                return;
-            }
-            
-            NextHex = _previewPath[_pathIndex];
-
-            // safety edge case check and bail
-            if (NextHex == null)
-            {
-                Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
-                _unitAnimator.SetWalking(false);
-                SetState(UnitState.Idle);
-                return;
-            }
-            
-            Vector3 targetPos = NextHex.transform.position;
-            TryMoveTowards(targetPos);
-
-            if ((_transform.position - targetPos).sqrMagnitude < 0.01f)
-            {
-                // clear from previous
-                CurrentHex?.TryClearUnitOccupant(this);
-                
-                // set into target
-                if (NextHex.TrySetUnitOccupant(this))
-                    CurrentHex = NextHex;
-                
-                _pathIndex++;
-                
-                // end of path logic
-                if (_pathIndex >= _previewPath.Count)
-                {
-                    EnterEngagedState();
-                }
             }
         }
 
@@ -368,6 +376,7 @@ namespace Units
             if (other ==null) return false;
 
             // other is same faction
+            // Note, use of this. is redundant, but used to be explicit 
             if (other.Owner == this.Owner)
             {
                 Debug.Log($"{name} targeted a friendly unit ({other.name}). No logic set");
@@ -378,13 +387,13 @@ namespace Units
             _targetEnemy = other;
             TargetHex = other.CurrentHex;
 
-            TryGeneratePath(Stats.BaseAttackRange);
-            
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                SetState(UnitState.Idle);
+                return true;
+            }
+
             _pathIndex = 0;
-            
-            if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
-                _pathIndex = 1;
-            
             SetState(UnitState.Engaging);
             return true;
         }
@@ -467,6 +476,9 @@ namespace Units
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
                     _previewPath.Add(tile);
             }
+            
+            if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
+                _previewPath.RemoveAt(0);
 
             if (_previewPath.Count == 0)
                 return false;
