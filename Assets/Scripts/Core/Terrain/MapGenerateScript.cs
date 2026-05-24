@@ -1,6 +1,8 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 
 public class MapGenerateScript : MonoBehaviour
 {
@@ -45,7 +47,9 @@ public class MapGenerateScript : MonoBehaviour
     private Vector3Int minCords;
     public bool refreshMaterial = false;
 
+    private List<BuildingScript> buildings = new();
 
+    private Dictionary<Vector3Int,bool> visibleHexes = new();
     
 
     
@@ -74,19 +78,35 @@ public class MapGenerateScript : MonoBehaviour
 
         hexStorage = new();
         if(!generateMap){
+
+            List<GameObject> buildingHexes = new();
             
             for(int i = 0; i < transform.childCount; i++){
                 
-                TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
+                GameObject childObj = transform.GetChild(i).gameObject;
+                TileScript childTile = childObj.GetComponent<TileScript>();
+
+                if(childTile.getTerrain() == TerrainType.building){
+                    buildingHexes.Add(childObj);
+                }
+                
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
+                visibleHexes.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),false);
                 if(refreshMaterial){
                     childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
                 }
+                
 
             }
             
+
+            foreach(GameObject hex in buildingHexes ){
+                hex.GetComponent<TileScript>().createBuilding("Wood");
+                buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
+                
+            }
             
-            
+
 
             findMaxCords(hexStorage);
 
@@ -102,6 +122,7 @@ public class MapGenerateScript : MonoBehaviour
             }
             addColumns = 0;
         }
+        
         
     }
 
@@ -143,6 +164,7 @@ public class MapGenerateScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         if(generateMap){
             
             
@@ -162,7 +184,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(curX,curY,curZ,terrain);
@@ -207,8 +229,8 @@ public class MapGenerateScript : MonoBehaviour
 
     public static GameObject getHex(int x, int y, int z){
 
-
-        hexStorage.TryGetValue(new Vector3Int(x,y,z), out GameObject returnObject);
+        GameObject returnObject = null;
+        hexStorage.TryGetValue(new Vector3Int(x,y,z), out returnObject);
 
         return returnObject;
     }
@@ -235,7 +257,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
                     int x = childTile.x - 1;
                     int y = childTile.y;
@@ -255,7 +277,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
                     int x = childTile.x + 1;
                     int y = childTile.y;
@@ -333,7 +355,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
                     
 
 
@@ -386,7 +408,7 @@ public class MapGenerateScript : MonoBehaviour
 
                     //int randomType = UnityEngine.Random.Range(0,Enum.GetValues(typeof(TileScript.terrainType)).Length);
 
-                    TileScript.terrainType terrain = TileScript.terrainType.dirt;
+                    TerrainType terrain = TerrainType.dirt;
 
 
                     temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
@@ -407,5 +429,22 @@ public class MapGenerateScript : MonoBehaviour
             }
         }
         return hexColumn;
+    }
+
+    public bool getVisible(int x, int y, int z){
+
+        bool canSee = false;
+        visibleHexes.TryGetValue(new Vector3Int(x,y,z),out canSee);
+        return canSee;
+    }
+
+    public void setVisible(int x, int y, int z){
+
+        visibleHexes[new Vector3Int(x,y,z)] = true;
+    }
+
+    public void removeVisible(int x, int y, int z){
+
+        visibleHexes[new Vector3Int(x,y,z)] = false;
     }
 }

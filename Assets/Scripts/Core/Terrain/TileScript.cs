@@ -1,6 +1,7 @@
 using Selection;
 using UnityEngine;
 using Units;
+using System.Collections.Generic;
 
 public class TileScript : MonoBehaviour, ISelectable
 {
@@ -17,34 +18,39 @@ public class TileScript : MonoBehaviour, ISelectable
 
     public int z;
 
-    public GameObject tileOccupant;
+    private UnitOwner tileOccupant = UnitOwner.World;
+    private GameObject OwnerOutline;
+    private BuildingScript attachedBuilding;
+  
 
-    public Material green;
-
-    public Material defaultDirt;
-
-    private int movementPoints;
-
+    public bool buildingTile = false;
    
 
-    public enum terrainType{
-        dirt, grass, forest, mountain, water, desert, snow, building
-    }
+    
 
     [SerializeField]
-    private terrainType terrain = terrainType.dirt;
+    private TerrainType terrain = TerrainType.dirt;
 
     private string materialType = "";
     private Material ground;
 
+    //static value, will always be the cost to move on this terrain type
+    private int realMovement = 0;
+
+    // dynamic value, will be changed based on what is on the tile
+    private int movementPoints;
+
+    private bool hasFog = true;
+
     void Start()
     {
-
-        ground = defaultDirt;
+        
+        ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
         
     }
 
-    public void createHex(int x, int y, int z,terrainType incomingTerrain){
+    // initialize the hexes values
+    public void createHex(int x, int y, int z,TerrainType incomingTerrain){
         // this.row = row;
         // this.column = column;
         this.x = x;
@@ -53,134 +59,256 @@ public class TileScript : MonoBehaviour, ISelectable
         
         
 
-        
+        terrain = incomingTerrain;
 
 
         switch (terrain){
-            case terrainType.dirt:
+            case TerrainType.dirt:
                 movementPoints = 1;
                 if(materialType != "dirt"){
                     
                     ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
-                    terrain = terrainType.dirt;
+                    terrain = TerrainType.dirt;
                 }
                 break;
-            case terrainType.grass:
+            case TerrainType.grass:
                 movementPoints = 1;
                 if(materialType != "grass"){
                     
                     ground = Resources.Load("Material/grass", typeof(Material)) as Material;
-                    terrain = terrainType.grass;
+                    terrain = TerrainType.grass;
                 }
                 break;
-            case terrainType.forest:
+            case TerrainType.forest:
                 movementPoints = 2;
                 if(materialType != "forest"){
                     ground = Resources.Load("Material/forest", typeof(Material)) as Material;
-                    terrain = terrainType.forest;
+                    terrain = TerrainType.forest;
                 }
                 break;
-            case terrainType.mountain:
+            case TerrainType.mountain:
                 movementPoints = 3;
                 if(materialType != "mountain"){
                     ground = Resources.Load("Material/mountain", typeof(Material)) as Material;
-                    terrain = terrainType.mountain;
+                    terrain = TerrainType.mountain;
                 }
                 break;
-            case terrainType.water:
+            case TerrainType.water:
                 movementPoints = -1;
                 if(materialType != "water"){
                     ground = Resources.Load("Material/water", typeof(Material)) as Material;
-                    terrain = terrainType.water;
+                    terrain = TerrainType.water;
                 }
                 break;
-            case terrainType.desert:
+            case TerrainType.desert:
                 movementPoints = 1;
                 if(materialType != "desert"){
                     ground = Resources.Load("Material/desert", typeof(Material)) as Material; 
-                    terrain = terrainType.desert;
+                    terrain = TerrainType.desert;
                 }
                 break;
-            case terrainType.snow:
+            case TerrainType.snow:
                 movementPoints = 2;
                 if(materialType != "snow"){
                     ground = Resources.Load("Material/snow", typeof(Material)) as Material;
-                    terrain = terrainType.snow;
+                    terrain = TerrainType.snow;
                 }
                 break;
-            case terrainType.building:
+            case TerrainType.building:
                 movementPoints = -1;
                 if(materialType != "building"){
                     ground = Resources.Load("Material/building", typeof(Material)) as Material;
-                    terrain = terrainType.building;
+                    terrain = TerrainType.building;
                 }
+
+                
+
                 break;   
         }
-        
+
+        addFog();
+
+        realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
 
         
     }
 
+    // sets the terrain of the tile after creation
     public void setTerrain(string type){
         if(type == "dirt"){
             ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.dirt;
+            terrain = TerrainType.dirt;
         }else if(type == "grass"){
             ground = Resources.Load("Material/grass", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.grass;
+            terrain = TerrainType.grass;
         }else if(type == "forest"){
             ground = Resources.Load("Material/forest", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.forest;
+            terrain = TerrainType.forest;
         }else if(type == "mountain"){
             ground = Resources.Load("Material/mountain", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.mountain;
+            terrain = TerrainType.mountain;
         }else if(type == "water"){
             ground = Resources.Load("Material/water", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.water;
+            terrain = TerrainType.water;
         }else if(type == "desert"){
             ground = Resources.Load("Material/desert", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.desert;
+            terrain = TerrainType.desert;
         }else if(type == "snow"){
             ground = Resources.Load("Material/snow", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.snow;
+            terrain = TerrainType.snow;
         }else if(type == "building"){
             ground = Resources.Load("Material/building", typeof(Material)) as Material;
             transform.Find("Hex").GetComponent<Renderer>().material = ground;
-            terrain = terrainType.building;
+            terrain = TerrainType.building;
+
         }
+        
     }
 
-    public terrainType getTerrain(){
+    public GameObject createBuilding(string resource){//must be called after map is set up
+        GameObject tempBuilding;
+        if(!buildingTile){
+            tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position ,transform.rotation,transform);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+            tempBuilding.name = "Building";
+            buildingTile = true;
+        }else{
+            tempBuilding = transform.Find("Building").gameObject;
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+        }
+        attachedBuilding = tempBuilding.GetComponent<BuildingScript>();
+        return tempBuilding;
+    }
+
+    public TerrainType getTerrain(){
         return terrain;
     }
 
     
     
 
-    public GameObject getOccupant(){
+    public UnitOwner getOccupant(){
         return tileOccupant;
     }
 
-    public GameObject removeOccupant(){
-        GameObject r = tileOccupant;
-        return r;
+    private void fogRemovalCalculations(){
+        int viewRange = 3;
+
+        
+        
+
+        int currentRows = viewRange + 1;
+        // int rowsViewed = 0;
+
+        int topX = 0;
+        int topZ = 0 - viewRange;
+
+        for(int topY = -viewRange; topY <= viewRange; topY++){
+
+            
+            
+            if(topY != -viewRange){
+                if(topY <= 0){
+                    topX++;
+                    currentRows++;
+                }else{
+                    topZ++;
+                    currentRows--;
+                }
+            }
+
+            for(int i = 0; i < currentRows; i++){
+
+                //if(!(topX - i + x == x && topY + y == y)){// dont check the tile your on or it will crash
+                    GameObject nextHex = MapGenerateScript.getHex(topX - i + x,topY + y,topZ + i + z);
+                    if(nextHex!= null){
+                        if(!canView(topX - i + x,topY + y,topZ + i + z,viewRange,false) && !nextHex.GetComponent<TileScript>().getFog()){
+                            nextHex.GetComponent<TileScript>().addFog();
+                        }
+                    }
+                //}
+            }
+
+
+        }
     }
 
-    public bool addOccupant(GameObject incomingOccupant){
-        if(tileOccupant != null){
-            return false;
-        }else{
-            tileOccupant = incomingOccupant;
-            return true;
+    public void addBuildingOwner(UnitOwner owner){
+        tileOccupant = owner;
+        canView(x,y,z,3,true);
+    }
+
+    public void removeBuildingOwner(){
+        tileOccupant = UnitOwner.World;
+        fogRemovalCalculations();
+    }
+
+    private bool canView(int hexX, int hexY, int hexZ, int viewDistance,bool clearFog){
+        
+        int viewRange = viewDistance;
+
+        int currentRows = viewRange + 1;
+
+        int topX = 0;
+        int topZ = 0 - viewRange;
+
+        for(int topY = -viewRange; topY <= viewRange; topY++){
+
+            
+            
+            if(topY != -viewRange){
+                if(topY <= 0){
+                    topX++;
+                    currentRows++;
+                }else{
+                    topZ++;
+                    currentRows--;
+                }
+            }
+
+            for(int i = 0; i < currentRows; i++){
+                
+                //if(!(topX - i + hexX == hexX && topY + hexY == hexY)){// dont check the tile your on or it will crash
+                    if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ) != null){
+                        if(clearFog){
+                            MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().removeFog();
+                        }else if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().tileOccupant == UnitOwner.Player){
+                            return true;
+                        }
+                    }
+                //}
+            }
+
+
         }
+
+        return false;
+    }
+
+    // this adds the hex overlay to view who controls the tile, used on and around buildings
+    public void addOverlay(Sprite sprite){
+        if(OwnerOutline == null){
+            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+        }
+        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        
+    }
+
+    public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
+        
+        float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+        OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+        attachedBuilding = incomingBuilding;
+        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
     }
 
     
@@ -203,6 +331,7 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TryGetOccupant(out MonoBehaviour occupant)
     {
+        
         if (_occupyingBuilding != null)
         {
             occupant = _occupyingBuilding;
@@ -229,13 +358,31 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TrySetUnitOccupant(BaseUnit unit)
     {
+
         if (_occupyingBuilding != null)
         {
             Debug.LogError($"Hex {name} has a building. Units cannot occupy this hex.");
             return false;
         }
 
+        if(tileOccupant != UnitOwner.World || movementPoints == -1){
+            print("tile is occupied by another player or is not an occupiable tile");
+            return false;
+        }
+
+
+        movementPoints = -1;
+
+        if(attachedBuilding != null){
+            
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(unit.Owner);
+        }
+       
+        removeFog();
+        canView(x,y,z,3,true);
+
         _occupyingUnit = unit;
+        tileOccupant = unit.Owner;
         return true;
     }
     
@@ -249,6 +396,13 @@ public class TileScript : MonoBehaviour, ISelectable
     /// <returns></returns>
     public bool TryClearUnitOccupant(BaseUnit unit)
     {
+
+        if(tileOccupant == UnitOwner.World){
+            print("tileOwner is world, cannot clear tile");
+            movementPoints = realMovement;
+            return false;
+        }
+
         if (unit == null)
         {
             Debug.LogError($"Hex {name}: TryClearUnitOccupant called with null requester.");
@@ -270,9 +424,58 @@ public class TileScript : MonoBehaviour, ISelectable
             return false;
         }
 
+        
+
+        if(OwnerOutline != null){
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+        }
+
+        tileOccupant = UnitOwner.World;
+
+        movementPoints = realMovement;
+        
+        fogRemovalCalculations();
+
         _occupyingUnit = null;
+
         return true;
     }
 
     #endregion
+
+    public void addFog(){
+        float height = GetComponent<MeshCollider>().bounds.size.y /1.7f;
+        GameObject fog  =Instantiate(Resources.Load("Prefabs/Hidden", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),transform.rotation,transform);
+        fog.name = "Fog";
+        hasFog = true;
+    }
+
+    public void removeFog(){
+        GameObject fog = null;
+        try{
+            fog = transform.Find("Fog").gameObject;
+        }catch (System.NullReferenceException e){
+            
+        }
+        if(fog != null){
+            Destroy(fog);
+            hasFog = false;
+        }
+    }
+
+    public bool getFog(){
+        return hasFog;
+    }
+
+    public bool canMakeUnit(){
+        if(tileOccupant == UnitOwner.World && movementPoints != -1){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public void makeUnit(GameObject unit){
+        //Instantiate(unit,)
+    }
 }
