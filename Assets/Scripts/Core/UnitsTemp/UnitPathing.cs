@@ -94,11 +94,24 @@ public class UnitPathing : MonoBehaviour
                 int[] next = hexNeighbor(current, dir);
                 string nextKey = key(next);
 
-                // Skip invalid tiles
-                if (MapGenerateScript.getHex(next[0], next[1], next[2]) == null || MapGenerateScript.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement() < 0)
+                // This is the version currently being used
+                //if (MapGenerateScript.getHex(next[0], next[1], next[2]) == null || MapGenerateScript.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement() < 0) continue;
+                
+                TileScript nextTile = MapGenerateScript.getHex(next[0], next[1], next[2])?.GetComponent<TileScript>();
+                
+                // Skip null tiles
+                if (nextTile == null)
+                    continue;
+                
+                // Added: if this is en-route tile, and it is occupied, skip it
+                if (nextKey != GoalKey && nextTile.OccupyingUnit != null)
+                    continue;
+                
+                // if movement less than 0 skip it
+                if (nextTile.getMovement() < 0)
                     continue;
 
-                int newCost = costSoFar[currentKey] + MapGenerateScript.getHex(next[0], next[1], next[2]).GetComponent<TileScript>().getMovement();
+                int newCost = costSoFar[currentKey] + nextTile.getMovement();
 
                 if (!costSoFar.ContainsKey(nextKey) || newCost < costSoFar[nextKey])
                 {
