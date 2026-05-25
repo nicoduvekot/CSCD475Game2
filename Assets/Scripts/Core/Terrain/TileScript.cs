@@ -2,6 +2,7 @@ using Selection;
 using UnityEngine;
 using Units;
 using System.Collections.Generic;
+using TeamControl;
 
 public class TileScript : MonoBehaviour, ISelectable
 {
@@ -39,14 +40,21 @@ public class TileScript : MonoBehaviour, ISelectable
 
     // dynamic value, will be changed based on what is on the tile
     private int movementPoints;
+    
+    
+    private bool fogForPlayer = true;
+    private bool fogForEnemy = true;
+    
+    private int revealCountPlayer = 0;
+    private int revealCountEnemy = 0;
 
-    private bool hasFog = true;
+    private int viewRange = 3;
 
     void Start()
     {
-        
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
-        
+     
+        PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
     }
 
     // initialize the hexes values
@@ -199,99 +207,105 @@ public class TileScript : MonoBehaviour, ISelectable
         return tileOccupant;
     }
 
-    private void fogRemovalCalculations(){
-        int viewRange = 3;
-
-        
-        
-
-        int currentRows = viewRange + 1;
-        // int rowsViewed = 0;
-
-        int topX = 0;
-        int topZ = 0 - viewRange;
-
-        for(int topY = -viewRange; topY <= viewRange; topY++){
-
-            
-            
-            if(topY != -viewRange){
-                if(topY <= 0){
-                    topX++;
-                    currentRows++;
-                }else{
-                    topZ++;
-                    currentRows--;
-                }
-            }
-
-            for(int i = 0; i < currentRows; i++){
-
-                //if(!(topX - i + x == x && topY + y == y)){// dont check the tile your on or it will crash
-                    GameObject nextHex = MapGenerateScript.getHex(topX - i + x,topY + y,topZ + i + z);
-                    if(nextHex!= null){
-                        if(!canView(topX - i + x,topY + y,topZ + i + z,viewRange,false) && !nextHex.GetComponent<TileScript>().getFog()){
-                            nextHex.GetComponent<TileScript>().addFog();
-                        }
-                    }
-                //}
-            }
-
-
-        }
-    }
+    // private void fogRemovalCalculations(){
+    //     int viewRange = 3;
+    //
+    //     
+    //     
+    //
+    //     int currentRows = viewRange + 1;
+    //     // int rowsViewed = 0;
+    //
+    //     int topX = 0;
+    //     int topZ = 0 - viewRange;
+    //
+    //     for(int topY = -viewRange; topY <= viewRange; topY++){
+    //
+    //         
+    //         
+    //         if(topY != -viewRange){
+    //             if(topY <= 0){
+    //                 topX++;
+    //                 currentRows++;
+    //             }else{
+    //                 topZ++;
+    //                 currentRows--;
+    //             }
+    //         }
+    //
+    //         for(int i = 0; i < currentRows; i++){
+    //
+    //             //if(!(topX - i + x == x && topY + y == y)){// dont check the tile your on or it will crash
+    //                 GameObject nextHex = MapGenerateScript.getHex(topX - i + x,topY + y,topZ + i + z);
+    //                 if(nextHex!= null){
+    //                     if(!canView(topX - i + x,topY + y,topZ + i + z,viewRange,false) && !nextHex.GetComponent<TileScript>().getFog()){
+    //                         nextHex.GetComponent<TileScript>().addFog();
+    //                     }
+    //                 }
+    //             //}
+    //         }
+    //
+    //
+    //     }
+    // }
 
     public void addBuildingOwner(UnitOwner owner){
         tileOccupant = owner;
-        canView(x,y,z,3,true);
+        
+        RevealForOwner(owner);
+        RevealAround(owner);
     }
 
     public void removeBuildingOwner(){
-        tileOccupant = UnitOwner.World;
-        fogRemovalCalculations();
-    }
-
-    private bool canView(int hexX, int hexY, int hexZ, int viewDistance,bool clearFog){
+        UnitOwner oldOwner = tileOccupant;
         
-        int viewRange = viewDistance;
-
-        int currentRows = viewRange + 1;
-
-        int topX = 0;
-        int topZ = 0 - viewRange;
-
-        for(int topY = -viewRange; topY <= viewRange; topY++){
-
-            
-            
-            if(topY != -viewRange){
-                if(topY <= 0){
-                    topX++;
-                    currentRows++;
-                }else{
-                    topZ++;
-                    currentRows--;
-                }
-            }
-
-            for(int i = 0; i < currentRows; i++){
-                
-                //if(!(topX - i + hexX == hexX && topY + hexY == hexY)){// dont check the tile your on or it will crash
-                    if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ) != null){
-                        if(clearFog){
-                            MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().removeFog();
-                        }else if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().tileOccupant == UnitOwner.Player){
-                            return true;
-                        }
-                    }
-                //}
-            }
-
-
-        }
-
-        return false;
+        tileOccupant = UnitOwner.World;
+        
+        HideForOwner(oldOwner);
+        HideAround(oldOwner);
     }
+
+    // private bool canView(int hexX, int hexY, int hexZ, int viewDistance,bool clearFog){
+    //     
+    //     int viewRange = viewDistance;
+    //
+    //     int currentRows = viewRange + 1;
+    //
+    //     int topX = 0;
+    //     int topZ = 0 - viewRange;
+    //
+    //     for(int topY = -viewRange; topY <= viewRange; topY++){
+    //
+    //         
+    //         
+    //         if(topY != -viewRange){
+    //             if(topY <= 0){
+    //                 topX++;
+    //                 currentRows++;
+    //             }else{
+    //                 topZ++;
+    //                 currentRows--;
+    //             }
+    //         }
+    //
+    //         for(int i = 0; i < currentRows; i++){
+    //             
+    //             //if(!(topX - i + hexX == hexX && topY + hexY == hexY)){// dont check the tile your on or it will crash
+    //                 if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ) != null){
+    //                     if(clearFog){
+    //                         MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().removeFog();
+    //                     }else if(MapGenerateScript.getHex(topX - i + hexX,topY + hexY,topZ + i + hexZ).GetComponent<TileScript>().tileOccupant == UnitOwner.Player){
+    //                         return true;
+    //                     }
+    //                 }
+    //             //}
+    //         }
+    //
+    //
+    //     }
+    //
+    //     return false;
+    // }
 
     // this adds the hex overlay to view who controls the tile, used on and around buildings
     public void addOverlay(Sprite sprite){
@@ -369,8 +383,7 @@ public class TileScript : MonoBehaviour, ISelectable
             print("tile is occupied by another player or is not an occupiable tile");
             return false;
         }
-
-
+        
         movementPoints = -1;
 
         if(attachedBuilding != null){
@@ -378,8 +391,8 @@ public class TileScript : MonoBehaviour, ISelectable
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(unit.Owner);
         }
        
-        removeFog();
-        canView(x,y,z,3,true);
+        RevealForOwner(unit.Owner);
+        RevealAround(unit.Owner);
 
         _occupyingUnit = unit;
         tileOccupant = unit.Owner;
@@ -429,42 +442,100 @@ public class TileScript : MonoBehaviour, ISelectable
         if(OwnerOutline != null){
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
         }
+        
+        HideForOwner(tileOccupant);
+        HideAround(tileOccupant);
 
         tileOccupant = UnitOwner.World;
 
         movementPoints = realMovement;
-        
-        fogRemovalCalculations();
 
         _occupyingUnit = null;
 
         return true;
     }
 
+    public bool TryUpdateUnitOwnership(BaseUnit unit)
+    {
+        if (_occupyingUnit == null)
+        {
+            Debug.LogError("[TileScript] Update ownership failed. No unit occupies this tile.");
+            return false;
+        }
+        
+        if (_occupyingUnit != unit)
+        {
+            Debug.LogError("[TileScript] Update Ownership failed. Wrong unit tried to update");
+            return false;
+        }
+        
+        // retrieve the new ownership value
+        UnitOwner newOwner = unit.Owner;
+        
+        // if it is the same as it was, nothing needs to happen
+        if (tileOccupant == newOwner)
+            return true;
+        
+        // cache the old ownership value
+        UnitOwner oldOwner = tileOccupant;
+        
+        // clear old owner from seeing
+        HideForOwner(oldOwner);
+        HideAround(oldOwner);
+        
+        // set the new owner
+        tileOccupant = newOwner;
+        
+        // set the new owner as seeing
+        RevealForOwner(newOwner);
+        RevealAround(newOwner);
+
+        return true;
+    }
+
     #endregion
 
-    public void addFog(){
+    public void addFog()
+    {
         float height = GetComponent<MeshCollider>().bounds.size.y /1.7f;
-        GameObject fog  =Instantiate(Resources.Load("Prefabs/Hidden", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),transform.rotation,transform);
-        fog.name = "Fog";
-        hasFog = true;
+        
+        Transform fog = transform.Find("Fog");
+        if (fog == null)
+        {
+            fog = Instantiate(
+                Resources.Load("Prefabs/Hidden", typeof(GameObject)) as GameObject,
+                transform.position + new Vector3(0, height, 0),
+                transform.rotation,
+                transform
+            ).transform;
+            fog.name = "Fog";
+        }
+        
+        fogForPlayer = true;
+        fogForEnemy = true;
+        revealCountPlayer = 0;
+        revealCountEnemy = 0;
+        
+        UpdateVisibilityForCurrentPerspective();
     }
 
-    public void removeFog(){
-        GameObject fog = null;
-        try{
-            fog = transform.Find("Fog").gameObject;
-        }catch (System.NullReferenceException e){
-            
-        }
-        if(fog != null){
-            Destroy(fog);
-            hasFog = false;
-        }
+    public void removeFog(UnitOwner owner)
+    {
+        HideForOwner(owner);
     }
 
-    public bool getFog(){
-        return hasFog;
+    public bool getFog()
+    {
+        Perspective p = PerspectiveManager.Instance.CurrentPerspective;
+
+        return p switch
+        {
+            Perspective.Player => fogForPlayer,
+            Perspective.Enemy  => fogForEnemy,
+            Perspective.World  => false,
+            Perspective.Admin  => false,
+            _ => false
+        };
     }
 
     public bool canMakeUnit(){
@@ -477,5 +548,115 @@ public class TileScript : MonoBehaviour, ISelectable
 
     public void makeUnit(GameObject unit){
         //Instantiate(unit,)
+    }
+
+    private void RevealForOwner(UnitOwner owner)
+    {
+        if (owner == UnitOwner.Player)
+        {
+            revealCountPlayer++;
+            fogForPlayer = revealCountPlayer <= 0;
+        }
+        else if (owner == UnitOwner.Enemy)
+        {
+            revealCountEnemy++;
+            fogForEnemy = revealCountEnemy <= 0;
+        }
+
+        UpdateVisibilityForCurrentPerspective();
+    }
+
+    private void HideForOwner(UnitOwner owner)
+    {
+        if (owner == UnitOwner.Player)
+        {
+            revealCountPlayer = Mathf.Max(0, revealCountPlayer - 1);
+            fogForPlayer = revealCountPlayer <= 0;
+        }
+        else if (owner == UnitOwner.Enemy)
+        {
+            revealCountEnemy = Mathf.Max(0, revealCountEnemy - 1);
+            fogForEnemy = revealCountEnemy <= 0;
+        }
+        
+        UpdateVisibilityForCurrentPerspective();
+    }
+
+    private void RevealAround(UnitOwner owner)
+    {
+        List<TileScript> tiles = GetTilesInRange(viewRange);
+
+        foreach (TileScript tile in tiles)
+            tile.RevealForOwner(owner);
+    }
+    
+    private void HideAround(UnitOwner owner)
+    {
+        List<TileScript> tiles = GetTilesInRange(viewRange);
+
+        foreach (TileScript tile in tiles)
+            tile.HideForOwner(owner);
+    }
+
+    private List<TileScript> GetTilesInRange(int range)
+    {
+        List<TileScript> results = new();
+        
+        int currentRows = range + 1;
+        
+        int topX = 0;
+        int topZ = 0 - range;
+
+        for (int topY = -range; topY <= range; topY++)
+        {
+            if (topY != -range)
+            {
+                if (topY <= 0)
+                {
+                    topX++;
+                    currentRows++;
+                }
+                else
+                {
+                    topZ++;
+                    currentRows--;
+                }
+            }
+
+            for (int i = 0; i < currentRows; i++)
+            {
+                int hx = topX - i + x;
+                int hy = topY + y;
+                int hz = topZ + i + z;
+
+                GameObject hexObj = MapGenerateScript.getHex(hx, hy, hz);
+                if (hexObj != null)
+                {
+                    TileScript tile = hexObj.GetComponent<TileScript>();
+                    if (tile != null)
+                        results.Add(tile);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    public void UpdateVisibilityForCurrentPerspective()
+    {
+        Perspective p = PerspectiveManager.Instance.CurrentPerspective;
+        
+        bool showFog = p switch
+        {
+            Perspective.Player => fogForPlayer,
+            Perspective.Enemy  => fogForEnemy,
+            Perspective.World  => false,
+            Perspective.Admin  => false,
+            _ => false
+        };
+
+        Transform fog = transform.Find("Fog");
+        if (fog != null)
+            fog.gameObject.SetActive(showFog);
     }
 }
