@@ -66,8 +66,6 @@ namespace Units
                 StateDisplayUI.Initialize(_transform);
             
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
-
-            PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
         }
         
         protected virtual void Start()
@@ -92,6 +90,7 @@ namespace Units
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
             
+            PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
         }
         
         protected virtual void OnDestroy()
