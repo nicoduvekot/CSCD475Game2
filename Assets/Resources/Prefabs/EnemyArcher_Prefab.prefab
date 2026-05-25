@@ -334,7 +334,7 @@ MonoBehaviour:
   baseMoveSpeed: 1
   baseAttackPower: 10
   baseAttackSpeed: 0.5
-  baseAttackRange: 1
+  baseAttackRange: 2
 --- !u!114 &5015205144706851327
 MonoBehaviour:
   m_ObjectHideFlags: 0
