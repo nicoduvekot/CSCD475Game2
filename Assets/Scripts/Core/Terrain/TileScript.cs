@@ -42,9 +42,9 @@ public class TileScript : MonoBehaviour, ISelectable
     private int movementPoints;
     
     
-    private bool fogForPlayer = true;
-    private bool fogForEnemy = true;
-    private bool fogForWorld = true;
+    public bool fogForPlayer = true;
+    public bool fogForEnemy = true;
+    public bool fogForWorld = true;
     
     private int revealCountPlayer = 0;
     private int revealCountEnemy = 0;
@@ -674,5 +674,8 @@ public class TileScript : MonoBehaviour, ISelectable
         Transform fog = transform.Find("Fog");
         if (fog != null)
             fog.gameObject.SetActive(showFog);
+        
+        if (_occupyingUnit != null)
+            _occupyingUnit.UpdateVisibility(p);
     }
 }
