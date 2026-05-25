@@ -481,25 +481,36 @@ namespace Units
             }
         }
         
-        private void UpdateVisibility(Perspective p)
+        public void UpdateVisibility(Perspective p)
         {
-            bool visible = p switch
+            bool isOwnerPerspective = p switch
             {
-                Perspective.Admin => true,
                 Perspective.Player => Owner == UnitOwner.Player,
                 Perspective.Enemy  => Owner == UnitOwner.Enemy,
                 Perspective.World  => Owner == UnitOwner.World,
+                Perspective.Admin  => true,
                 _ => false
             };
+            
+            bool tileVisibleToPerspective = p switch
+            {
+                Perspective.Admin => true,
+                Perspective.Player => !CurrentHex.fogForPlayer,
+                Perspective.Enemy  => !CurrentHex.fogForEnemy,
+                Perspective.World  => !CurrentHex.fogForWorld,
+                _ => false
+            };
+            
+            bool unitVisible = isOwnerPerspective || tileVisibleToPerspective;
 
             foreach (Renderer r in _renderers)
-                r.enabled = visible;
+                r.enabled = unitVisible;
             
             if (Healthbar != null)
-                Healthbar.SetVisible(visible);
-            
+                Healthbar.SetVisible(unitVisible);
+
             if (StateDisplayUI != null)
-                StateDisplayUI.SetVisible(visible);
+                StateDisplayUI.SetVisible(isOwnerPerspective);
         }
     }
 }
