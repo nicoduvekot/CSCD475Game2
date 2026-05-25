@@ -1,4 +1,5 @@
-﻿using Selection;
+﻿using System;
+using Selection;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -6,6 +7,7 @@ using DataDefinitions;
 
 namespace Core.UIElements
 {
+    [Obsolete("Builder is obsolete, so it's UI is as well", true)]
     public class BuilderUI : MonoBehaviour
     {
         public static BuilderUI Instance { get; private set; }

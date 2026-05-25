@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using Core.UIElements;
 using Selection;
@@ -15,35 +15,40 @@ namespace Units
     {
         public MonoBehaviour Behaviour => this;
         
-        public UnitPathing Pathing { get; set; }
+        private UnitAnimator _unitAnimator;
+        private SpriteRenderer _spriteRenderer;
+        
+        private UnitPathing Pathing { get; set; }
 
-        protected Health Health { get; private set; }
-        protected UnitStats Stats { get; private set; }
-        protected StateDisplayUI StateDisplayUI { get; private set; }
+        private Health Health { get; set; }
+        private UnitStats Stats { get; set; }
+        private StateDisplayUI StateDisplayUI { get; set; }
         
         [Header("Tile Pathing")]
         // TEMP SOLUTION - changes to this unit to unit will reflect a change in prefab
         // SerializeField is not ideal solution - expect this to change if I have time
         [SerializeField] private TileScript startingHex;
-        protected TileScript CurrentHex { get; set; }
-        protected TileScript TargetHex { get; set; }
-        protected TileScript NextHex { get; set; }
-        protected GameObject PathingGameObject { get; set; }
+        private TileScript CurrentHex { get; set; }
+        private TileScript TargetHex { get; set; }
+        private TileScript NextHex { get; set; }
+        private GameObject PathingGameObject { get; set; }
         private readonly List<TileScript> _previewPath = new(16);
         private readonly Vector3 _pathingGizmoOffset = new(0, 0.5f, 0);
         private int _pathIndex;
+        
+        private int _pathRetryCount = 0;
+        private const int MaxPathRetries = 2;
 
         [field: ReadOnly]
         public UnitOwner Owner { get; private set; }
 
         private bool _ownerInitialized;
 
-        protected UnitState _state = UnitState.Idle;
-        protected BaseUnit _targetEnemy;
+        private UnitState _state = UnitState.Idle;
+        private BaseUnit _targetEnemy;
         
-        protected float _attackCooldownTimer;
-
-        private const float FakeDeathAnimTime = 1.5f;
+        //private float _attackCooldownTimer;
+        
         private Transform _transform;
 
         protected virtual void Awake()
@@ -58,10 +63,9 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
-            if (StateDisplayUI != null) 
-                StateDisplayUI.Initialize(_transform);
-
             
+            _unitAnimator = GetComponentInChildren<UnitAnimator>();
+            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
         
         protected virtual void Start()
@@ -72,7 +76,7 @@ namespace Units
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
 
-                if (startingHex == null)
+            if (startingHex == null)
             {
                 Debug.LogError($"[BaseUnit] no starting hex assigned for {name}, disabling unit");
                 enabled = false;
@@ -85,7 +89,6 @@ namespace Units
 
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
-            
         }
         
         protected virtual void OnDestroy()
@@ -101,9 +104,13 @@ namespace Units
             _ownerInitialized = true;
         }
         
-        public void TakeDamage(float amount)
+        private void TakeDamage(float amount, BaseUnit attacker)
         {
             Health.ApplyDamage(amount);
+            
+            Debug.Log($"{attacker.name} damaged {this.name} with {amount} damage");
+            
+            TryRetaliate(attacker);
         }
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
@@ -117,17 +124,21 @@ namespace Units
                     // TargetHex is empty -> generate path and move to it
                     TargetHex = hexTile;
 
-                    GeneratePreviewPath();
+                    if (!TryGeneratePath(0))
+                    {
+                        TargetHex = null;
+                        SetState(UnitState.Idle);
+                        return;
+                    }
 
                     _pathIndex = 0;
                     
-                    // Safety: skip current hex if first node is current
-                    if (_previewPath.Count > 0 && _previewPath[0] == CurrentHex)
-                        _pathIndex = 1;
+                    _isStepping = false;
+                    _currentStepTimer = 0f;
+                    NextHex = null;
                     
-                    // only set to moving if there was a path retrieved?
-                    if (_previewPath.Count > _pathIndex)
-                        SetState(UnitState.Moving);
+                    SetState(UnitState.Moving);
+                    
                     return;
                 }
                 
@@ -186,152 +197,288 @@ namespace Units
                     break;
             }
         }
-
+        
         protected virtual void HandleMoving()
         {
             // bail out if no path
             if (_previewPath == null || _previewPath.Count == 0 || _pathIndex >= _previewPath.Count)
             {
+                _unitAnimator.SetWalking(false);
                 TargetHex = null;
                 SetState(UnitState.Idle);
                 return;
             }
-            
-            NextHex = _previewPath[_pathIndex];
-            // bail out if NextHex somehow is null
-            if (NextHex == null)
-            {
-                Debug.LogError($"[BaseUnit] {name} path reached a null tile at index {_pathIndex}. Resetting to Idle.");
-                TargetHex = null;
-                SetState(UnitState.Idle);
-                return;
-            }
-            
-            Vector3 targetPos = NextHex.transform.position;
-            TryMoveTowards(targetPos);
 
-            // if significantly close enough to target -> reached
-            if ((_transform.position - targetPos).sqrMagnitude < 0.01f)
+            // if we are not currently stepping, begin a new step
+            if (!_isStepping)
             {
-                // Clear hex we came from occupant
-                if (CurrentHex != null)
-                    CurrentHex.TryClearUnitOccupant(this);
+                NextHex = _previewPath[_pathIndex];
                 
-                // set us as occupant of new hex
-                if (NextHex.TrySetUnitOccupant(this))
-                    CurrentHex = NextHex;
-                else
-                    Debug.LogError($"Unit {name} reached hex but could not set self as occupant." +
-                                   $"TargetHex was {(TargetHex ? TargetHex.name : "NULL")}");
-
-                // Dequeue the step we just took
-                _pathIndex++;
-
-                // reached Target
-                if (_pathIndex >= _previewPath.Count)
+                // bail if NextHex was found to be null
+                if (NextHex == null)
                 {
+                    Debug.LogError($"{name} encountered null tile at index {_pathIndex}");
+                    _unitAnimator.SetWalking(false);
                     TargetHex = null;
                     SetState(UnitState.Idle);
+                    return;
                 }
+                
+                BeginStep(NextHex);
+                _isStepping = true;
+                return;
             }
+
+            // if we are currently stepping - increment timer
+            _currentStepTimer -= Time.deltaTime;
+            
+            // timer not completed yet
+            if (_currentStepTimer > 0f)
+                return;
+            
+            // step completed
+            
+            // attempt to claim the step hex
+            if (!NextHex.TrySetUnitOccupant(this))
+            {
+                if (_pathRetryCount < MaxPathRetries)
+                {
+                    // increment path retry count
+                    _pathRetryCount++;
+
+                    // Try to rebuild the path to the same target
+                    if (TryGeneratePath(0))
+                    {
+                        _pathIndex = 0;
+                        _isStepping = false;
+                        return;
+                    }
+                }
+                
+                Debug.LogWarning("[BaseUnit]-[HandleMoving] retry pathing failure tries expired.");
+                _pathRetryCount = 0;
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+
+            // clear from current
+            if (!CurrentHex.TryClearUnitOccupant(this))
+            {
+                Debug.LogError("Unit failed to clear the tile it came from");
+            }
+            
+            // update current
+            CurrentHex = NextHex;
+            
+            // immediate snap to nextHex location ??
+            _transform.position = NextHex.transform.position;
+            
+            _pathRetryCount = 0;
+            
+            // Optimization remarks - this will generate a new path every step
+            if (!TryGeneratePath(0))
+            {
+                _unitAnimator.SetWalking(false);
+                TargetHex = null;
+                SetState(UnitState.Idle);
+                return;
+            }
+
+            // reset stepping flag = next frame start next step calculations
+            _pathIndex = 0;
+            _isStepping = false;
         }
 
         protected virtual void HandleEngaging()
         {
+            // target null mid-tracking - bail and idle
+            if (_targetEnemy == null)
+            {
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            // set target as enemy location
+            TargetHex = _targetEnemy.CurrentHex;
+            
+            // recalculate path to target
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                // No path → stop engaging
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            // path is empty means we are already in range
+            if (_previewPath.Count == 0)
+            {
+                EnterEngagedState();
+                return;
+            }
+
+            _pathIndex = 0;
+            
+            if (!_isStepping)
+            {
+                NextHex = _previewPath[_pathIndex];
+
+                if (NextHex == null)
+                {
+                    Debug.LogError($"{name} encountered a null tile at index {_pathIndex}. Aborting movement");
+                    _unitAnimator.SetWalking(false);
+                    SetState(UnitState.Idle);
+                    return;
+                }
+                
+                BeginStep(NextHex);
+                _isStepping = true;
+                return;
+            }
+            
+            _currentStepTimer -= Time.deltaTime;
+            
+            if (_currentStepTimer > 0f)
+                return;
+            
+            // attempt to claim the step hex
+            if (!NextHex.TrySetUnitOccupant(this))
+            {
+                Debug.LogWarning("[BaseUnit]-[HandleEngaging] Unit could not set a next hex, currently aborting logic");
+                
+                if (_pathRetryCount < MaxPathRetries)
+                {
+                    _pathRetryCount++;
+
+                    if (TryGeneratePath(Stats.BaseAttackRange))
+                    {
+                        _pathIndex = 0;
+                        _isStepping = false;
+                        return;
+                    }
+                }
+                
+                Debug.LogWarning("[BaseUnit]-[HandleEngaging] retry attempts exhausted.");
+                _pathRetryCount = 0;
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            // clear from current
+            if (!CurrentHex.TryClearUnitOccupant(this))
+            {
+                Debug.LogError("Unit failed to clear the tile it came from");
+            }
+            
+            // update current
+            CurrentHex = NextHex;
+            
+            _transform.position = NextHex.transform.position;
+            
+            _pathRetryCount = 0;
+            
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            if (_previewPath.Count == 0)
+            {
+                EnterEngagedState();
+            }
+            
+            _pathIndex = 0;
+            _isStepping = false;
+        }
+
+        private void EnterEngagedState()
+        {
+            // stop walking if we were
+            _unitAnimator.SetWalking(false);
+            
+            // if target no longer exists. bail
             if (_targetEnemy == null)
             {
                 SetState(UnitState.Idle);
                 return;
             }
             
-            TileScript enemyHex = _targetEnemy.CurrentHex;
+            SetState(UnitState.Engaged);
             
-            if (enemyHex == null)
-            {
-                Debug.LogError(
-                    $"[BaseUnit] {name} is trying to Engage logic {_targetEnemy.name}, " +
-                    $"but the enemy unit has no CurrentHex assigned. BAIL and Reset self to Idle."
-                );
-
-                SetState(UnitState.Idle);
-                return;
-            }
+            _unitAnimator.SetAttackSpeed(Stats.BaseAttackSpeed);
             
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if in range => engage
-            if (distance <= Stats.BaseAttackRange)
-            {
-                SetState(UnitState.Engaged);
-                _attackCooldownTimer = 0f;
-            }
-            
-            Vector3 targetPos = enemyHex.transform.position;
-            TryMoveTowards(targetPos);
+            _unitAnimator.SetAttacking(true);
         }
 
         protected virtual void HandleEngaged()
         {
+            // the unit has become null, bail
             if (_targetEnemy == null)
             {
+                _unitAnimator.SetAttacking(false);
                 SetState(UnitState.Idle);
                 return;
             }
             
-            FaceTarget(_targetEnemy._transform.position);
+            // update target to where enemy is
+            TargetHex = _targetEnemy.CurrentHex;
             
-            // get distance to enemy
-            float distance = Vector3.Distance(_transform.position, _targetEnemy._transform.position);
-            
-            // if unit moved out of range logic
-            if (distance > Stats.BaseAttackRange)
+            // if no path, bail and idle
+            if (!TryGeneratePath(Stats.BaseAttackRange))
             {
-                SetState(UnitState.Engaging);
+                _unitAnimator.SetAttacking(false);
+                SetState(UnitState.Idle);
                 return;
             }
             
-            // else attack logic
-            _attackCooldownTimer -= Time.deltaTime;
-
-            if (_attackCooldownTimer <= 0f)
+            // if we are now out of range, go back to engaging logic
+            if (_previewPath.Count > 0)
             {
-                _attackCooldownTimer = 1f / Stats.BaseAttackSpeed;
-                Attack(_targetEnemy);
+                // stop the attack anim
+                _unitAnimator.SetAttacking(false);
+
+                // reset stepping
+                _isStepping = false;
+                _currentStepTimer = 0f;
+                NextHex = null;
+                _pathRetryCount = 0;
+                _pathIndex = 0;
+
+                SetState(UnitState.Engaging);
+                return;
             }
         }
         
         protected virtual void Attack(BaseUnit enemy)
         {
-            enemy.TakeDamage(Stats.BaseAttackPower);
+            enemy.TakeDamage(Stats.BaseAttackPower, this);
         }
 
         protected virtual void TryMoveTowards(Vector3 targetPos)
         {
+            Vector3 direction = targetPos - transform.position;
+            
+            HandleSpriteFlip(direction);
+            
             float step = Stats.BaseMoveSpeed * Time.deltaTime;
+            
+            if (direction.sqrMagnitude > Mathf.Epsilon)
+                _unitAnimator.SetWalking(true);
 
             _transform.position = Vector3.MoveTowards(_transform.position, targetPos, step);
-
-            FaceTarget(targetPos);
-        }
-        
-        protected void FaceTarget(Vector3 targetPos)
-        {
-            Vector3 dir = targetPos - _transform.position;
-            dir.y = 0f;
-
-            if (dir.sqrMagnitude > Mathf.Epsilon)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(dir);
-                _transform.rotation = Quaternion.RotateTowards(_transform.rotation, targetRot, 720f * Time.deltaTime);
-            }
         }
 
-        protected bool TryHandleUnitTarget(BaseUnit other)
+        private bool TryHandleUnitTarget(BaseUnit other)
         {
             if (other ==null) return false;
 
             // other is same faction
+            // Note, use of this. is redundant, but used to be explicit 
             if (other.Owner == this.Owner)
             {
                 Debug.Log($"{name} targeted a friendly unit ({other.name}). No logic set");
@@ -340,8 +487,48 @@ namespace Units
             
             // else other is a target
             _targetEnemy = other;
+            TargetHex = other.CurrentHex;
+
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                SetState(UnitState.Idle);
+                return true;
+            }
+
+            _pathIndex = 0;
+            
+            _isStepping = false;
+            _currentStepTimer = 0f;
+            NextHex = null;
+            _pathRetryCount = 0;
+            
             SetState(UnitState.Engaging);
             return true;
+        }
+
+        public virtual void OnAttackHit()
+        {
+            // bail if target is null
+            if (_targetEnemy == null)
+                return;
+            
+            // do damage
+            Attack(_targetEnemy);
+            
+            // target is null or dead after hit
+            if (_targetEnemy == null || !_targetEnemy.Health.IsAlive)
+            {
+                _unitAnimator.SetAttacking(false);
+
+                // reset step safety
+                _isStepping = false;
+                _currentStepTimer = 0f;
+                NextHex = null;
+                _pathRetryCount = 0;
+                _pathIndex = 0;
+
+                SetState(UnitState.Idle);
+            }
         }
 
         #region DeathStateLogic
@@ -352,22 +539,10 @@ namespace Units
 
             SetState(UnitState.Dying);
 
-            OnDeathAnimationStarted();
+            _unitAnimator.TriggerDeath();
         }
         
-        protected virtual void OnDeathAnimationStarted()
-        {
-            StartCoroutine(FakeDeathAnimationRoutine());
-        }
-        
-        private IEnumerator FakeDeathAnimationRoutine()
-        {
-            Debug.LogWarning("Base Unit is faking death animation");
-            yield return new WaitForSeconds(FakeDeathAnimTime);
-            OnDeathAnimationCompleted();
-        }
-        
-        protected virtual void OnDeathAnimationCompleted()
+        public void OnDeathAnimationCompleted()
         {
             CurrentHex.TryClearUnitOccupant(this);
             Destroy(gameObject);
@@ -392,12 +567,11 @@ namespace Units
             
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
-            // if we do anims, the transitions can happen here?
         }
 
         #endregion // state machine
 
-        private void GeneratePreviewPath()
+        private bool TryGeneratePath(int rangeIndex)
         {
             _previewPath.Clear();
 
@@ -405,7 +579,7 @@ namespace Units
             if (CurrentHex == null || TargetHex == null)
             {
                 Debug.LogError("[BaseUnit] Tried to get path, but current or target was null");
-                return;
+                return false;
             }
             
             Pathing.setPosition(CurrentHex.x, CurrentHex.y, CurrentHex.z);
@@ -417,7 +591,7 @@ namespace Units
                 Debug.LogError("Pathing list was null or empty after algorithm");
                 _previewPath.Clear();
                 TargetHex = null;
-                return;
+                return false;
             }
 
             for (int i = 0; i < pathList.Count; i++)
@@ -427,8 +601,84 @@ namespace Units
                 
 
                 if (PathingGameObject != null && PathingGameObject.TryGetComponent(out TileScript tile))
+                {
+                    // if the tile is the one we are on, skip it
+                    if (tile.x == CurrentHex.x &&
+                        tile.y == CurrentHex.y &&
+                        tile.z == CurrentHex.z)
+                    {
+                        continue;
+                    }
+
                     _previewPath.Add(tile);
+                }
             }
+
+            if (_previewPath.Count == 0)
+                return false;
+            
+            // get full path length to enemy
+            int fullDistance = _previewPath.Count;
+            
+            // already in range
+            if (fullDistance <= rangeIndex)
+            {
+                _previewPath.Clear();
+                return true;
+            }
+            
+            int stopIndex = fullDistance - 1 - rangeIndex;
+            
+            if (stopIndex < _previewPath.Count - 1)
+                _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
+            
+            return true;
+        }
+
+        private void TryRetaliate(BaseUnit attacker)
+        {
+            // already engaged, or a target is set, bail retaliation
+            if (_state == UnitState.Engaging || _state == UnitState.Engaged)
+                return;
+            
+            // attacker is null, bail
+            if (attacker == null)
+                return;
+            
+            // set enemy and update target hex
+            _targetEnemy = attacker;
+            TargetHex = attacker.CurrentHex;
+            
+            // no path to target, bail
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                return;
+            }
+            
+            // already in range - retaliate
+            if (_previewPath.Count == 0)
+            {
+                EnterEngagedState();
+                return;
+            }
+            
+            // reset step and path to target
+            _pathIndex = 0;
+            _isStepping = false;
+            _currentStepTimer = 0f;
+            NextHex = null;
+            _pathRetryCount = 0;
+
+            SetState(UnitState.Engaging);
+        }
+
+        protected virtual void HandleSpriteFlip(Vector3 direction)
+        {
+            if (Math.Abs(direction.x) < Mathf.Epsilon)
+                return;
+            
+            if (_spriteRenderer != null)
+                _spriteRenderer.flipX = direction.x < 0f;
         }
 
 
@@ -466,6 +716,33 @@ namespace Units
                     Gizmos.DrawLine(pos + Vector3.up * 0.2f, nextPos + Vector3.up * 0.2f);
                 }
             }
+        }
+
+        private bool _isStepping;
+        private float _currentStepTimer;
+        private float _currentStepDuration;
+        
+        private void BeginStep(TileScript nextHex)
+        {
+            // if nextHex somehow null at this point, safety bail
+            if (nextHex == null)
+            {
+                Debug.LogError($"[BaseUnit] {name} tried to begin step with null NextHex.");
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            // sprite flip logic
+            Vector3 direction = nextHex.transform.position - _transform.position;
+            HandleSpriteFlip(direction);
+            
+            int tileCost = nextHex.getMovement();
+            float moveSpeed = Stats.BaseMoveSpeed;
+            
+            _currentStepDuration = tileCost / moveSpeed;
+            _currentStepTimer = _currentStepDuration;
+            
+            _unitAnimator.SetWalking(true);
         }
     }
 }

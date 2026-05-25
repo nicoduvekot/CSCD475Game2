@@ -6,13 +6,13 @@ namespace Core.UIElements
     public class StateDisplayUI : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI label;
+        [SerializeField] private Transform followTarget;
+        [SerializeField] private float verticalOffset = 0.3f;
         
-        private Transform _followTarget;
         private Camera _mainCamera;
         
-        public void Initialize(Transform followTarget)
+        private void Start()
         {
-            _followTarget = followTarget;
             _mainCamera = Camera.main;
         }
         
@@ -21,12 +21,10 @@ namespace Core.UIElements
             label.text = text;
         }
         
-        private void Update()
+        private void LateUpdate()
         {
-            if (_followTarget == null)
-                return;
-            
-            transform.position = _followTarget.position + Vector3.up * 2f;
+            if (followTarget != null)
+                transform.position = followTarget.position + followTarget.up * verticalOffset;
             
             if (_mainCamera != null)
                 transform.forward = _mainCamera.transform.forward;
