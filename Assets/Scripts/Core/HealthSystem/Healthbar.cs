@@ -75,6 +75,12 @@ namespace HealthSystem
             UpdateVisibility();
         }
 
+        // to be used by perspective visibility
+        public void SetVisible(bool visible)
+        {
+            gameObject.SetActive(visible);
+        }
+
         private void UpdateFill()
         {
             if (fillImage == null) return;
