@@ -565,18 +565,17 @@ namespace Units
             if (_previewPath.Count == 0)
                 return false;
             
-            if (rangeIndex <= 0)
-                return true;
-
-            int hexDistance = _previewPath.Count - 1;
-
-            if (hexDistance <= rangeIndex)
+            // get full path length to enemy
+            int fullDistance = _previewPath.Count;
+            
+            // already in range
+            if (fullDistance <= rangeIndex)
             {
                 _previewPath.Clear();
                 return true;
             }
             
-            int stopIndex = hexDistance - rangeIndex;
+            int stopIndex = fullDistance - 1 - rangeIndex;
             
             if (stopIndex < _previewPath.Count - 1)
                 _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
