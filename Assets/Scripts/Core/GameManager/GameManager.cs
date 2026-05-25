@@ -87,7 +87,7 @@ public class GameManager : MonoBehaviour
         if (owner == UnitOwner.Player)
         {
             // Only triggers if there are not enough
-            if (a < player[0] || b < player[1] || c < player[2])
+            if (a > player[0] || b > player[1] || c > player[2])
             {
                 return false;
             }
@@ -106,7 +106,7 @@ public class GameManager : MonoBehaviour
         else if (owner == UnitOwner.Enemy)
         {
             // Only triggers if there are not enough
-            if (a < enemy[0] || b < enemy[1] || c < enemy[2])
+            if (a > enemy[0] || b > enemy[1] || c > enemy[2])
             {
                 return false;
             }
