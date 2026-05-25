@@ -109,6 +109,8 @@ namespace Units
             Health.ApplyDamage(amount);
             
             Debug.Log($"{attacker.name} damaged {this.name} with {amount} damage");
+            
+            TryRetaliate(attacker);
         }
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
@@ -612,6 +614,43 @@ namespace Units
                 _previewPath.RemoveRange(stopIndex + 1, _previewPath.Count - (stopIndex + 1));
             
             return true;
+        }
+
+        private void TryRetaliate(BaseUnit attacker)
+        {
+            // already engaged, or a target is set, bail retaliation
+            if (_state == UnitState.Engaging || _state == UnitState.Engaged)
+                return;
+            
+            // attacker is null, bail
+            if (attacker == null)
+                return;
+            
+            // set enemy and update target hex
+            _targetEnemy = attacker;
+            TargetHex = attacker.CurrentHex;
+            
+            // no path to target, bail
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                return;
+            }
+            
+            // already in range - retaliate
+            if (_previewPath.Count == 0)
+            {
+                EnterEngagedState();
+                return;
+            }
+            
+            // reset step and path to target
+            _pathIndex = 0;
+            _isStepping = false;
+            _currentStepTimer = 0f;
+            NextHex = null;
+            _pathRetryCount = 0;
+
+            SetState(UnitState.Engaging);
         }
 
         protected virtual void HandleSpriteFlip(Vector3 direction)
