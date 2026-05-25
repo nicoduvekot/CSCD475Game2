@@ -11,6 +11,9 @@ public class TileScript : MonoBehaviour, ISelectable
     public MonoBehaviour Behaviour => this;
     private BaseUnit _occupyingUnit;
     
+    // this change is part of Nico re-write
+    public BaseUnit OccupyingUnit => _occupyingUnit;
+    
     // NOTES: This can change out of being a MonoBehaviour, was set up as such just to provide intended usage 
     private MonoBehaviour _occupyingBuilding;
     
@@ -385,8 +388,10 @@ public class TileScript : MonoBehaviour, ISelectable
             print("tile is occupied by another player or is not an occupiable tile");
             return false;
         }
-        
-        movementPoints = -1;
+
+
+        // this change is part of Nico re-write
+        //movementPoints = -1;
 
         if(attachedBuilding != null){
             

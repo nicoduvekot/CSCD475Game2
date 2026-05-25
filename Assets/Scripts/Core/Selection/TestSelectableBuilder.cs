@@ -1,9 +1,11 @@
-﻿using DataDefinitions;
+﻿using System;
+using DataDefinitions;
 using UnityEngine;
 using Core.UIElements;
 
 namespace Selection
 {
+    [Obsolete("BaseUnit should be every unit", true)]
     public class TestSelectableBuilder : MonoBehaviour, ISelectable
     {
         public MonoBehaviour Behaviour => this;
@@ -27,7 +29,6 @@ namespace Selection
         
         private void Awake()
         {
-            stateDisplayUI.Initialize(transform);
             SetState(UnitState.Idle);
         }
 
