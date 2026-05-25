@@ -31,5 +31,11 @@ namespace Core.UIElements
             if (_mainCamera != null)
                 transform.forward = _mainCamera.transform.forward;
         }
+        
+        // to be used by perspective visibility
+        public void SetVisible(bool visible)
+        {
+            gameObject.SetActive(visible);
+        }
     }
 }
