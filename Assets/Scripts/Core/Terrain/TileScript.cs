@@ -44,9 +44,11 @@ public class TileScript : MonoBehaviour, ISelectable
     
     private bool fogForPlayer = true;
     private bool fogForEnemy = true;
+    private bool fogForWorld = true;
     
     private int revealCountPlayer = 0;
     private int revealCountEnemy = 0;
+    private int revealCountWorld = 0;
 
     private int viewRange = 3;
 
@@ -532,7 +534,7 @@ public class TileScript : MonoBehaviour, ISelectable
         {
             Perspective.Player => fogForPlayer,
             Perspective.Enemy  => fogForEnemy,
-            Perspective.World  => false,
+            Perspective.World  => fogForWorld,
             Perspective.Admin  => false,
             _ => false
         };
@@ -552,15 +554,22 @@ public class TileScript : MonoBehaviour, ISelectable
 
     private void RevealForOwner(UnitOwner owner)
     {
-        if (owner == UnitOwner.Player)
+        switch (owner)
         {
-            revealCountPlayer++;
-            fogForPlayer = revealCountPlayer <= 0;
-        }
-        else if (owner == UnitOwner.Enemy)
-        {
-            revealCountEnemy++;
-            fogForEnemy = revealCountEnemy <= 0;
+            case UnitOwner.Player:
+                revealCountPlayer++;
+                fogForPlayer = revealCountPlayer <= 0;
+                break;
+
+            case UnitOwner.Enemy:
+                revealCountEnemy++;
+                fogForEnemy = revealCountEnemy <= 0;
+                break;
+
+            case UnitOwner.World:
+                revealCountWorld++;
+                fogForWorld = revealCountWorld <= 0;
+                break;
         }
 
         UpdateVisibilityForCurrentPerspective();
@@ -568,15 +577,22 @@ public class TileScript : MonoBehaviour, ISelectable
 
     private void HideForOwner(UnitOwner owner)
     {
-        if (owner == UnitOwner.Player)
+        switch (owner)
         {
-            revealCountPlayer = Mathf.Max(0, revealCountPlayer - 1);
-            fogForPlayer = revealCountPlayer <= 0;
-        }
-        else if (owner == UnitOwner.Enemy)
-        {
-            revealCountEnemy = Mathf.Max(0, revealCountEnemy - 1);
-            fogForEnemy = revealCountEnemy <= 0;
+            case UnitOwner.Player:
+                revealCountPlayer = Mathf.Max(0, revealCountPlayer - 1);
+                fogForPlayer = revealCountPlayer <= 0;
+                break;
+
+            case UnitOwner.Enemy:
+                revealCountEnemy = Mathf.Max(0, revealCountEnemy - 1);
+                fogForEnemy = revealCountEnemy <= 0;
+                break;
+
+            case UnitOwner.World:
+                revealCountWorld = Mathf.Max(0, revealCountWorld - 1);
+                fogForWorld = revealCountWorld <= 0;
+                break;
         }
         
         UpdateVisibilityForCurrentPerspective();
@@ -650,7 +666,7 @@ public class TileScript : MonoBehaviour, ISelectable
         {
             Perspective.Player => fogForPlayer,
             Perspective.Enemy  => fogForEnemy,
-            Perspective.World  => false,
+            Perspective.World  => fogForWorld,
             Perspective.Admin  => false,
             _ => false
         };
