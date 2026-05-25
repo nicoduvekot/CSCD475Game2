@@ -345,6 +345,21 @@ namespace Units
             if (!NextHex.TrySetUnitOccupant(this))
             {
                 Debug.LogWarning("[BaseUnit]-[HandleEngaging] Unit could not set a next hex, currently aborting logic");
+                
+                if (_pathRetryCount < MaxPathRetries)
+                {
+                    _pathRetryCount++;
+
+                    if (TryGeneratePath(Stats.BaseAttackRange))
+                    {
+                        _pathIndex = 0;
+                        _isStepping = false;
+                        return;
+                    }
+                }
+                
+                Debug.LogWarning("[BaseUnit]-[HandleEngaging] retry attempts exhausted.");
+                _pathRetryCount = 0;
                 _unitAnimator.SetWalking(false);
                 SetState(UnitState.Idle);
                 return;
@@ -360,13 +375,23 @@ namespace Units
             CurrentHex = NextHex;
             
             _transform.position = NextHex.transform.position;
-
-            _isStepping = false;
+            
+            _pathRetryCount = 0;
+            
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                _unitAnimator.SetWalking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
             
             if (_previewPath.Count == 0)
             {
                 EnterEngagedState();
             }
+            
+            _pathIndex = 0;
+            _isStepping = false;
         }
 
         private void EnterEngagedState()
@@ -438,6 +463,12 @@ namespace Units
             }
 
             _pathIndex = 0;
+            
+            _isStepping = false;
+            _currentStepTimer = 0f;
+            NextHex = null;
+            _pathRetryCount = 0;
+            
             SetState(UnitState.Engaging);
             return true;
         }
