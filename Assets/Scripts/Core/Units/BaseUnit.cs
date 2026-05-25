@@ -23,8 +23,8 @@ namespace Units
 
         private Health Health { get; set; }
         private Healthbar Healthbar { get; set; }
-        private UnitStats Stats { get; private set; }
-        private StateDisplayUI StateDisplayUI { get; private set; }
+        private UnitStats Stats { get; set; }
+        private StateDisplayUI StateDisplayUI { get; set; }
         private Renderer[] _renderers;
         
         [Header("Tile Pathing")]
@@ -67,8 +67,6 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
-            if (StateDisplayUI != null) 
-                StateDisplayUI.Initialize(_transform);
             
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
             
