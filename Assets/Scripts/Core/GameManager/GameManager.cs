@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using Units;       // Imports the name space for the enum types. 
 using System.Collections.Generic;
+using Resource; // Imports the name space for the enum types for Resources
 
 public class GameManager : MonoBehaviour
 {
@@ -44,6 +45,7 @@ public class GameManager : MonoBehaviour
         if (!paused && timeRemaining > 0)
         {
             timeRemaining -= Time.deltaTime;
+            resourceUpdateTimer += Time.deltaTime;
             displayTime(timeRemaining);
             displayResources();
         }
@@ -53,7 +55,7 @@ public class GameManager : MonoBehaviour
 
         }
 
-        if(resourceUpdateTimer > updateResourceInterval)
+        if(resourceUpdateTimer >= updateResourceInterval)
         {
             // Calls resource generator
             GenerateResources();
@@ -164,10 +166,32 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+
+    // Generates the resources
     public void GenerateResources()
     {
         List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
 
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            ResourceType temp = buildings[i].getResource();
+            UnitOwner owner = buildings[i].getOwner();
 
+            if (buildings[i].getOwner() == UnitOwner.Player || buildings[i].getOwner() == UnitOwner.Enemy)
+            {
+                switch (temp)
+                {
+                    case ResourceType.Food:
+                        addResource(owner, 0, buildings[i].resourceGeneration);
+                        break;
+                    case ResourceType.Iron:
+                        addResource(owner, 1, buildings[i].resourceGeneration);
+                        break;
+                    case ResourceType.Wood:
+                        addResource(owner, 2, buildings[i].resourceGeneration);
+                        break;
+                }
+            }
+        }
     }
 }
