@@ -35,6 +35,9 @@ namespace Units
         private readonly List<TileScript> _previewPath = new(16);
         private readonly Vector3 _pathingGizmoOffset = new(0, 0.5f, 0);
         private int _pathIndex;
+        
+        private int _pathRetryCount = 0;
+        private const int MaxPathRetries = 2;
 
         [field: ReadOnly]
         public UnitOwner Owner { get; private set; }
@@ -192,7 +195,7 @@ namespace Units
                     break;
             }
         }
-
+        
         protected virtual void HandleMoving()
         {
             // bail out if no path
@@ -236,7 +239,22 @@ namespace Units
             // attempt to claim the step hex
             if (!NextHex.TrySetUnitOccupant(this))
             {
-                Debug.LogWarning("[BaseUnit]-[HandleMoving] Unit could not set a next hex, currently aborting logic");
+                if (_pathRetryCount < MaxPathRetries)
+                {
+                    // increment path retry count
+                    _pathRetryCount++;
+
+                    // Try to rebuild the path to the same target
+                    if (TryGeneratePath(0))
+                    {
+                        _pathIndex = 0;
+                        _isStepping = false;
+                        return;
+                    }
+                }
+                
+                Debug.LogWarning("[BaseUnit]-[HandleMoving] retry pathing failure tries expired.");
+                _pathRetryCount = 0;
                 _unitAnimator.SetWalking(false);
                 SetState(UnitState.Idle);
                 return;
@@ -254,6 +272,9 @@ namespace Units
             // immediate snap to nextHex location ??
             _transform.position = NextHex.transform.position;
             
+            _pathRetryCount = 0;
+            
+            // Optimization remarks - this will generate a new path every step
             if (!TryGeneratePath(0))
             {
                 _unitAnimator.SetWalking(false);
