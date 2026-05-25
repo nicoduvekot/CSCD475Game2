@@ -30,18 +30,18 @@ public class UnitPathing : MonoBehaviour
     }
 
     // Gets the neighbor for any given pos
-    private int[] hexNeighbor(int[] pos, int direction)
+    public static int[] hexNeighbor(int[] pos, int direction)
     {
         int[] dir = hexDirection(direction);
         return new int[] { pos[0] + dir[0], pos[1] + dir[1], pos[2] + dir[2] };
     }
 
     // Return direction vector
-    private int[] hexDirection(int direction)
+    private static int[] hexDirection(int direction)
     {
         if (direction < 1 || direction > 6)
         {
-            Debug.LogError("Direction must be 1–6");
+            Debug.LogError("Direction must be 1ï¿½6");
             return new int[] { 0, 0, 0 };
         }
 
