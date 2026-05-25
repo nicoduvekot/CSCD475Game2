@@ -415,10 +415,41 @@ namespace Units
 
         protected virtual void HandleEngaged()
         {
-            if (_targetEnemy != null) return;
+            // the unit has become null, bail
+            if (_targetEnemy == null)
+            {
+                _unitAnimator.SetAttacking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
             
-            _unitAnimator.SetAttacking(false);
-            SetState(UnitState.Idle);
+            // update target to where enemy is
+            TargetHex = _targetEnemy.CurrentHex;
+            
+            // if no path, bail and idle
+            if (!TryGeneratePath(Stats.BaseAttackRange))
+            {
+                _unitAnimator.SetAttacking(false);
+                SetState(UnitState.Idle);
+                return;
+            }
+            
+            // if we are now out of range, go back to engaging logic
+            if (_previewPath.Count > 0)
+            {
+                // stop the attack anim
+                _unitAnimator.SetAttacking(false);
+
+                // reset stepping
+                _isStepping = false;
+                _currentStepTimer = 0f;
+                NextHex = null;
+                _pathRetryCount = 0;
+                _pathIndex = 0;
+
+                SetState(UnitState.Engaging);
+                return;
+            }
         }
         
         protected virtual void Attack(BaseUnit enemy)
