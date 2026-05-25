@@ -508,8 +508,27 @@ namespace Units
 
         public virtual void OnAttackHit()
         {
-            if (_targetEnemy != null)
-                Attack(_targetEnemy);
+            // bail if target is null
+            if (_targetEnemy == null)
+                return;
+            
+            // do damage
+            Attack(_targetEnemy);
+            
+            // target is null or dead after hit
+            if (_targetEnemy == null || !_targetEnemy.Health.IsAlive)
+            {
+                _unitAnimator.SetAttacking(false);
+
+                // reset step safety
+                _isStepping = false;
+                _currentStepTimer = 0f;
+                NextHex = null;
+                _pathRetryCount = 0;
+                _pathIndex = 0;
+
+                SetState(UnitState.Idle);
+            }
         }
 
         #region DeathStateLogic
