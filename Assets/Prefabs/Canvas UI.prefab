@@ -309,7 +309,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: -10, y: -5}
-  m_SizeDelta: {x: 0, y: 50}
+  m_SizeDelta: {x: 100, y: 50}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &5828173542419020338
 CanvasRenderer:
@@ -548,6 +548,50 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &2143608107997745469
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 892515141823124379}
+  - component: {fileID: 1286036717821694763}
+  m_Layer: 0
+  m_Name: techController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &892515141823124379
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143608107997745469}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3302080894999227533}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1286036717821694763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143608107997745469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74eb1805be3409749a3baff9da4cbf7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::techController
 --- !u!1 &2474147015195090349
 GameObject:
   m_ObjectHideFlags: 0
@@ -697,6 +741,7 @@ GameObject:
   - component: {fileID: 3387979719572146963}
   - component: {fileID: 8971083134887970706}
   - component: {fileID: 1899859828806214649}
+  - component: {fileID: 5337529976634912696}
   m_Layer: 5
   m_Name: Canvas UI
   m_TagString: Untagged
@@ -716,6 +761,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 892515141823124379}
   - {fileID: 6535196356831151730}
   - {fileID: 893463369201741358}
   - {fileID: 6403269459353545784}
@@ -796,6 +842,20 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &5337529976634912696
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2577282981587841041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c40f8107c45189f4d8451dc1d703b1d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonManager
+  exitButton: {fileID: 9199792974724365096}
+  techButton: {fileID: 2027662824365838593}
 --- !u!1 &2814268823594906015
 GameObject:
   m_ObjectHideFlags: 0
@@ -968,7 +1028,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: -10, y: -5}
-  m_SizeDelta: {x: 0, y: 50}
+  m_SizeDelta: {x: 100, y: 50}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &8559799770238913870
 CanvasRenderer:
@@ -1259,7 +1319,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: -10, y: -5}
-  m_SizeDelta: {x: 0, y: 50}
+  m_SizeDelta: {x: 100, y: 50}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &3527381781683394955
 CanvasRenderer:
@@ -1955,6 +2015,8 @@ MonoBehaviour:
   playerResource1: {fileID: 2790690716490161184}
   playerResource2: {fileID: 1037771843011628299}
   playerResource3: {fileID: 5945736392586553002}
+  player: 000000000000000000000000
+  enemy: 000000000000000000000000
   timeRemaining: 1200
 --- !u!1 &6270838894211587070
 GameObject:
