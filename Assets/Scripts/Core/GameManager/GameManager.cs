@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using Units;       // Imports the name space for the enum types. 
+using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour
 {
@@ -23,6 +24,8 @@ public class GameManager : MonoBehaviour
     // Variables for time situation
     [SerializeField] private float timeRemaining = 1200;
     private bool paused = false;
+    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
+    private float resourceUpdateTimer = 0f;     // variable for counting time
 
     void Awake()
     {
@@ -33,7 +36,6 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     
@@ -49,6 +51,15 @@ public class GameManager : MonoBehaviour
         {
             // end of the game, code for this is reqired for that
 
+        }
+
+        if(resourceUpdateTimer > updateResourceInterval)
+        {
+            // Calls resource generator
+            GenerateResources();
+
+            // Reset the timer
+            resourceUpdateTimer -= updateResourceInterval;
         }
     }
 
@@ -151,5 +162,12 @@ public class GameManager : MonoBehaviour
     {
         paused = false;
         Time.timeScale = 1f;
+    }
+
+    public void GenerateResources()
+    {
+        List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
+
+
     }
 }
