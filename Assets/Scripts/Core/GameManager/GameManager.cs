@@ -15,8 +15,8 @@ public class GameManager : MonoBehaviour
 
     // Objects for player and enemy resource totals
     // Represent the three resources one can have
-    private int[] player = new int[] { 0, 0, 0 };
-    private int[] enemy = new int[] { 0, 0, 0 };
+    [SerializeField] private int[] player = new int[] { 0, 0, 0 };
+    [SerializeField] private int[] enemy = new int[] { 0, 0, 0 };
     private int pScore = 0;
     private int eScore = 0;
 
@@ -76,6 +76,9 @@ public class GameManager : MonoBehaviour
         {
             enemy[type] += amount;
         }
+
+        // Used so display works better
+        displayResources();
     }
 
     //spends resources of the amounts
@@ -84,7 +87,7 @@ public class GameManager : MonoBehaviour
         if (owner == UnitOwner.Player)
         {
             // Only triggers if there are not enough
-            if (a < player[0] || b < player[1] || c < player[2])
+            if (a > player[0] || b > player[1] || c > player[2])
             {
                 return false;
             }
@@ -93,13 +96,17 @@ public class GameManager : MonoBehaviour
                 player[0] -= a;
                 player[1] -= b;
                 player[2] -= c;
+
+                // Used so display works better
+                displayResources();
+
                 return true;
             }
         }
         else if (owner == UnitOwner.Enemy)
         {
             // Only triggers if there are not enough
-            if (a < enemy[0] || b < enemy[1] || c < enemy[2])
+            if (a > enemy[0] || b > enemy[1] || c > enemy[2])
             {
                 return false;
             }
@@ -108,6 +115,10 @@ public class GameManager : MonoBehaviour
                 enemy[0] -= a;
                 enemy[1] -= b;
                 enemy[2] -= c;
+
+                // Used so display works better
+                displayResources();
+
                 return true;
             }
         }
