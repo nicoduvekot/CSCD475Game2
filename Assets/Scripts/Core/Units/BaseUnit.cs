@@ -5,6 +5,7 @@ using Selection;
 using UnityEngine;
 using HealthSystem;
 using EditorTools.Attributes;
+using TeamControl;
 
 namespace Units
 {
@@ -18,8 +19,10 @@ namespace Units
         public UnitPathing Pathing { get; set; }
 
         protected Health Health { get; private set; }
+        private Healthbar Healthbar { get; set; }
         protected UnitStats Stats { get; private set; }
         protected StateDisplayUI StateDisplayUI { get; private set; }
+        private Renderer[] _renderers;
         
         [Header("Tile Pathing")]
         // TEMP SOLUTION - changes to this unit to unit will reflect a change in prefab
@@ -49,6 +52,7 @@ namespace Units
         protected virtual void Awake()
         {
             Health = GetComponent<Health>();
+            Healthbar = GetComponentInChildren<Healthbar>();
             Stats = GetComponent<UnitStats>();
             Pathing = GetComponent<UnitPathing>();
             
@@ -60,8 +64,10 @@ namespace Units
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
             if (StateDisplayUI != null) 
                 StateDisplayUI.Initialize(_transform);
-
             
+            _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+
+            PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
         }
         
         protected virtual void Start()
@@ -72,7 +78,7 @@ namespace Units
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
 
-                if (startingHex == null)
+            if (startingHex == null)
             {
                 Debug.LogError($"[BaseUnit] no starting hex assigned for {name}, disabling unit");
                 enabled = false;
@@ -91,6 +97,8 @@ namespace Units
         protected virtual void OnDestroy()
         {
             if (Health != null) Health.OnHealthEmpty -= HandleDeath;
+            
+            PerspectiveManager.Instance.OnPerspectiveChanged -= UpdateVisibility;
         }
         
         // public API
@@ -99,6 +107,11 @@ namespace Units
         {
             Owner = newOwner;
             _ownerInitialized = true;
+            
+            if (CurrentHex != null)
+                CurrentHex.TryUpdateUnitOwnership(this);
+            
+            UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
         }
         
         public void TakeDamage(float amount)
@@ -466,6 +479,27 @@ namespace Units
                     Gizmos.DrawLine(pos + Vector3.up * 0.2f, nextPos + Vector3.up * 0.2f);
                 }
             }
+        }
+        
+        private void UpdateVisibility(Perspective p)
+        {
+            bool visible = p switch
+            {
+                Perspective.Admin => true,
+                Perspective.Player => Owner == UnitOwner.Player,
+                Perspective.Enemy  => Owner == UnitOwner.Enemy,
+                Perspective.World  => Owner == UnitOwner.World,
+                _ => false
+            };
+
+            foreach (Renderer r in _renderers)
+                r.enabled = visible;
+            
+            if (Healthbar != null)
+                Healthbar.SetVisible(visible);
+            
+            if (StateDisplayUI != null)
+                StateDisplayUI.SetVisible(visible);
         }
     }
 }
