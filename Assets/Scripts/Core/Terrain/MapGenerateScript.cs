@@ -105,6 +105,8 @@ public class MapGenerateScript : MonoBehaviour
                 buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
                 
             }
+
+            
             
 
 

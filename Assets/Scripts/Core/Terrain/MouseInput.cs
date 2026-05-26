@@ -130,15 +130,15 @@ public class MouseInput : MonoBehaviour
         //     terrainType = "dirt";
         // }
         // print("terrain type is + " + terrainType);
-        if(controller == 0){
-            controller = 1;
-            print("controller is now enemy");
-        }else if(controller == 1){
-            controller = 2;
-            print("controller is now remove");
-        }else{
-            controller = 0;
-            print("controller is now player");
-        }
+        // if(controller == 0){
+        //     controller = 1;
+        //     print("controller is now enemy");
+        // }else if(controller == 1){
+        //     controller = 2;
+        //     print("controller is now remove");
+        // }else{
+        //     controller = 0;
+        //     print("controller is now player");
+        // }
     }
 }

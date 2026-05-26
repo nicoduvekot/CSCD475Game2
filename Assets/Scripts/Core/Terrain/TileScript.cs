@@ -61,19 +61,9 @@ public class TileScript : MonoBehaviour, ISelectable
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
 
-        if(transform.Find("Owner") != null){
-            OwnerOutline = transform.Find("Owner").gameObject;
-        }else{
-            OwnerOutline = null;
-        }
+        
 
         
-    }
-
-    void Update(){
-        if(transform.Find("Owner(Clone)") != null){
-            Destroy(transform.Find("Owner(Clone)").gameObject);
-        }
     }
 
     // initialize the hexes values
@@ -154,6 +144,11 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         addFog();
+        if(transform.Find("HexOutline") != null){
+            OwnerOutline = transform.Find("HexOutline").gameObject;
+        }else{
+            OwnerOutline = null;
+        }
 
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
@@ -208,13 +203,16 @@ public class TileScript : MonoBehaviour, ISelectable
         if(!buildingTile){
             tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0) ,Quaternion.Euler(90,0,0),transform);
             tempBuilding.transform.localScale = new Vector3(0.73f,0.68f,1);
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject);
             tempBuilding.name = "Building";
             buildingTile = true;
         }else{
+            
             tempBuilding = transform.Find("Building").gameObject;
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject);
         }
+        
+        
         attachedBuilding = tempBuilding.GetComponent<BuildingScript>();
         return tempBuilding;
     }
@@ -332,12 +330,7 @@ public class TileScript : MonoBehaviour, ISelectable
 
     // this adds the hex overlay to view who controls the tile, used on and around buildings
     public void addOverlay(Sprite sprite){
-        if(OwnerOutline == null){
-            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
-            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
-        }
         OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
-        
     }
 
     public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
@@ -346,8 +339,10 @@ public class TileScript : MonoBehaviour, ISelectable
             OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
             attachedBuilding = incomingBuilding;
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
-            OwnerOutline.name = "Owner";
+            OwnerOutline.name = "HexOutline";
         }
+        attachedBuilding = incomingBuilding;
+        print("initial Attached Building is " + attachedBuilding);
     }
 
     
@@ -467,6 +462,7 @@ public class TileScript : MonoBehaviour, ISelectable
         
 
         if(OwnerOutline != null){
+            print("attached building is " + attachedBuilding);
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
         }
         

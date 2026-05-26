@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Units;
-using Unity.Collections;
+
 
 public class BuildingScript : MonoBehaviour
 {
@@ -29,6 +29,10 @@ public class BuildingScript : MonoBehaviour
     private float controlPercent = 100; // this relates to the current owner or capturer of the building
 
     private float captureTimePassed = 0;
+    private float recruitTimePassed = 0;
+    public float recruitCooldown = 10f;
+
+    private Queue<int> recruitQueue = new();
 
     [SerializeField] 
     private ResourceType resource;
@@ -84,25 +88,31 @@ public class BuildingScript : MonoBehaviour
             updateVisuals();
             controlPercent = 0;
         }
+
+        if(recruitQueue.Count >= 1 && recruitTimePassed >= recruitCooldown){
+            print("cooldown has passed");
+            recruitUnit();
+            recruitTimePassed = 0f;
+        }else if(recruitQueue.Count >= 1 && recruitTimePassed >= 0){
+            recruitTimePassed += Time.deltaTime;
+        }else if(recruitQueue.Count == 0){
+            recruitTimePassed = 0f;
+        }
         
         
         
     }
 
-    public void createBuilding(GameObject currentTile, string incomingResourceType){
+    public void createBuilding(GameObject currentTile){
         
         occupantTile = currentTile;
-        if(incomingResourceType == "Wood"){
-            resource = ResourceType.Wood;
+        if(resource == ResourceType.Wood){
             resourceBuilding = Resources.Load("PixelArt/woodcutter", typeof(Sprite)) as Sprite;
-        }else if(incomingResourceType == "Iron"){
-            resource = ResourceType.Iron;
+        }else if(resource == ResourceType.Iron){
             resourceBuilding = Resources.Load("PixelArt/mine", typeof(Sprite)) as Sprite;
-        }else if(incomingResourceType == "Food"){
-            resource = ResourceType.Food;
+        }else if(resource == ResourceType.Food){
             resourceBuilding = Resources.Load("PixelArt/farm", typeof(Sprite)) as Sprite;
-        }else if(incomingResourceType == "Fort"){
-            resource = ResourceType.Fort;
+        }else if(resource == ResourceType.Fort){
             resourceBuilding = Resources.Load("PixelArt/fort", typeof(Sprite)) as Sprite;
         }
         
@@ -121,29 +131,33 @@ public class BuildingScript : MonoBehaviour
         if(hex != null){
             surroundingTiles.Add(hex);
             hex.addInitialOverlay(neutralControl,this);
+            hex.addOverlay(neutralControl);
         }
         if(hex2 != null){
             surroundingTiles.Add(hex2);
             hex2.addInitialOverlay(neutralControl,this);
+            hex2.addOverlay(neutralControl);
         }
         if(hex3 != null){
             surroundingTiles.Add(hex3);
             hex3.addInitialOverlay(neutralControl,this);
+            hex3.addOverlay(neutralControl);
         }
         if(hex4 != null){
             surroundingTiles.Add(hex4);
             hex4.addInitialOverlay(neutralControl,this);
+            hex4.addOverlay(neutralControl);
         }
         if(hex5 != null){
             surroundingTiles.Add(hex5);
             hex5.addInitialOverlay(neutralControl,this);
+            hex5.addOverlay(neutralControl);
         }
         if(hex6 != null){
             surroundingTiles.Add(hex6);
             hex6.addInitialOverlay(neutralControl,this);
+            hex6.addOverlay(neutralControl);
         }
-
-        print("resourceBuilding is " + resourceBuilding);
 
         occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
         GetComponent<SpriteRenderer>().sprite = resourceBuilding;
@@ -160,8 +174,6 @@ public class BuildingScript : MonoBehaviour
         }else{
             capturing--;
         }
-
-        print("capturing count is " + capturing);
         
         if(unitOwnerID == UnitOwner.Player){
             return playerControl;
@@ -177,8 +189,7 @@ public class BuildingScript : MonoBehaviour
         }else{
             capturing++;
         }
-
-        print("capturing count is " + capturing);
+        print("moving out of hex");
 
         return neutralControl;
     }
@@ -223,7 +234,6 @@ public class BuildingScript : MonoBehaviour
                 num--;
             }
         }
-        print("num is " + num);
         return num;
     }
 
@@ -234,19 +244,6 @@ public class BuildingScript : MonoBehaviour
             occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
         }
     }
-
-    // public List<int> updateResource(){
-    //     if(resource == resourceType.Fort){
-    //         return null;
-    //     }
-    //     List<int> resourceList = new();
-    //     if(controller != UnitOwner.World){
-    //         resourceList.Add((int)controller);
-    //         resourceList.Add((int)resource);
-    //         resourceList.Add(resourceGeneration);
-    //     }
-    //     return resourceList;
-    // }
 
     public UnitOwner getOwner(){
         return controller;
@@ -261,11 +258,26 @@ public class BuildingScript : MonoBehaviour
     }
 
     public void recruitUnit(int type){
+        if(recruitQueue.Count > 6){
+            print("cannot recruit more than 6 units at once");
+            return;
+        }
 
         if(controller == UnitOwner.World){
             print("cannot created units if owned by world");
             return;
         }
+
+        print("started recruiting unit");
+        recruitQueue.Enqueue(type);
+
+    }
+
+    private void recruitUnit(){
+        int type;
+        
+
+        
 
         TileScript openHex = null;
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -287,6 +299,8 @@ public class BuildingScript : MonoBehaviour
         if(openHex == null){
             print("no open hexes");
             return;
+        }else{
+            type = recruitQueue.Dequeue();
         }
 
         if(controller == UnitOwner.Player){
