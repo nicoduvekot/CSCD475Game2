@@ -30,7 +30,7 @@ public class BuildingScript : MonoBehaviour
 
     private float captureTimePassed = 0;
     private float recruitTimePassed = 0;
-    public float recruitCooldown = 10f;
+    public float recruitCooldown = 3f;
 
     private Queue<int> recruitQueue = new();
 
@@ -57,11 +57,11 @@ public class BuildingScript : MonoBehaviour
             captureTimePassed += Time.deltaTime * capturing;
         }
         
-        if(captureTimePassed > 5f){
+        if(captureTimePassed > 1f){
             captureTimePassed = 0f;
             controlPercent += 15;
             print("control percentage is " + controlPercent + "%");
-        }else if(captureTimePassed < -5f){
+        }else if(captureTimePassed < -1f){
             captureTimePassed = 0f;
             controlPercent -= 15;
             print("control percentage is " + controlPercent + "%");
@@ -258,8 +258,24 @@ public class BuildingScript : MonoBehaviour
     }
 
     public void recruitUnit(int type){
-        if(recruitQueue.Count > 6){
-            print("cannot recruit more than 6 units at once");
+
+        int available = 0;
+        TileScript tile = occupantTile.GetComponent<TileScript>();
+
+        for(int i = 1; i < 7; i++){
+
+            int[] nextHex = UnitPathing.hexNeighbor(new int[] {tile.x,tile.y,tile.z},i);
+
+            if(MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]) != null 
+            && MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]).GetComponent<TileScript>().canMakeUnit()){
+                available++;
+                
+            }
+        }
+
+
+        if(recruitQueue.Count >= available){
+            print("cannot recruit more than " + available + " units at once");
             return;
         }
 
@@ -268,8 +284,17 @@ public class BuildingScript : MonoBehaviour
             return;
         }
 
-        print("started recruiting unit");
-        recruitQueue.Enqueue(type);
+        int[] spend = {0,0,0};
+        spend[type] = 100;
+
+        if(GameManager.Instance.spendResources(controller,spend[0],spend[1],spend[2])){
+            print("started recruiting unit");
+            recruitQueue.Enqueue(type);
+        }else{
+            print("missing resources");
+        }
+
+        
 
     }
 

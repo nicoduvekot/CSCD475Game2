@@ -31,7 +31,9 @@ namespace Units
         // TEMP SOLUTION - changes to this unit to unit will reflect a change in prefab
         // SerializeField is not ideal solution - expect this to change if I have time
         [SerializeField] private TileScript startingHex;
-        private TileScript CurrentHex { get; set; }
+        [HideInInspector] public TileScript CurrentHex;
+
+
         private TileScript TargetHex { get; set; }
         private TileScript NextHex { get; set; }
         private GameObject PathingGameObject { get; set; }
@@ -43,9 +45,9 @@ namespace Units
         private const int MaxPathRetries = 2;
 
         [field: ReadOnly]
-        public UnitOwner Owner { get; private set; }
+        public UnitOwner Owner;
 
-        private bool _ownerInitialized;
+        [HideInInspector] public bool _ownerInitialized;
 
         private UnitState _state = UnitState.Idle;
         private BaseUnit _targetEnemy;
@@ -65,19 +67,23 @@ namespace Units
             
             Health.InitializeHealth(Stats.BaseMaxHealth);
             Health.OnHealthEmpty += HandleDeath;
-            
+
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
             
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
             
             _unitAnimator = GetComponentInChildren<UnitAnimator>();
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
+            print("_ownerInitialized in awake is " + _ownerInitialized);
+            print("current hex in awake is " + CurrentHex);
+            print("starting hex in awake is " + startingHex);
+            
+
         }
         
-        protected virtual void Start()
+        public virtual void Start()
         {
-            if (!_ownerInitialized)
-                Debug.LogWarning($"CAUTION: {name} was spawned with default ownership of {Owner}");
             
             if (StateDisplayUI != null)
                 StateDisplayUI.SetText(_state.ToString());
@@ -97,6 +103,17 @@ namespace Units
             _transform.position = CurrentHex.transform.position;
             
             PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
+
+            print("_ownerInitialized in start is " + _ownerInitialized);
+            print("current hex in start is " + CurrentHex);
+            print("starting hex in start is " + startingHex);
+
+            UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
+
+            
+
+            if (!_ownerInitialized)
+                Debug.LogWarning($"CAUTION: {name} was spawned with default ownership of {Owner}");
         }
         
         protected virtual void OnDestroy()
@@ -109,19 +126,13 @@ namespace Units
         // public API
         // called before unit is instantiated
         public void initializeUnit(TileScript startingTile, UnitOwner newOwner){
+
             startingHex = startingTile;
+            CurrentHex = startingTile;
+
             Owner = newOwner;
             _ownerInitialized = true;
-        }
-
-        // called after unit is instantiated
-        public void InitializeOccupant()
-        {   
-            
-            if (CurrentHex != null)
-                CurrentHex.TryUpdateUnitOwnership(this);
-            
-            UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
+            print("_ownerInitialized in init is " + _ownerInitialized);
         }
 
         public void debugInitializeOwner(UnitOwner newOwner){

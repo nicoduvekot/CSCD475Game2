@@ -400,6 +400,7 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         if(tileOccupant != UnitOwner.World || movementPoints == -1){
+            print("movement points are" + movementPoints);
             print("tile is occupied by another player or is not an occupiable tile");
             return false;
         }
@@ -570,9 +571,9 @@ public class TileScript : MonoBehaviour, ISelectable
     }
 
     public void makeUnit(GameObject unit,UnitOwner owner){
+        
         unit.GetComponent<TestUnit>().initializeUnit(this,owner);
         Instantiate(unit,transform.position,transform.rotation);
-        unit.GetComponent<TestUnit>().InitializeOccupant();
     }
 
     private void RevealForOwner(UnitOwner owner)
