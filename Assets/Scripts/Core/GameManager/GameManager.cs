@@ -17,8 +17,8 @@ public class GameManager : MonoBehaviour
 
     // Objects for player and enemy resource totals
     // Represent the three resources one can have
-    private int[] player = new int[] { 0, 0, 0 };
-    private int[] enemy = new int[] { 0, 0, 0 };
+    [SerializeField] private int[] player = new int[] { 0, 0, 0 };
+    [SerializeField] private int[] enemy = new int[] { 0, 0, 0 };
     private int pScore = 0;
     private int eScore = 0;
 
