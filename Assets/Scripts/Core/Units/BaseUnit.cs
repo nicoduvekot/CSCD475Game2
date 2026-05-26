@@ -5,6 +5,7 @@ using Selection;
 using UnityEngine;
 using HealthSystem;
 using EditorTools.Attributes;
+using TeamControl;
 
 namespace Units
 {
@@ -21,8 +22,10 @@ namespace Units
         private UnitPathing Pathing { get; set; }
 
         private Health Health { get; set; }
+        private Healthbar Healthbar { get; set; }
         private UnitStats Stats { get; set; }
         private StateDisplayUI StateDisplayUI { get; set; }
+        private Renderer[] _renderers;
         
         [Header("Tile Pathing")]
         // TEMP SOLUTION - changes to this unit to unit will reflect a change in prefab
@@ -54,6 +57,7 @@ namespace Units
         protected virtual void Awake()
         {
             Health = GetComponent<Health>();
+            Healthbar = GetComponentInChildren<Healthbar>();
             Stats = GetComponent<UnitStats>();
             Pathing = GetComponent<UnitPathing>();
             
@@ -63,6 +67,8 @@ namespace Units
             Health.OnHealthEmpty += HandleDeath;
             
             StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
+            
+            _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
             
             _unitAnimator = GetComponentInChildren<UnitAnimator>();
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -89,11 +95,15 @@ namespace Units
 
             CurrentHex.TrySetUnitOccupant(this);
             _transform.position = CurrentHex.transform.position;
+            
+            PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
         }
         
         protected virtual void OnDestroy()
         {
             if (Health != null) Health.OnHealthEmpty -= HandleDeath;
+            
+            PerspectiveManager.Instance.OnPerspectiveChanged -= UpdateVisibility;
         }
         
         // public API
@@ -102,6 +112,11 @@ namespace Units
         {
             Owner = newOwner;
             _ownerInitialized = true;
+            
+            if (CurrentHex != null)
+                CurrentHex.TryUpdateUnitOwnership(this);
+            
+            UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
         }
         
         private void TakeDamage(float amount, BaseUnit attacker)
@@ -716,6 +731,38 @@ namespace Units
                     Gizmos.DrawLine(pos + Vector3.up * 0.2f, nextPos + Vector3.up * 0.2f);
                 }
             }
+        }
+        
+        public void UpdateVisibility(Perspective p)
+        {
+            bool isOwnerPerspective = p switch
+            {
+                Perspective.Player => Owner == UnitOwner.Player,
+                Perspective.Enemy  => Owner == UnitOwner.Enemy,
+                Perspective.World  => Owner == UnitOwner.World,
+                Perspective.Admin  => true,
+                _ => false
+            };
+            
+            bool tileVisibleToPerspective = p switch
+            {
+                Perspective.Admin => true,
+                Perspective.Player => !CurrentHex.fogForPlayer,
+                Perspective.Enemy  => !CurrentHex.fogForEnemy,
+                Perspective.World  => !CurrentHex.fogForWorld,
+                _ => false
+            };
+            
+            bool unitVisible = isOwnerPerspective || tileVisibleToPerspective;
+
+            foreach (Renderer r in _renderers)
+                r.enabled = unitVisible;
+            
+            if (Healthbar != null)
+                Healthbar.SetVisible(unitVisible);
+
+            if (StateDisplayUI != null)
+                StateDisplayUI.SetVisible(isOwnerPerspective);    
         }
 
         private bool _isStepping;

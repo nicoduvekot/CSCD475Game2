@@ -67,7 +67,7 @@ public class BuildingScript : MonoBehaviour
         if(controlPercent < 0){
             UnitOwner newCapture = getNewCapturer();
             if(newCapture == UnitOwner.World){
-                capturing = 0;
+                
                 occupantTile.GetComponent<TileScript>().removeBuildingOwner();
             }else{
                 if(newCapture != controller){
@@ -185,13 +185,19 @@ public class BuildingScript : MonoBehaviour
             }
         }
 
+        
+
         if(player[0] == player[1]){
+
+            print("new capturer is world");
             return UnitOwner.World;
         }
 
         if(player[0] > player[1]){
+            print("new capturer is player");
             return UnitOwner.Player;
         }else{
+            print("new capturer is enemy");
             return UnitOwner.Enemy;
         }
 
