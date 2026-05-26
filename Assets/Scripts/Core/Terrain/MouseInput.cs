@@ -95,23 +95,19 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
-        // if(controller == 0){
-        //     hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Player);
-        // }else if(controller == 1){
-        //     hit.collider.gameObject.GetComponent<TileScript>().addOccupant(UnitOwner.Enemy);
-        // }else{
-        //     hit.collider.gameObject.GetComponent<TileScript>().removeOccupant();
-        // }
+        if (hex.getTerrain() == TerrainType.building){
+            hexObject.transform.Find("Building").GetComponent<BuildingScript>().recruitUnit(0);
+        }
 
         //hit.collider.gameObject.GetComponent<TileScript>().removeFog();
         
         
 
-        print($"hit hex is {hex.x},{hex.y},{hex.z}");
-
-        TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
-
-        print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
+//         print($"hit hex is {hex.x},{hex.y},{hex.z}");
+// 
+//         TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
+// 
+//         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
         
     }
 

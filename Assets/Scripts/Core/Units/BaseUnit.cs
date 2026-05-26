@@ -107,12 +107,26 @@ namespace Units
         }
         
         // public API
-        
-        public void InitializeOwner(UnitOwner newOwner)
-        {
+        // called before unit is instantiated
+        public void initializeUnit(TileScript startingTile, UnitOwner newOwner){
+            startingHex = startingTile;
             Owner = newOwner;
             _ownerInitialized = true;
+        }
+
+        // called after unit is instantiated
+        public void InitializeOccupant()
+        {   
             
+            if (CurrentHex != null)
+                CurrentHex.TryUpdateUnitOwnership(this);
+            
+            UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
+        }
+
+        public void debugInitializeOwner(UnitOwner newOwner){
+            Owner = newOwner;
+            _ownerInitialized = true;
             if (CurrentHex != null)
                 CurrentHex.TryUpdateUnitOwnership(this);
             

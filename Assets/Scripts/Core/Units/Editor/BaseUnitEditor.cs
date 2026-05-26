@@ -35,7 +35,7 @@ namespace Units.Editor
             
             if (GUILayout.Button("Apply Owner to This Unit"))
             {
-                unit.InitializeOwner(_selectedOwner);
+                unit.debugInitializeOwner(_selectedOwner);
                 Debug.Log($"[Editor] Set owner of {unit.name} to {_selectedOwner}");
             }
 

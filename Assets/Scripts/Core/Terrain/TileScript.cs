@@ -553,8 +553,10 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void makeUnit(GameObject unit){
-        //Instantiate(unit,)
+    public void makeUnit(GameObject unit,UnitOwner owner){
+        unit.GetComponent<TestUnit>().initializeUnit(this,owner);
+        Instantiate(unit,transform.position,transform.rotation);
+        unit.GetComponent<TestUnit>().InitializeOccupant();
     }
 
     private void RevealForOwner(UnitOwner owner)

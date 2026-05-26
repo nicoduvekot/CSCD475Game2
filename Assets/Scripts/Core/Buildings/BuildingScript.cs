@@ -27,7 +27,7 @@ public class BuildingScript : MonoBehaviour
 
     private float controlPercent = 100; // this relates to the current owner or capturer of the building
 
-    private float timePassed = 0;
+    private float captureTimePassed = 0;
 
     private ResourceType resource;
 
@@ -46,17 +46,17 @@ public class BuildingScript : MonoBehaviour
     {
         
         if(capturing > 0){
-            timePassed += Time.deltaTime * capturing;
+            captureTimePassed += Time.deltaTime * capturing;
         }else if(capturing < 0){
-            timePassed += Time.deltaTime * capturing;
+            captureTimePassed += Time.deltaTime * capturing;
         }
         
-        if(timePassed > 5f){
-            timePassed = 0f;
+        if(captureTimePassed > 5f){
+            captureTimePassed = 0f;
             controlPercent += 15;
             print("control percentage is " + controlPercent + "%");
-        }else if(timePassed < -5f){
-            timePassed = 0f;
+        }else if(captureTimePassed < -5f){
+            captureTimePassed = 0f;
             controlPercent -= 15;
             print("control percentage is " + controlPercent + "%");
         }
@@ -79,7 +79,7 @@ public class BuildingScript : MonoBehaviour
             }
 
             
-            updateVisuals(controller);
+            updateVisuals();
             controlPercent = 0;
         }
         
@@ -210,7 +210,6 @@ public class BuildingScript : MonoBehaviour
         int num = 0;
         foreach(TileScript tile in surroundingTiles){
             if(tile.getOccupant() == controller){
-                print("tile owner is " + tile.getOccupant());
                 num++;
             }else if(tile.getOccupant() != UnitOwner.World){
                 num--;
@@ -220,7 +219,7 @@ public class BuildingScript : MonoBehaviour
         return num;
     }
 
-    private void updateVisuals(UnitOwner controller){
+    private void updateVisuals(){
         if(controller == UnitOwner.Player){
             occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
         }else if(controller == UnitOwner.Enemy){
@@ -253,15 +252,22 @@ public class BuildingScript : MonoBehaviour
         resource = r;
     }
 
-    public void recruitUnits(int type){
+    public void recruitUnit(int type){
+
+        if(controller == UnitOwner.World){
+            print("cannot created units if owned by world");
+            return;
+        }
 
         TileScript openHex = null;
         TileScript tile = occupantTile.GetComponent<TileScript>();
         
 
 
-        for(int i = 1; i < 6; i++){
+        for(int i = 1; i < 7; i++){
+
             int[] nextHex = UnitPathing.hexNeighbor(new int[] {tile.x,tile.y,tile.z},i);
+
             if(MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]) != null 
             && MapGenerateScript.getHex(nextHex[0],nextHex[1],nextHex[2]).GetComponent<TileScript>().canMakeUnit()){
                 
@@ -269,14 +275,31 @@ public class BuildingScript : MonoBehaviour
                 break;
             }
         }
-        
-        if(type == 0){
-            openHex.makeUnit(Resources.Load("Prefabs/Soldier", typeof (GameObject)) as GameObject);
-        }else if(type == 1){
-            openHex.makeUnit(Resources.Load("Prefabs/Archer", typeof (GameObject)) as GameObject);
-        }else if(type == 2){
-            openHex.makeUnit(Resources.Load("Prefabs/Hork", typeof (GameObject)) as GameObject);
+
+        if(openHex == null){
+            print("no open hexes");
+            return;
         }
+
+        if(controller == UnitOwner.Player){
+            if(type == 0){
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerSoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
+            }else if(type == 1){
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
+            }else if(type == 2){
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
+            }
+        }else{
+            if(type == 0){
+                openHex.makeUnit(Resources.Load("Prefabs/EnemySoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
+            }else if(type == 1){
+                openHex.makeUnit(Resources.Load("Prefabs/EnemyArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
+            }else if(type == 2){
+                openHex.makeUnit(Resources.Load("Prefabs/EnemyHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
+            }
+        }
+        
+
     }
 
 
