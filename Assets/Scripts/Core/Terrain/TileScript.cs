@@ -60,6 +60,20 @@ public class TileScript : MonoBehaviour, ISelectable
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
+
+        if(transform.Find("Owner") != null){
+            OwnerOutline = transform.Find("Owner").gameObject;
+        }else{
+            OwnerOutline = null;
+        }
+
+        
+    }
+
+    void Update(){
+        if(transform.Find("Owner(Clone)") != null){
+            Destroy(transform.Find("Owner(Clone)").gameObject);
+        }
     }
 
     // initialize the hexes values
@@ -188,8 +202,12 @@ public class TileScript : MonoBehaviour, ISelectable
 
     public GameObject createBuilding(string resource){//must be called after map is set up
         GameObject tempBuilding;
+        float height = GetComponent<MeshCollider>().bounds.size.y / 1.98f;
+        
+
         if(!buildingTile){
-            tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position ,transform.rotation,transform);
+            tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0) ,Quaternion.Euler(90,0,0),transform);
+            tempBuilding.transform.localScale = new Vector3(0.73f,0.68f,1);
             tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
             tempBuilding.name = "Building";
             buildingTile = true;
@@ -323,11 +341,13 @@ public class TileScript : MonoBehaviour, ISelectable
     }
 
     public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
-        
-        float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
-        OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
-        attachedBuilding = incomingBuilding;
-        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        if(OwnerOutline == null){
+            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+            attachedBuilding = incomingBuilding;
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+            OwnerOutline.name = "Owner";
+        }
     }
 
     

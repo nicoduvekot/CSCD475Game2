@@ -22,6 +22,7 @@ public class BuildingScript : MonoBehaviour
     public Sprite playerControl;
     public Sprite enemyControl;
     public int resourceGeneration = 5;
+    private Sprite resourceBuilding;
 
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
 
@@ -29,6 +30,7 @@ public class BuildingScript : MonoBehaviour
 
     private float captureTimePassed = 0;
 
+    [SerializeField] 
     private ResourceType resource;
 
     private List<TileScript> surroundingTiles = new();
@@ -92,12 +94,16 @@ public class BuildingScript : MonoBehaviour
         occupantTile = currentTile;
         if(incomingResourceType == "Wood"){
             resource = ResourceType.Wood;
+            resourceBuilding = Resources.Load("PixelArt/woodcutter", typeof(Sprite)) as Sprite;
         }else if(incomingResourceType == "Iron"){
             resource = ResourceType.Iron;
+            resourceBuilding = Resources.Load("PixelArt/mine", typeof(Sprite)) as Sprite;
         }else if(incomingResourceType == "Food"){
             resource = ResourceType.Food;
+            resourceBuilding = Resources.Load("PixelArt/farm", typeof(Sprite)) as Sprite;
         }else if(incomingResourceType == "Fort"){
             resource = ResourceType.Fort;
+            resourceBuilding = Resources.Load("PixelArt/fort", typeof(Sprite)) as Sprite;
         }
         
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -137,8 +143,10 @@ public class BuildingScript : MonoBehaviour
             hex6.addInitialOverlay(neutralControl,this);
         }
 
-        occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
+        print("resourceBuilding is " + resourceBuilding);
 
+        occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
+        GetComponent<SpriteRenderer>().sprite = resourceBuilding;
         
         
     }
