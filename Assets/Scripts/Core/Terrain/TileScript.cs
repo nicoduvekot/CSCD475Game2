@@ -203,13 +203,17 @@ public class TileScript : MonoBehaviour, ISelectable
         if(!buildingTile){
             tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0) ,Quaternion.Euler(90,0,0),transform);
             tempBuilding.transform.localScale = new Vector3(0.73f,0.68f,1);
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,out tileOccupant);
             tempBuilding.name = "Building";
             buildingTile = true;
         }else{
             
             tempBuilding = transform.Find("Building").gameObject;
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,out tileOccupant);
+        }
+
+        if(tileOccupant != UnitOwner.World){
+            RevealAround(tileOccupant);
         }
         
         

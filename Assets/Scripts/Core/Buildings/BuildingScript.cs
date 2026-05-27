@@ -103,11 +103,13 @@ public class BuildingScript : MonoBehaviour
         
     }
 
-    public void createBuilding(GameObject currentTile){
+    public void createBuilding(GameObject currentTile,out UnitOwner owner){
 
         
         occupantTile = currentTile;
         controller = initialOwner;
+
+        owner = controller;
         
         if(resource == ResourceType.Wood){
             resourceBuilding = Resources.Load("PixelArt/woodcutter", typeof(Sprite)) as Sprite;
