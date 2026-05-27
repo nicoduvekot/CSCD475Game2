@@ -228,4 +228,9 @@ public class GameManager : MonoBehaviour
             Debug.Log("UnitOwner must be player or enemy for losing the game");
         }
     }
+
+    public void gameSpeed(float speed)
+    {
+        Time.timeScale = speed;
+    }
 }
