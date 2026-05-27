@@ -101,10 +101,12 @@ public class MapGenerateScript : MonoBehaviour
             
 
             foreach(GameObject hex in buildingHexes ){
-                hex.GetComponent<TileScript>().createBuilding("Wood");
+                hex.GetComponent<TileScript>().createBuilding("Food");
                 buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
                 
             }
+
+            
             
 
 
