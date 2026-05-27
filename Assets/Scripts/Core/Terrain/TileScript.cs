@@ -60,6 +60,10 @@ public class TileScript : MonoBehaviour, ISelectable
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
+
+        
+
+        
     }
 
     // initialize the hexes values
@@ -140,6 +144,11 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         addFog();
+        if(transform.Find("HexOutline") != null){
+            OwnerOutline = transform.Find("HexOutline").gameObject;
+        }else{
+            OwnerOutline = null;
+        }
 
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
@@ -188,15 +197,26 @@ public class TileScript : MonoBehaviour, ISelectable
 
     public GameObject createBuilding(string resource){//must be called after map is set up
         GameObject tempBuilding;
+        float height = GetComponent<MeshCollider>().bounds.size.y / 1.98f;
+        
+
         if(!buildingTile){
-            tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position ,transform.rotation,transform);
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+            tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0) ,Quaternion.Euler(90,0,0),transform);
+            tempBuilding.transform.localScale = new Vector3(0.73f,0.68f,1);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,out tileOccupant);
             tempBuilding.name = "Building";
             buildingTile = true;
         }else{
+            
             tempBuilding = transform.Find("Building").gameObject;
-            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,resource);
+            tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,out tileOccupant);
         }
+
+        if(tileOccupant != UnitOwner.World){
+            RevealAround(tileOccupant);
+        }
+        
+        
         attachedBuilding = tempBuilding.GetComponent<BuildingScript>();
         return tempBuilding;
     }
@@ -314,20 +334,19 @@ public class TileScript : MonoBehaviour, ISelectable
 
     // this adds the hex overlay to view who controls the tile, used on and around buildings
     public void addOverlay(Sprite sprite){
-        if(OwnerOutline == null){
-            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
-            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
-        }
         OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
-        
     }
 
     public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
-        
-        float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
-        OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+        if(OwnerOutline == null){
+            float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
+            OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
+            attachedBuilding = incomingBuilding;
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+            OwnerOutline.name = "HexOutline";
+        }
         attachedBuilding = incomingBuilding;
-        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        print("initial Attached Building is " + attachedBuilding);
     }
 
     
@@ -385,6 +404,7 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         if(tileOccupant != UnitOwner.World || movementPoints == -1){
+            print("movement points are" + movementPoints);
             print("tile is occupied by another player or is not an occupiable tile");
             return false;
         }
@@ -447,6 +467,7 @@ public class TileScript : MonoBehaviour, ISelectable
         
 
         if(OwnerOutline != null){
+            print("attached building is " + attachedBuilding);
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
         }
         
@@ -553,8 +574,10 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void makeUnit(GameObject unit){
-        //Instantiate(unit,)
+    public void makeUnit(GameObject unit,UnitOwner owner){
+        
+        unit.GetComponent<TestUnit>().initializeUnit(this,owner);
+        Instantiate(unit,transform.position,transform.rotation);
     }
 
     private void RevealForOwner(UnitOwner owner)
