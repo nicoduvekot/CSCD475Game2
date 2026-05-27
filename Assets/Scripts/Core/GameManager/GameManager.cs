@@ -49,10 +49,17 @@ public class GameManager : MonoBehaviour
             displayTime(timeRemaining);
             displayResources();
         }
-        else if (!paused)
+        else if (!paused && timeRemaining <= 0)
         {
             // end of the game, code for this is reqired for that
-
+            if(pScore > eScore)
+            {
+                gameOver(UnitOwner.Enemy);
+            }
+            else
+            {
+                gameOver(UnitOwner.Player);
+            }
         }
 
         if(resourceUpdateTimer >= updateResourceInterval)
@@ -204,5 +211,21 @@ public class GameManager : MonoBehaviour
 
         pScore = PlayerScore;
         eScore = EnemyScore;
+    }
+
+    public void gameOver(UnitOwner owner)
+    {
+        if (owner == UnitOwner.Player)
+        {
+            Debug.Log("Player won the game!");
+        }
+        else if(owner == UnitOwner.Enemy)
+        {
+            Debug.Log("Enemy won the game!");
+        }
+        else
+        {
+            Debug.Log("UnitOwner must be player or enemy for losing the game");
+        }
     }
 }
