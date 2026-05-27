@@ -90,11 +90,11 @@ public class GameManager : MonoBehaviour
 
         if (owner == UnitOwner.Player)
         {
-            player[type] += amount;
+            player[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Player));
         }
         else if (owner == UnitOwner.Enemy)
         {
-            enemy[type] += amount;
+            enemy[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Enemy));
         }
 
         // Used so display works better
@@ -185,12 +185,19 @@ public class GameManager : MonoBehaviour
     }
 
 
-    // Generates the resources
+    // Generates the resources every generation time
     public void GenerateResources()
     {
         List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
         int PlayerScore = 0;
         int EnemyScore = 0;
+
+        // 
+        for(int i = 0; i < 3; i++)
+        {
+            addResource(UnitOwner.Player, i, 10);
+            addResource(UnitOwner.Enemy, i, 10);
+        }
 
         for (int i = 0; i < buildings.Count; i++)
         {
