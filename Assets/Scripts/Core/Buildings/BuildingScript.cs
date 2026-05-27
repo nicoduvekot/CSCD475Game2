@@ -10,8 +10,8 @@ public class BuildingScript : MonoBehaviour
     public  enum ResourceType{
         Wood, Iron, Food, Fort
     }
-
-    private bool isFort = false;
+    public bool isCapital = false;
+    public UnitOwner initialOwner = UnitOwner.World;
     private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
 
     //public int captureTime = 30;
@@ -44,7 +44,7 @@ public class BuildingScript : MonoBehaviour
 
     void Start()
     {
-        
+       
     }
 
     
@@ -104,8 +104,11 @@ public class BuildingScript : MonoBehaviour
     }
 
     public void createBuilding(GameObject currentTile){
+
         
         occupantTile = currentTile;
+        controller = initialOwner;
+        
         if(resource == ResourceType.Wood){
             resourceBuilding = Resources.Load("PixelArt/woodcutter", typeof(Sprite)) as Sprite;
         }else if(resource == ResourceType.Iron){
@@ -159,7 +162,7 @@ public class BuildingScript : MonoBehaviour
             hex6.addOverlay(neutralControl);
         }
 
-        occupantTile.GetComponent<TileScript>().addInitialOverlay(neutralControl,this);
+        updateVisuals();
         GetComponent<SpriteRenderer>().sprite = resourceBuilding;
         
         
@@ -212,6 +215,10 @@ public class BuildingScript : MonoBehaviour
             return UnitOwner.World;
         }
 
+        if(isCapital){
+            //Do stuff
+        }
+
         if(player[0] > player[1]){
             print("new capturer is player");
             return UnitOwner.Player;
@@ -242,6 +249,8 @@ public class BuildingScript : MonoBehaviour
             occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
         }else if(controller == UnitOwner.Enemy){
             occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
+        }else if(controller == UnitOwner.World){
+            occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
         }
     }
 

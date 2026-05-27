@@ -238,6 +238,8 @@ namespace Units
             }
         }
         
+        private float moveTime = 0f;
+        private int moveDirection = 0;
         protected virtual void HandleMoving()
         {
             // bail out if no path
@@ -266,11 +268,18 @@ namespace Units
                 
                 BeginStep(NextHex);
                 _isStepping = true;
+                moveTime = _currentStepTimer;
+                moveDirection = UnitPathing.getDirection(new int[] {CurrentHex.x,CurrentHex.y,CurrentHex.z},new int[] {NextHex.x,NextHex.y,NextHex.z});
+                
                 return;
             }
 
             // if we are currently stepping - increment timer
+            
             _currentStepTimer -= Time.deltaTime;
+            
+
+
             
             // timer not completed yet
             if (_currentStepTimer > 0f)
