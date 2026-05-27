@@ -171,6 +171,8 @@ public class GameManager : MonoBehaviour
     public void GenerateResources()
     {
         List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
+        int PlayerScore = 0;
+        int EnemyScore = 0;
 
         for (int i = 0; i < buildings.Count; i++)
         {
@@ -192,6 +194,15 @@ public class GameManager : MonoBehaviour
                         break;
                 }
             }
+
+            if(buildings[i].getOwner() == UnitOwner.Player)
+            {
+                PlayerScore += 100;
+                EnemyScore += 100;
+            }
         }
+
+        pScore = PlayerScore;
+        eScore = EnemyScore;
     }
 }
