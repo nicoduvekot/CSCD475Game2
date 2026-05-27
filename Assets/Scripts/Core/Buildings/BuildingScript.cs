@@ -1,15 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Units;
-
+using Unity.Collections;
+using Resource;
 
 public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
-    public  enum ResourceType{
-        Wood, Iron, Food, Fort
-    }
+    private bool isFort = false;
+    
     public bool isCapital = false;
     public UnitOwner initialOwner = UnitOwner.World;
     private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
