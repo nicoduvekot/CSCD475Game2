@@ -10,6 +10,7 @@ namespace HealthSystem
         [SerializeField] private Canvas canvas;
         [SerializeField] private Image fillImage;
         [SerializeField] private TMP_Text healthText;
+        [SerializeField] private Transform followTarget;
 
         [Header("Settings")] 
         [SerializeField] private bool hideWhenEmpty = true;
@@ -61,9 +62,6 @@ namespace HealthSystem
                 return;
             }
 
-            if (alignWithCamera && _mainCamera != null)
-                transform.forward = _mainCamera.transform.forward;
-
             _currentValue = Mathf.MoveTowards(
                 _currentValue,
                 _health.CurrentHealth,
@@ -73,6 +71,21 @@ namespace HealthSystem
             UpdateFill();
             UpdateText();
             UpdateVisibility();
+        }
+
+        // to be used by perspective visibility
+        public void SetVisible(bool visible)
+        {
+            gameObject.SetActive(visible);
+        }
+        
+        private void LateUpdate()
+        {
+            if (followTarget != null)
+                transform.position = followTarget.position;
+            
+            if (alignWithCamera && _mainCamera != null)
+                transform.forward = _mainCamera.transform.forward;
         }
 
         private void UpdateFill()

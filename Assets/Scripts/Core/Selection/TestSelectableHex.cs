@@ -1,10 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using DataDefinitions;
 using Core.UIElements;
 using Units;
 
 namespace Selection
 {
+    [Obsolete("Prefer TileScript Directly", true)]
     public class TestSelectableHex : MonoBehaviour, ISelectable
     {
         public MonoBehaviour Behaviour => this;
