@@ -1,3 +1,4 @@
+using System;
 using Selection;
 using UnityEngine;
 using Units;
@@ -28,8 +29,8 @@ public class TileScript : MonoBehaviour, ISelectable
   
 
     public bool buildingTile = false;
-   
-
+    
+    public event Action<BaseUnit, UnitOwner, int> OnUnitCreated;
     
 
     [SerializeField]
@@ -574,10 +575,13 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void makeUnit(GameObject unit,UnitOwner owner){
+    public void makeUnit(GameObject unitPrefab, UnitOwner owner, int type){
         
-        unit.GetComponent<TestUnit>().initializeUnit(this,owner);
-        Instantiate(unit,transform.position,transform.rotation);
+        GameObject go = Instantiate(unitPrefab, transform.position, transform.rotation);
+        BaseUnit unit = go.GetComponent<BaseUnit>();
+        unit.initializeUnit(this, owner);
+
+        OnUnitCreated?.Invoke(unit, owner, type);
     }
 
     private void RevealForOwner(UnitOwner owner)
