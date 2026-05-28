@@ -47,7 +47,7 @@ public class MapGenerateScript : MonoBehaviour
     private Vector3Int minCords;
     public bool refreshMaterial = false;
 
-    private List<BuildingScript> buildings = new();
+    private static List<BuildingScript> buildings = new();
 
     private Dictionary<Vector3Int,bool> visibleHexes = new();
     
@@ -101,10 +101,12 @@ public class MapGenerateScript : MonoBehaviour
             
 
             foreach(GameObject hex in buildingHexes ){
-                hex.GetComponent<TileScript>().createBuilding("Wood");
+                hex.GetComponent<TileScript>().createBuilding("Food");
                 buildings.Add(hex.transform.Find("Building").GetComponent<BuildingScript>());
                 
             }
+
+            
             
 
 
@@ -446,5 +448,11 @@ public class MapGenerateScript : MonoBehaviour
     public void removeVisible(int x, int y, int z){
 
         visibleHexes[new Vector3Int(x,y,z)] = false;
+    }
+
+    // Used to call the buildings (used by the game manager to access the buildings)
+    public static List<BuildingScript> getBuildingList()
+    {
+        return buildings;
     }
 }

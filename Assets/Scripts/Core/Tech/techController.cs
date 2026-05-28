@@ -193,4 +193,46 @@ public class techController : MonoBehaviour
             return 0;
         }
     }
+
+    // Used to call resource generation for modifier
+    public double getResourcesModifier(UnitOwner owner)
+    {
+        if (owner == UnitOwner.Player)
+        {
+            return playerResourceUpgrade;
+        }
+        else if (owner == UnitOwner.Enemy)
+        {
+            return enemyResourceUpgrade;
+        }
+        else
+        {
+            Debug.Log("UnitOwner types must be either Player or Enemy in getLevelResources");
+            return 0;
+        }
+    }
+
+    // Used to call units modifiers for tech
+    public double getUnitsModifier(UnitOwner owner, int type)
+    {
+        if(type < 0 || type > 2)
+        {
+            Debug.Log("Type of the unit must be between 0 and 2");
+            return 0;
+        }
+
+        if (owner == UnitOwner.Player)
+        {
+            return playerUnitUpgrades[type];
+        }
+        else if (owner == UnitOwner.Enemy)
+        {
+            return enemyUnitUpgrades[type];
+        }
+        else
+        {
+            Debug.Log("UnitOwner types must be either Player or Enemy in getLevelResources");
+            return 0;
+        }
+    }
 }

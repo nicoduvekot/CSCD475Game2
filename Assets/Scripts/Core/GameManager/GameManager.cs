@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
 using Units;       // Imports the name space for the enum types. 
+using System.Collections.Generic;
+using Resource; // Imports the name space for the enum types for Resources
 
 public class GameManager : MonoBehaviour
 {
@@ -23,6 +25,8 @@ public class GameManager : MonoBehaviour
     // Variables for time situation
     [SerializeField] private float timeRemaining = 1200;
     private bool paused = false;
+    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
+    private float resourceUpdateTimer = 0f;     // variable for counting time
 
     void Awake()
     {
@@ -33,7 +37,6 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     
@@ -42,13 +45,30 @@ public class GameManager : MonoBehaviour
         if (!paused && timeRemaining > 0)
         {
             timeRemaining -= Time.deltaTime;
+            resourceUpdateTimer += Time.deltaTime;
             displayTime(timeRemaining);
             displayResources();
         }
-        else if (!paused)
+        else if (!paused && timeRemaining <= 0)
         {
             // end of the game, code for this is reqired for that
+            if(pScore > eScore)
+            {
+                gameOver(UnitOwner.Enemy);
+            }
+            else
+            {
+                gameOver(UnitOwner.Player);
+            }
+        }
 
+        if(resourceUpdateTimer >= updateResourceInterval)
+        {
+            // Calls resource generator
+            GenerateResources();
+
+            // Reset the timer
+            resourceUpdateTimer -= updateResourceInterval;
         }
     }
 
@@ -70,11 +90,11 @@ public class GameManager : MonoBehaviour
 
         if (owner == UnitOwner.Player)
         {
-            player[type] += amount;
+            player[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Player));
         }
         else if (owner == UnitOwner.Enemy)
         {
-            enemy[type] += amount;
+            enemy[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Enemy));
         }
 
         // Used so display works better
@@ -162,5 +182,73 @@ public class GameManager : MonoBehaviour
     {
         paused = false;
         Time.timeScale = 1f;
+    }
+
+
+    // Generates the resources every generation time
+    public void GenerateResources()
+    {
+        List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
+        int PlayerScore = 0;
+        int EnemyScore = 0;
+
+        // 
+        for(int i = 0; i < 3; i++)
+        {
+            addResource(UnitOwner.Player, i, 10);
+            addResource(UnitOwner.Enemy, i, 10);
+        }
+
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            ResourceType temp = buildings[i].getResource();
+            UnitOwner owner = buildings[i].getOwner();
+
+            if (buildings[i].getOwner() == UnitOwner.Player || buildings[i].getOwner() == UnitOwner.Enemy)
+            {
+                switch (temp)
+                {
+                    case ResourceType.Food:
+                        addResource(owner, 0, buildings[i].resourceGeneration);
+                        break;
+                    case ResourceType.Iron:
+                        addResource(owner, 1, buildings[i].resourceGeneration);
+                        break;
+                    case ResourceType.Wood:
+                        addResource(owner, 2, buildings[i].resourceGeneration);
+                        break;
+                }
+            }
+
+            if(buildings[i].getOwner() == UnitOwner.Player)
+            {
+                PlayerScore += 100;
+                EnemyScore += 100;
+            }
+        }
+
+        pScore = PlayerScore;
+        eScore = EnemyScore;
+    }
+
+    public void gameOver(UnitOwner owner)
+    {
+        if (owner == UnitOwner.Player)
+        {
+            Debug.Log("Player won the game!");
+        }
+        else if(owner == UnitOwner.Enemy)
+        {
+            Debug.Log("Enemy won the game!");
+        }
+        else
+        {
+            Debug.Log("UnitOwner must be player or enemy for losing the game");
+        }
+    }
+
+    public void gameSpeed(float speed)
+    {
+        Time.timeScale = speed;
     }
 }
