@@ -251,4 +251,11 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = speed;
     }
+    
+    public int GetFood(UnitOwner owner)  => GetResourceAmount(owner, 0);
+    public int GetIron(UnitOwner owner)  => GetResourceAmount(owner, 1);
+    public int GetWood(UnitOwner owner)  => GetResourceAmount(owner, 2);
+    
+    private int GetResourceAmount(UnitOwner owner, int type) 
+        => owner == UnitOwner.Player ? player[type] : enemy[type];
 }
