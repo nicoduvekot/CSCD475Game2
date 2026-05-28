@@ -247,6 +247,9 @@ namespace Units
             {
                 _unitAnimator.SetWalking(false);
                 TargetHex = null;
+                _previewPath?.Clear();
+                _pathIndex = 0;
+                _isStepping = false;
                 SetState(UnitState.Idle);
                 return;
             }
@@ -262,6 +265,9 @@ namespace Units
                     Debug.LogError($"{name} encountered null tile at index {_pathIndex}");
                     _unitAnimator.SetWalking(false);
                     TargetHex = null;
+                    _previewPath?.Clear();
+                    _pathIndex = 0;
+                    _isStepping = false;
                     SetState(UnitState.Idle);
                     return;
                 }
@@ -307,6 +313,9 @@ namespace Units
                 Debug.LogWarning("[BaseUnit]-[HandleMoving] retry pathing failure tries expired.");
                 _pathRetryCount = 0;
                 _unitAnimator.SetWalking(false);
+                _previewPath?.Clear();
+                _pathIndex = 0;
+                _isStepping = false;
                 SetState(UnitState.Idle);
                 return;
             }
@@ -330,6 +339,9 @@ namespace Units
             {
                 _unitAnimator.SetWalking(false);
                 TargetHex = null;
+                _previewPath?.Clear();
+                _pathIndex = 0;
+                _isStepping = false;
                 SetState(UnitState.Idle);
                 return;
             }
@@ -601,6 +613,11 @@ namespace Units
 
         #region State Machine
 
+        public bool IsIdle()
+        {
+            return _state == UnitState.Idle;
+        }
+        
         protected enum UnitState
         {
             Idle,
