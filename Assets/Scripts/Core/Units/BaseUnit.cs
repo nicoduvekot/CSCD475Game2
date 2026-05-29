@@ -51,6 +51,8 @@ namespace Units
 
         private UnitState _state = UnitState.Idle;
         private BaseUnit _targetEnemy;
+
+        public event Action<BaseUnit> OnUnitDeath;
         
         //private float _attackCooldownTimer;
         
@@ -606,6 +608,7 @@ namespace Units
         public void OnDeathAnimationCompleted()
         {
             CurrentHex.TryClearUnitOccupant(this);
+            OnUnitDeath?.Invoke(this);
             Destroy(gameObject);
         }
 
