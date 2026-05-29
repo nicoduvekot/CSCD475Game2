@@ -25,6 +25,7 @@ namespace Units
         private Healthbar Healthbar { get; set; }
         private UnitStats Stats { get; set; }
         private StateDisplayUI StateDisplayUI { get; set; }
+        public int UnitType { get; protected set; }
         private Renderer[] _renderers;
         
         [Header("Tile Pathing")]
@@ -616,17 +617,22 @@ namespace Units
 
         #region State Machine
 
-        public bool IsIdle()
-        {
-            return _state == UnitState.Idle;
-        }
+        public UnitState GetState() => _state;
+
+        public bool IsIdle() => _state == UnitState.Idle;
+        public bool IsMoving() => _state == UnitState.Moving;
+        public bool IsEngaging() => _state == UnitState.Engaging;
+        public bool IsEngaged() => _state == UnitState.Engaged;
+        public bool IsCapturing() => _state == UnitState.Capturing;
+        public bool IsDying() => _state == UnitState.Dying;
         
-        protected enum UnitState
+        public enum UnitState
         {
             Idle,
             Moving,
             Engaging,
             Engaged,
+            Capturing,
             Dying
         }
 
