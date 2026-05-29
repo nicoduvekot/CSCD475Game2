@@ -67,11 +67,12 @@ namespace RL_Agent
         // this is where we design state knowledge
         public override void CollectObservations(VectorSensor sensor)
         {
-            ObserveBuildingOwnership(sensor);   // 9 sensors
-            ObserveUnitCount(sensor);           // 3 sensors
-            ObserveResources(sensor);           // 3 sensors
-            ObserveTechUpgrades(sensor);        // 3 sensors
-            ObserveTime(sensor);                // 1 sensor
+            ObserveBuildingOwnership(sensor);       // 9 sensors
+            ObserveUnitCount(sensor);               // 3 sensors
+            ObserveVisibleEnemyUnits(sensor);       // 3 sensors
+            ObserveResources(sensor);               // 3 sensors
+            ObserveTechUpgrades(sensor);            // 3 sensors
+            ObserveTime(sensor);                    // 1 sensor
         }
         
         // called before agent choose action, hides these from option map
@@ -173,7 +174,7 @@ namespace RL_Agent
         //     
         // }
 
-    #endregion
+        #endregion
     
         #region Recruitment Action Logic
 
@@ -377,7 +378,7 @@ namespace RL_Agent
         
         private List<BuildingScript> _allBuildings = new(9);
         
-        private readonly List<TileScript> _spawnTiles = new(12);
+        private readonly List<TileScript> _spawnTiles = new(18);
         
         private void CacheBuildingReferences()
         {
@@ -435,6 +436,7 @@ namespace RL_Agent
             
             RegisterSpawnTiles(_myCapital);
             RegisterSpawnTiles(_fortBuilding);
+            RegisterSpawnTiles(_enemyCapital);
         }
 
         private void AssignDistanceForPairs(
@@ -518,38 +520,82 @@ namespace RL_Agent
             sensor.AddObservation(ownerValue);
         }
         
-    #endregion // building logic
+        #endregion // building logic
 
         #region Unit Logic
 
         private readonly List<BaseUnit> _mySoldiers = new();
         private readonly List<BaseUnit> _myArchers = new();
         private readonly List<BaseUnit> _myHorsemen = new();
+        
+        // CHEAT WARNING
+        // This is the list of units the own, regardless of if we see them or not
+        // DO NOT OBSERVE THIS
+        private readonly List<BaseUnit> _enemySoldiers = new();
+        private readonly List<BaseUnit> _enemyArchers = new();
+        private readonly List<BaseUnit> _enemyHorsemen = new();
 
-        private int _visibleEnemySoldiers;
-        private int _visibleEnemyArchers;
-        private int _visibleEnemyHorsemen;
+        // instead only observe units if we CAN see them
+        private readonly List<BaseUnit> _visibleEnemySoldiers = new();
+        private readonly List<BaseUnit> _visibleEnemyArchers = new();
+        private readonly List<BaseUnit> _visibleEnemyHorsemen = new();
 
         private void HandleUnitCreated(BaseUnit unit, UnitOwner owner, int type)
         {
-            // I don't own the unit that spawned - bail
-            if (owner != team)
+            if (unit == null)
                 return;
             
-            switch (type)
+            if (owner == team)
             {
-                case 0:
-                    _mySoldiers.Add(unit);
-                    break;
-                
-                case 1:
-                    _myArchers.Add(unit);
-                    break;
-                
-                case 2:
-                    _myHorsemen.Add(unit);
-                    break;
+                switch (type)
+                {
+                    case 0:
+                        _mySoldiers.Add(unit);
+                        break;
+
+                    case 1:
+                        _myArchers.Add(unit);
+                        break;
+
+                    case 2:
+                        _myHorsemen.Add(unit);
+                        break;
+                }
             }
+            else // owner != team
+            {
+                switch (type)
+                {
+                    case 0:
+                        _enemySoldiers.Add(unit);
+                        break;
+
+                    case 1:
+                        _enemyArchers.Add(unit);
+                        break;
+
+                    case 2:
+                        _enemyHorsemen.Add(unit);
+                        break;
+                }
+            }
+            // subscribe to handle when unit dies
+            unit.OnUnitDeath += HandleUnitDeath;
+        }
+        
+        private void HandleUnitDeath(BaseUnit deadUnit)
+        {
+            _mySoldiers.Remove(deadUnit);
+            _myArchers.Remove(deadUnit);
+            _myHorsemen.Remove(deadUnit);
+
+            _enemySoldiers.Remove(deadUnit);
+            _enemyArchers.Remove(deadUnit);
+            _enemyHorsemen.Remove(deadUnit);
+
+            _visibleEnemySoldiers.Remove(deadUnit);
+            _visibleEnemyArchers.Remove(deadUnit);
+            _visibleEnemyHorsemen.Remove(deadUnit);
         }
 
         private void ObserveUnitCount(VectorSensor sensor)
@@ -557,6 +603,63 @@ namespace RL_Agent
             sensor.AddObservation(_mySoldiers.Count);
             sensor.AddObservation(_myArchers.Count);
             sensor.AddObservation(_myHorsemen.Count);
+        }
+
+        private void ObserveVisibleEnemyUnits(VectorSensor sensor)
+        {
+            // WARNING : Only observe the visible enemy units list
+            
+            UpdateSeenEnemyUnits(_enemySoldiers, _visibleEnemySoldiers);
+            UpdateSeenEnemyUnits(_enemyArchers, _visibleEnemyArchers);
+            UpdateSeenEnemyUnits(_enemyHorsemen, _visibleEnemyHorsemen);
+            
+            sensor.AddObservation(_visibleEnemySoldiers.Count);
+            sensor.AddObservation(_visibleEnemyArchers.Count);
+            sensor.AddObservation(_visibleEnemyHorsemen.Count);
+        }
+
+        private void UpdateSeenEnemyUnits(List<BaseUnit> enemyUnits, List<BaseUnit> visibleEnemyUnits)
+        {
+            // backwards iterate and remove null references
+            for (int i = enemyUnits.Count - 1; i >= 0; i--)
+            {
+                BaseUnit enemy = enemyUnits[i];
+
+                // if we happen to encounter nulls, remove them
+                if (enemy == null)
+                {
+                    enemyUnits.RemoveAt(i);
+// ReSharper disable ExpressionIsAlwaysNull
+                    // UNITY FAKE NULL
+                    visibleEnemyUnits.Remove(enemy);
+// ReSharper restore ExpressionIsAlwaysNull
+                    continue;
+                }
+
+                if (EnemyUnitIsVisible(enemy))
+                {
+                    if (!visibleEnemyUnits.Contains(enemy))
+                        visibleEnemyUnits.Add(enemy);
+                }
+                else
+                {
+                    visibleEnemyUnits.Remove(enemy);
+                }
+            }
+        }
+
+        private bool EnemyUnitIsVisible(BaseUnit enemyUnit)
+        {
+            TileScript tile = enemyUnit.CurrentHex;
+            if (tile == null) return false; // NRE safety bail
+
+            // can our team see the tile the enemy unit is on?
+            return team switch
+            {
+                UnitOwner.Player => !tile.fogForPlayer,
+                UnitOwner.Enemy => !tile.fogForEnemy,
+                _ => false
+            };
         }
 
         #endregion // Unit Logic
