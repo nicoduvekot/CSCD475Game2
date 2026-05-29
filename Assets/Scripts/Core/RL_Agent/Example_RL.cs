@@ -21,7 +21,7 @@ namespace RL_Agent
         public override void CollectObservations(VectorSensor sensor)
         {
             // sensor.AddObservation is done here
-            // each on is Vector Observation Space Size ++ in inspector
+            // each one is Vector Observation Space Size ++ in inspector
         }
 
         // use this to mask actions
