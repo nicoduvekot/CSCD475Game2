@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
@@ -17,21 +16,21 @@ namespace RL_Agent
         
         private Renderer _renderer;
 
-        private int _currentEpisode;
-        private float _cumulativeReward;
+        [HideInInspector] public int currentEpisode;
+        [HideInInspector] public float cumulativeReward;
         
         public override void Initialize()
         {
             _renderer = GetComponent<Renderer>();
-            _currentEpisode = 0;
-            _cumulativeReward = 0f;
+            currentEpisode = 0;
+            cumulativeReward = 0f;
         }
 
         // agent resets episode
         public override void OnEpisodeBegin()
         {
-            _currentEpisode++;
-            _cumulativeReward = 0f;
+            currentEpisode++;
+            cumulativeReward = 0f;
             _renderer.material = turtleMaterial;
 
             SpawnObjects();
@@ -70,6 +69,26 @@ namespace RL_Agent
             sensor.AddObservation(turtleRotationNormalized);
         }
 
+        public override void Heuristic(in ActionBuffers actionsOut)
+        {
+            ActionSegment<int> discreteActions = actionsOut.DiscreteActions;
+            
+            discreteActions[0] = 0; // do nothing
+
+            if (UnityEngine.Input.GetKey(KeyCode.UpArrow))
+            {
+                discreteActions[0] = 1; // move forward
+            }
+            else  if (UnityEngine.Input.GetKey(KeyCode.LeftArrow))
+            {
+                discreteActions[0] = 2; // rotate left
+            }
+            else if (UnityEngine.Input.GetKey(KeyCode.RightArrow))
+            {
+                discreteActions[0] = 3; // rotate right
+            }
+        }
+
         // agent chooses action
         public override void OnActionReceived(ActionBuffers actions)
         {
@@ -77,7 +96,7 @@ namespace RL_Agent
             
             AddReward(-2f / MaxStep);
             
-            _cumulativeReward = GetCumulativeReward();
+            cumulativeReward = GetCumulativeReward();
         }
 
         private void MoveAgent(ActionSegment<int> actions)
@@ -109,7 +128,7 @@ namespace RL_Agent
         private void GoalReached()
         {
             AddReward(1f);
-            _cumulativeReward = GetCumulativeReward();
+            cumulativeReward = GetCumulativeReward();
             
             EndEpisode();
         }
