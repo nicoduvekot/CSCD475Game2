@@ -4295,6 +4295,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Canvas Tech Popup
       objectReference: {fileID: 0}
+    - target: {fileID: 6989556874631164460, guid: b28755fd716a2f14d8a325de4749fb7e, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4319,6 +4323,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2122730152147511208, guid: 66d40ccb93531be4894d4c361b8d2800, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 2137639749}
     - target: {fileID: 2377873155445275702, guid: 66d40ccb93531be4894d4c361b8d2800, type: 3}
       propertyPath: startingHex
       value: 
@@ -4506,6 +4514,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerSoldier_Prefab
       objectReference: {fileID: 0}
+    - target: {fileID: 3927477877528833192, guid: df6d9136b9180a145878ea862cc0050f, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 1586333794}
     - target: {fileID: 6363513490013785762, guid: df6d9136b9180a145878ea862cc0050f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -22.87
@@ -4611,6 +4623,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerArcher_Prefab
       objectReference: {fileID: 0}
+    - target: {fileID: 8053282092426287195, guid: a2a580be2d92e3e4c8f287abe1f62815, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 1812342911}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4629,6 +4645,10 @@ PrefabInstance:
       value: PlayerHorseman_Prefab
       objectReference: {fileID: 0}
     - target: {fileID: 5867481930423713265, guid: 146db8ed66cc5fe48834f4a8736143c6, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 1990285060}
+    - target: {fileID: 5898928072285458608, guid: 146db8ed66cc5fe48834f4a8736143c6, type: 3}
       propertyPath: startingHex
       value: 
       objectReference: {fileID: 1990285060}
@@ -4693,6 +4713,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemySoldier_Prefab
       objectReference: {fileID: 0}
+    - target: {fileID: 3539866182451578509, guid: e52b56e4156a78f40b1497c0c88c8626, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 483674716}
     - target: {fileID: 6439598054778211232, guid: e52b56e4156a78f40b1497c0c88c8626, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.04
@@ -4746,6 +4770,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 904661188070912448, guid: 7d2a2d6c76d8ecc43804f61f03f390bb, type: 3}
+      propertyPath: startingHex
+      value: 
+      objectReference: {fileID: 1080302053}
     - target: {fileID: 2120165301309232246, guid: 7d2a2d6c76d8ecc43804f61f03f390bb, type: 3}
       propertyPath: startingHex
       value: 
