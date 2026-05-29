@@ -6,9 +6,11 @@ namespace RL_Agent
 {
     public class Example_RL : Agent
     {
+        // agent class does inherit from MonoBehaviour unity event functions
+        
         public override void Initialize()
         {
-            
+            // NOTE : runs between OnEnable and Start Unity event functions
         }
 
         // set up episode values
@@ -42,7 +44,10 @@ namespace RL_Agent
             // - each branch can yield one action choice out of it
             // - multiple branches should be used for unrelated action spaces
             
-            // generally, branch[0] actionIndex 0 is the "do nothing", 1+ is actual actions
+            // generally, branch[0] actionIndex 0 is the "do nothing", 1+ is "actual" actions
+            
+            // note that "do nothing" action index is not default, if you do not include it,
+            // the agent will always do something
             
             // branch[0] means branch 0,
             // if it has 4 possible actual actions, give it value 5, (+1 for the "empty" action)
