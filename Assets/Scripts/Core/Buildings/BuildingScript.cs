@@ -222,6 +222,18 @@ public class BuildingScript : MonoBehaviour
 
         if(isCapital){
             //Do stuff
+
+            // Used to end the game once the capital has been taken
+            if (player[0] > player[1])
+            {
+                print("Capital has been captured by player");
+                GameManager.Instance.gameOver(UnitOwner.Player);
+            }
+            else
+            {
+                print("Capital has been captured by enemy");
+                GameManager.Instance.gameOver(UnitOwner.Enemy);
+            }
         }
 
         if(player[0] > player[1]){
