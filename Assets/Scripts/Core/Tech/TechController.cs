@@ -1,10 +1,10 @@
 using UnityEngine;
 using Units;       // Imports the name space for the enum types. 
 
-public class techController : MonoBehaviour
+public class TechController : MonoBehaviour
 {
     // Variable for unit singleton
-    public static techController Instance { get; private set; }
+    public static TechController Instance { get; private set; }
 
     // Variables for unit health and damage scaling.
     private double[] playerUnitUpgrades = { 1.0, 1.0, 1.0 };

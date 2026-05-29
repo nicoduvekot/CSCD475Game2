@@ -17,9 +17,9 @@ namespace RL_Agent
         // parent object of all the tiles
         public Transform tilesParent;
         
-        // cache field for gameManager
+        // cache field for gameManager and techController
         private GameManager _gameManager;
-        private techController _techController;
+        private TechController _techController;
         
         private bool _episodeResetsGame;
         
@@ -44,7 +44,7 @@ namespace RL_Agent
             _gameManager = GameManager.Instance;
             _gameManager.OnGameEnded += HandleGameEnded;
             
-            _techController = techController.Instance;
+            _techController = TechController.Instance;
             
             if (_episodeResetsGame)
             {

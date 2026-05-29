@@ -100,7 +100,7 @@ public class GameManager : MonoBehaviour
 
         if (owner == UnitOwner.Player)
         {
-            player[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Player));
+            player[type] += (int) (amount * TechController.Instance.getResourcesModifier(UnitOwner.Player));
 
             // Used to make sure the value doesn't go above the cap
             if (player[type] > resourceCap)
@@ -110,7 +110,7 @@ public class GameManager : MonoBehaviour
         }
         else if (owner == UnitOwner.Enemy)
         {
-            enemy[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Enemy));
+            enemy[type] += (int) (amount * TechController.Instance.getResourcesModifier(UnitOwner.Enemy));
 
             // Used to make sure the value doesn't go above the cap
             if(enemy[type] > resourceCap)
@@ -235,7 +235,7 @@ public class GameManager : MonoBehaviour
     public void reset()
     {
         pause();
-        techController.Instance.reset();
+        TechController.Instance.reset();
 
         for (int i = 0; i < 3; i++)
         {
