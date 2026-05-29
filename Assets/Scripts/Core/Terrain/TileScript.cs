@@ -346,7 +346,6 @@ public class TileScript : MonoBehaviour, ISelectable
             OwnerOutline.name = "HexOutline";
         }
         attachedBuilding = incomingBuilding;
-        print("initial Attached Building is " + attachedBuilding);
     }
 
     
@@ -467,7 +466,6 @@ public class TileScript : MonoBehaviour, ISelectable
         
 
         if(OwnerOutline != null){
-            print("attached building is " + attachedBuilding);
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
         }
         

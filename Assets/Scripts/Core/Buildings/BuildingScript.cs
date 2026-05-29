@@ -223,9 +223,11 @@ public class BuildingScript : MonoBehaviour
 
         if(player[0] > player[1]){
             print("new capturer is player");
+            GlobalSound.capturePOI();
             return UnitOwner.Player;
         }else{
             print("new capturer is enemy");
+            GlobalSound.losePOI();
             return UnitOwner.Enemy;
         }
 
