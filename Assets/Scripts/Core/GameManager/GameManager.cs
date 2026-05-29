@@ -124,7 +124,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Get resource percentage for RL agent
-    public double getResourcePercentage(UnitOwner owner, int type)
+    public float getResourcePercentage(UnitOwner owner, int type)
     {
         if(type < 0 || type > 2)
         {
@@ -134,11 +134,11 @@ public class GameManager : MonoBehaviour
 
         if(owner == UnitOwner.Player)
         {
-            return (double) (player[type] / resourceCap);
+            return ((float)player[type] / resourceCap);
         }
         else if(owner == UnitOwner.Enemy)
         {
-            return (double) (enemy[type] / resourceCap);
+            return ((float)enemy[type] / resourceCap);
         }
         else
         {
@@ -318,7 +318,12 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = speed;
     }
-    
+
+    public float GetTimeNormalized()
+    {
+        return timeRemaining / gameTime;
+    }
+
     public int GetFood(UnitOwner owner)  => GetResourceAmount(owner, 0);
     public int GetIron(UnitOwner owner)  => GetResourceAmount(owner, 1);
     public int GetWood(UnitOwner owner)  => GetResourceAmount(owner, 2);
