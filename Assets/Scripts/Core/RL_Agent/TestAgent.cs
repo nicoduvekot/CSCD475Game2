@@ -5,6 +5,7 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
+using Random = UnityEngine.Random;
 
 namespace RL_Agent
 {
@@ -18,11 +19,17 @@ namespace RL_Agent
         
         // cache field for gameManager
         private GameManager _gameManager;
+        
+        private bool _episodeResetsGame;
+        
+        [HideInInspector]
         public int soldierUnitCost = 100;
+        [HideInInspector]
         public int archerUnitCost = 100;
+        [HideInInspector]
         public int horsemanUnitCost = 100;
         
-        // this will run after OnEnables and before Start unity operations
+        // this will run after OnEnables and before Start unity functions
         public override void Initialize()
         {
             
@@ -34,9 +41,21 @@ namespace RL_Agent
             SetDifficulty();
             
             _gameManager = GameManager.Instance;
+            _gameManager.OnGameEnded += HandleGameEnded;
             
+            if (_episodeResetsGame)
+            {
+                _gameManager.reset();
+                _episodeResetsGame = false;
+            }
+
             CacheBuildingReferences();
             CacheWalkableTiles();
+        }
+
+        private void OnDestroy()
+        {
+            _gameManager.OnGameEnded -= HandleGameEnded;
         }
 
         // this is where we design state knowledge
@@ -45,6 +64,7 @@ namespace RL_Agent
             ObserveBuildingOwnership(sensor);   // 9 sensors
             ObserveUnitCount(sensor);           // 3 sensors
             ObserveResources(sensor);           // 3 sensors
+            ObserveTime(sensor);                // 1 sensor
         }
         
         // called before agent choose action, hides these from option map
@@ -67,7 +87,7 @@ namespace RL_Agent
             HandleMovementAction(movementAction);
         }
 
-    #region Movement Action Logic
+        #region Movement Action Logic
 
         //  branch 1 => 1 + 1 action  
         private void HandleMovementAction(int movementAction)
@@ -139,7 +159,7 @@ namespace RL_Agent
 
         #endregion
     
-    #region Movement Masking
+        #region Movement Masking
 
         // private void CheckMovementMasks(IDiscreteActionMask actionMask)
         // {
@@ -148,7 +168,7 @@ namespace RL_Agent
 
     #endregion
     
-    #region Recruitment Action Logic
+        #region Recruitment Action Logic
 
         private void HandleRecruitmentAction(int recruitmentAction)
         {
@@ -235,7 +255,7 @@ namespace RL_Agent
 
         #endregion
         
-    #region  Recruitment Masking
+        #region  Recruitment Masking
 
         /// <summary>
         /// This checks if we can afford units, or have space to recruit units
@@ -319,7 +339,7 @@ namespace RL_Agent
 
         #endregion
 
-    #region Building
+        #region Building
         
         private readonly List<BuildingScript> _capitalBuildings = new(2);
         private BuildingScript _myCapital;
@@ -493,7 +513,7 @@ namespace RL_Agent
         
     #endregion // building logic
 
-    #region Unit Logic
+        #region Unit Logic
 
         private readonly List<BaseUnit> _mySoldiers = new();
         private readonly List<BaseUnit> _myArchers = new();
@@ -534,22 +554,23 @@ namespace RL_Agent
 
         #endregion // Unit Logic
 
-    #region Resource Logic
+        #region Game State Observations
 
         private void ObserveResources(VectorSensor sensor)
         {
-            // TODO :
-            // Normalize resource values somehow?
-            // Possibly we need to cap our resources and divide amount we have by cap
-            
-            sensor.AddObservation(_gameManager.GetFood(team));
-            sensor.AddObservation(_gameManager.GetIron(team));
-            sensor.AddObservation(_gameManager.GetWood(team));
+            sensor.AddObservation(_gameManager.getResourcePercentage(team, 0)); // 0 = food
+            sensor.AddObservation(_gameManager.getResourcePercentage(team, 1)); // 1 = wood
+            sensor.AddObservation(_gameManager.getResourcePercentage(team, 2)); // 2 = iron
         }
 
-    #endregion
+        private void ObserveTime(VectorSensor sensor)
+        {
+            sensor.AddObservation(_gameManager.GetTimeNormalized());
+        }
+
+        #endregion
     
-    #region Tile Setup
+        #region Tile Setup
         
         private readonly List<TileScript> _allWalkableTiles = new();
 
@@ -568,7 +589,7 @@ namespace RL_Agent
         
         #endregion
         
-    #region Difficulty
+        #region Difficulty
     
         public enum Difficulty { Easy, Medium, Hard }
     
@@ -618,6 +639,17 @@ namespace RL_Agent
         }
         
     #endregion
-    
+
+        private void HandleGameEnded(UnitOwner winner)
+        {
+            if (winner == team)
+                AddReward(+1f);
+            else
+                AddReward(-1f);
+
+            _episodeResetsGame = true;
+            
+            EndEpisode();
+        }
     }
 }
