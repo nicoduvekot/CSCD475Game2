@@ -572,9 +572,9 @@ namespace RL_Agent
 
         private void ObserveTechUpgrades(VectorSensor sensor)
         {
-            sensor.AddObservation(_techController.getLevelUnit(team, 0));
-            sensor.AddObservation(_techController.getLevelUnit(team, 1));
-            sensor.AddObservation(_techController.getLevelUnit(team, 2));
+            sensor.AddObservation(_techController.getLevelUnit(team, 0)); // 0 = soldier
+            sensor.AddObservation(_techController.getLevelUnit(team, 1)); // 1 = archer
+            sensor.AddObservation(_techController.getLevelUnit(team, 2)); // 2 = horseman
         }
 
         private void ObserveTime(VectorSensor sensor)
