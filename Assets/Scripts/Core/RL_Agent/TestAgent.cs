@@ -56,6 +56,9 @@ namespace RL_Agent
         private void OnDestroy()
         {
             _gameManager.OnGameEnded -= HandleGameEnded;
+            
+            foreach (TileScript tile in _spawnTiles)
+                tile.OnUnitCreated -= HandleUnitCreated;
         }
 
         // this is where we design state knowledge
