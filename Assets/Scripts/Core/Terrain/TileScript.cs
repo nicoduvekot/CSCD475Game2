@@ -30,7 +30,7 @@ public class TileScript : MonoBehaviour, ISelectable
 
     public bool buildingTile = false;
     
-    public event Action<BaseUnit, UnitOwner, int> OnUnitCreated;
+    public event Action<BaseUnit> OnUnitCreated;
     
 
     [SerializeField]
@@ -581,7 +581,7 @@ public class TileScript : MonoBehaviour, ISelectable
         BaseUnit unit = go.GetComponent<BaseUnit>();
         unit.initializeUnit(this, owner);
 
-        OnUnitCreated?.Invoke(unit, owner, type);
+        OnUnitCreated?.Invoke(unit);
     }
 
     private void RevealForOwner(UnitOwner owner)
@@ -645,6 +645,9 @@ public class TileScript : MonoBehaviour, ISelectable
         foreach (TileScript tile in tiles)
             tile.HideForOwner(owner);
     }
+
+    // not the best programming here, but it works
+    public List<TileScript> GetNeighbours() => GetTilesInRange(1);
 
     private List<TileScript> GetTilesInRange(int range)
     {
