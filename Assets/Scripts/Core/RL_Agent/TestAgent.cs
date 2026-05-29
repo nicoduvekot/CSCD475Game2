@@ -91,8 +91,8 @@ namespace RL_Agent
             if (DifficultyCooldownActive())
                 return;
             
-            int recruitmentAction = actions.DiscreteActions[0]; // 7 total
-            HandleRecruitmentAction(recruitmentAction);
+            int economicAction = actions.DiscreteActions[0]; // 10 total
+            HandleEconomicAction(economicAction);
             // Action Summary
             // 0 = do nothing
             // 1 = soldier at capital
@@ -101,6 +101,9 @@ namespace RL_Agent
             // 4 = soldier at fort
             // 5 = archer at fort
             // 6 = horseman at fort
+            // 7 = soldier upgrade
+            // 8 = archer upgrade
+            // 9 = horseman upgrade
             
             // the actual movement action "type"
             int movementAction = actions.DiscreteActions[1]; // 7 total
@@ -645,13 +648,17 @@ namespace RL_Agent
 
         #endregion
     
-        #region Recruitment Action Logic
+        #region Economic Action Logic
 
-        private void HandleRecruitmentAction(int recruitmentAction)
+        private void HandleEconomicAction(int economicAction)
         {
             // branch 0 => 6 + 1 action
-            switch (recruitmentAction)
+            switch (economicAction)
             {
+                case 0:
+                    // do nothing
+                    break;
+                
                 case 1:
                     TryRecruit(_myCapital, 0); // Soldier at capital
                     break;
@@ -676,10 +683,17 @@ namespace RL_Agent
                     TryRecruit(_fortBuilding, 2); // Horseman at fort
                     break;
                 
-                // considered a redundantly empty block
-                // default:
-                //     // Action 0 = do nothing
-                //     break;
+                case 7:
+                    TryUpgradeUnit(0); // upgrade for soldier
+                    break;
+                
+                case 8:
+                    TryUpgradeUnit(1); // upgrade for archer
+                    break;
+                
+                case 9:
+                    TryUpgradeUnit(2); // upgrade for horseman
+                    break;
             }
         }
 
@@ -730,9 +744,33 @@ namespace RL_Agent
             building.recruitUnit(type);
         }
 
+        private void TryUpgradeUnit(int type)
+        {
+            double cost = _techController.getUnitCost(team, type);
+
+            // unit type reminder:
+            // 0 = soldier
+            // 1 = archer
+            // 2 = horseman
+            
+            bool canAfford = type switch
+            {
+                0 => _gameManager.GetIron(team) >= cost, // soldier upgrade = iron
+                1 => _gameManager.GetWood(team) >= cost, // archer upgrade = wood
+                2 => _gameManager.GetFood(team) >= cost, // horseman upgrade = food
+                _ => false
+            };
+
+            // bail
+            if (!canAfford)
+                return;
+            
+            _techController.upgradeUnit(team, type);
+        }
+
         #endregion
         
-        #region  Recruitment Masking
+        #region  Economic Masking
 
         /// <summary>
         /// This checks if we can afford units, or have space to recruit units
