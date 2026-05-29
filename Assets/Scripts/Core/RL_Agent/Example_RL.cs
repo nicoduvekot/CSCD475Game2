@@ -34,14 +34,18 @@ namespace RL_Agent
         public override void OnActionReceived(ActionBuffers actionBuffers)
         {
             // if using continuous actions - it is one branch with that amount of action space
+            // used, shockingly, for actions that need to continue to happen, not single use actions
             
-            // an action buffer has an amount of actions in it
+            // an action buffer[x] (branch) has an amount of actions in it
             
-            // not continuous is discrete
+            // not continuous is discrete in inspector
             // - each branch can yield one action choice out of it
             // - multiple branches should be used for unrelated action spaces
             
-            // buffer[0] means branch 0, if it has 4 possible actions, give it value 5, 1 for the "empty" action
+            // generally, branch[0] actionIndex 0 is the "do nothing", 1+ is actual actions
+            
+            // branch[0] means branch 0,
+            // if it has 4 possible actual actions, give it value 5, (+1 for the "empty" action)
         }
 
         // user input influence
