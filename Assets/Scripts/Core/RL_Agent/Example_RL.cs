@@ -27,7 +27,7 @@ namespace RL_Agent
         // use this to mask actions
         public override void WriteDiscreteActionMask(IDiscreteActionMask actionMask)
         {
-            // this allows you to say for branch [x] disable choice y
+            // this allows you to say for branch[x] disable action index choice
         }
 
         // this is where you set up action spaces
