@@ -406,7 +406,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6406579220304147480}
-  - component: {fileID: 5867481930423713265}
+  - component: {fileID: 5898928072285458608}
   - component: {fileID: 7023031371472353680}
   - component: {fileID: 2666888956105294340}
   - component: {fileID: 7187249218847821003}
@@ -435,7 +435,7 @@ Transform:
   - {fileID: 608904551361922131}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5867481930423713265
+--- !u!114 &5898928072285458608
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -444,10 +444,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 5412253017378474391}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e161b51356054cb680aedbe5dc919ff8, type: 3}
+  m_Script: {fileID: 11500000, guid: 480ecca5c67143a8baa813bc3d19cc4e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Units.TestUnit
+  m_EditorClassIdentifier: Assembly-CSharp::Units.HorsemanUnit
   startingHex: {fileID: 0}
+  CurrentHex: {fileID: 0}
+  Owner: 0
+  _ownerInitialized: 0
 --- !u!114 &7023031371472353680
 MonoBehaviour:
   m_ObjectHideFlags: 0

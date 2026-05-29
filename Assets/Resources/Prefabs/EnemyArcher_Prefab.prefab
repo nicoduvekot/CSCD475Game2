@@ -263,7 +263,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3138083987726895544}
-  - component: {fileID: 2120165301309232246}
+  - component: {fileID: 904661188070912448}
   - component: {fileID: 1103892248800401469}
   - component: {fileID: 3397220075311775454}
   - component: {fileID: 5015205144706851327}
@@ -292,7 +292,7 @@ Transform:
   - {fileID: 1613008492864093071}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2120165301309232246
+--- !u!114 &904661188070912448
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -301,10 +301,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 3743528806837628229}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e161b51356054cb680aedbe5dc919ff8, type: 3}
+  m_Script: {fileID: 11500000, guid: d328216ca337434f82a48039dd300dc3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Units.TestUnit
+  m_EditorClassIdentifier: Assembly-CSharp::Units.ArcherUnit
   startingHex: {fileID: 0}
+  CurrentHex: {fileID: 0}
+  Owner: 0
+  _ownerInitialized: 0
 --- !u!114 &1103892248800401469
 MonoBehaviour:
   m_ObjectHideFlags: 0
