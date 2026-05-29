@@ -3,6 +3,7 @@ using TMPro;
 using Units;       // Imports the name space for the enum types. 
 using System.Collections.Generic;
 using Resource; // Imports the name space for the enum types for Resources
+using System;
 
 public class GameManager : MonoBehaviour
 {
@@ -22,10 +23,17 @@ public class GameManager : MonoBehaviour
     private int pScore = 0;
     private int eScore = 0;
 
+    // Varable used for resource cap
+    private int resourceCap = 2000;
+
+    // Used for event update for RL training
+    public event Action<UnitOwner> OnGameEnded;
+
     // Variables for time situation
-    [SerializeField] private float timeRemaining = 1200;
-    private bool paused = false;
-    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
+    [SerializeField] private float timeRemaining = 0;
+    private float gameTime = 1200;
+    private bool paused = true;
+    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update, change this if you want to make it faster or slower
     private float resourceUpdateTimer = 0f;     // variable for counting time
 
     void Awake()
@@ -37,6 +45,8 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+        timeRemaining = gameTime;
+        start();
     }
 
     
@@ -91,14 +101,51 @@ public class GameManager : MonoBehaviour
         if (owner == UnitOwner.Player)
         {
             player[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Player));
+
+            // Used to make sure the value doesn't go above the cap
+            if (player[type] > resourceCap)
+            {
+                player[type] = resourceCap;
+            }
         }
         else if (owner == UnitOwner.Enemy)
         {
             enemy[type] += (int) (amount * techController.Instance.getResourcesModifier(UnitOwner.Enemy));
+
+            // Used to make sure the value doesn't go above the cap
+            if(enemy[type] > resourceCap)
+            {
+                enemy[type] = resourceCap;
+            }
         }
 
         // Used so display works better
         displayResources();
+    }
+
+    // Get resource percentage for RL agent
+    public double getResourcePercentage(UnitOwner owner, int type)
+    {
+        if(type < 0 || type > 2)
+        {
+            Debug.Log("Incorect value for type was passed to getResourcePercentage");
+            return 0;
+        }
+
+        if(owner == UnitOwner.Player)
+        {
+            return (double) (player[type] / resourceCap);
+        }
+        else if(owner == UnitOwner.Enemy)
+        {
+            return (double) (enemy[type] / resourceCap);
+        }
+        else
+        {
+            Debug.Log("Incorect value for owner was passed to getResourcePercentage");
+            return 0;
+
+        }
     }
 
     //spends resources of the amounts
@@ -184,6 +231,23 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    // Resets the game, used for RL training
+    public void reset()
+    {
+        pause();
+        techController.Instance.reset();
+
+        for (int i = 0; i < 3; i++)
+        {
+            player[i] = 0;
+            enemy[i] = 0;
+        }
+        pScore = 0;
+        eScore = 0;
+        setTime((int) gameTime);
+        start();
+    }
+
 
     // Generates the resources every generation time
     public void GenerateResources()
@@ -192,7 +256,7 @@ public class GameManager : MonoBehaviour
         int PlayerScore = 0;
         int EnemyScore = 0;
 
-        // 
+        // This is for the base resources that is given while you have your capital. The passed in number is a magic number as of right now.
         for(int i = 0; i < 3; i++)
         {
             addResource(UnitOwner.Player, i, 10);
@@ -245,6 +309,9 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("UnitOwner must be player or enemy for losing the game");
         }
+
+        // Used for RL
+        OnGameEnded?.Invoke(owner);
     }
 
     public void gameSpeed(float speed)

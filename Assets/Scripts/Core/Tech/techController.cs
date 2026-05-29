@@ -110,6 +110,17 @@ public class techController : MonoBehaviour
         }
     }
 
+    // Used to reset the techs
+    public void reset()
+    {
+        for (int i = 0; i < 3; i++) {
+            playerUnitUpgrades[i] = 1.0;
+            enemyUnitUpgrades[i] = 1.0;
+        }
+        playerResourceUpgrade = 1.0;
+        enemyResourceUpgrade = 1.0;
+    }
+
     public double getResourceCost(UnitOwner owner)
     {
         if (owner == UnitOwner.Player)
