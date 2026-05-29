@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Resource;
 using Units;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace RL_Agent
         private GameManager _gameManager;
         private TechController _techController;
         
-        private bool _episodeResetsGame;
+        private bool _nextEpisodeResetsGame;
         
         [HideInInspector]
         public int soldierUnitCost = 100;
@@ -46,10 +47,10 @@ namespace RL_Agent
             
             _techController = TechController.Instance;
             
-            if (_episodeResetsGame)
+            if (_nextEpisodeResetsGame)
             {
                 _gameManager.reset();
-                _episodeResetsGame = false;
+                _nextEpisodeResetsGame = false;
             }
 
             CacheBuildingReferences();
@@ -65,14 +66,16 @@ namespace RL_Agent
         }
 
         // this is where we design state knowledge
-        public override void CollectObservations(VectorSensor sensor)
+        public override void CollectObservations(VectorSensor sensor) // 138 total
         {
+            ObserveTime(sensor);                    // 1 sensor
             ObserveBuildingOwnership(sensor);       // 9 sensors
-            ObserveUnitCount(sensor);               // 3 sensors
+            ObserveMyUnits(sensor);                 // 9 sensors
             ObserveVisibleEnemyUnits(sensor);       // 3 sensors
             ObserveResources(sensor);               // 3 sensors
             ObserveTechUpgrades(sensor);            // 3 sensors
-            ObserveTime(sensor);                    // 1 sensor
+            ObserveFogCoverage(sensor);             // 2 sensors
+            ObserveCapturePoints(sensor);           // 108 sensors
         }
         
         // called before agent choose action, hides these from option map
@@ -88,28 +91,540 @@ namespace RL_Agent
             if (DifficultyCooldownActive())
                 return;
             
-            int recruitmentAction = actions.DiscreteActions[0];
+            int recruitmentAction = actions.DiscreteActions[0]; // 7 total
             HandleRecruitmentAction(recruitmentAction);
+            // Action Summary
+            // 0 = do nothing
+            // 1 = soldier at capital
+            // 2 = archer at capital
+            // 3 = horseman at capital
+            // 4 = soldier at fort
+            // 5 = archer at fort
+            // 6 = horseman at fort
             
-            int movementAction = actions.DiscreteActions[1];
-            HandleMovementAction(movementAction);
+            // the actual movement action "type"
+            int movementAction = actions.DiscreteActions[1]; // 7 total
+            // identifier for building movement action
+            int buildingIndex  = actions.DiscreteActions[2]; // 9 total
+            HandleMovementAction(movementAction, buildingIndex);
+            // Action Summary
+            // 0 = do nothing
+            // 1 = scout fog
+            // 2 = Attack unit
+            // 3 = Support Ally
+            // 4 = Attack Building (index)
+            // 5 = Defend Building (index)
+            // 6 = Guard Building (index)
         }
 
         #region Movement Action Logic
-
-        //  branch 1 => 1 + 1 action  
-        private void HandleMovementAction(int movementAction)
+        
+        private void HandleMovementAction(int movementAction, int buildingIndex)
         {
+            BuildingScript targetBuilding = GetBuildingByIndex(buildingIndex);
+            
             switch (movementAction)
             {
+                case 0:
+                    // do nothing
+                    break;
+                
                 case 1:
-                    TileScript target = GetRandomFogTile();
-                    UnitExploreTarget(target);
+                    ScoutFog();
+                    break;
+                
+                case 2:
+                    AttackEnemyUnit();
+                    break;
+                
+                case 3:
+                    SupportAllyAttack();
+                    break;
+                
+                case 4:
+                    AttackBuilding(targetBuilding);
+                    break;
+                
+                case 5:
+                    DefendBuilding(targetBuilding);
+                    break;
+                
+                case 6:
+                    GuardBuilding(targetBuilding);
+                    break;
+                
+                default:
+                    Debug.LogWarning($"[TestAgent] value: {movementAction}, being skipped");
                     break;
             }
         }
+        
+        private BuildingScript GetBuildingByIndex(int index)
+        {
+            return index switch
+            {
+                0 => _myCapital,
+                1 => _enemyCapital,
+                2 => _fortBuilding,
+                3 => _myFoodBuilding,
+                4 => _enemyFoodBuilding,
+                5 => _myWoodBuilding,
+                6 => _enemyWoodBuilding,
+                7 => _topIronBuilding,
+                8 => _bottomIronBuilding,
+                _ => null
+            };
+        }
 
-        private bool IsFogForTeam(TileScript tile)
+        /// <summary>
+        /// Logic for exploring fog that is surrounded by fog
+        ///
+        /// Get: closest fog tile to capital that is surrounded by fog
+        ///
+        /// then get: closest unit to that spot to explore the spot
+        /// </summary>
+        private void ScoutFog()
+        {
+            TileScript target = GetClosestFogClusterTile();
+
+            // null safety bail
+            if (target == null)
+                return;
+            
+            // closest idle unit as Scout
+            BaseUnit scout = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: target.transform.position
+            );
+            
+            // null safety bail
+            if (scout == null)
+                return;
+
+            scout.OnCommand(target.transform.position, target);
+        }
+
+        /// <summary>
+        /// Logic for attacking enemy units (non-engaged / engaging)
+        ///
+        /// Get: closest idle unit to capital as Attacker, and:
+        ///
+        /// Attack closest visible enemy unit (NOT ENGAGED || ENGAGING)
+        ///
+        /// Has room for improvement, but hopefully designed to give agent
+        /// policy that might behave close enough to attack response feel
+        ///
+        /// NOTE: Important to use only visible enemy units as target choice
+        /// </summary>
+        private void AttackEnemyUnit()
+        {
+            // safety bail - should be masked though
+            if (_visibleEnemyUnits.Count == 0)
+                return;
+            
+            // get closest to capital as attacker
+            BaseUnit attacker = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: _myCapital.transform.position
+            );
+            
+            // safety bail
+            if (attacker == null) 
+                return;
+            
+            BaseUnit target = null;
+            float closeDist = float.MaxValue;
+            
+            foreach (BaseUnit enemy in _visibleEnemyUnits)
+            {
+                // skip if we get a null
+                if (enemy == null) 
+                    continue;
+
+                // skip engaged || Engaging enemies (support logic should policy those) 
+                if (enemy.GetState() == BaseUnit.UnitState.Engaged ||
+                    enemy.GetState() == BaseUnit.UnitState.Engaging)
+                    continue;
+
+                float distance = Vector3.Distance(
+                    attacker.transform.position, 
+                    enemy.transform.position
+                );
+                
+                if (distance < closeDist)
+                {
+                    closeDist = distance;
+                    target = enemy;
+                }
+            }
+            
+            // safety bail
+            if (target == null) 
+                return;
+            
+            attacker.OnCommand(target.transform.position, target);
+        }
+
+        /// <summary>
+        /// Logic for attacking enemy unit (engaged / engaging)
+        ///
+        /// Get: closest idle unit to capital as Supporter, and:
+        ///
+        /// Attack closest visible engaged or engaging enemy
+        ///
+        /// Has room for improvement, but hopefully designed to give agent
+        /// policy that might behave close enough to support response feel
+        ///
+        /// NOTE: Important to use only visible enemy units as target choice
+        /// </summary>
+        private void SupportAllyAttack()
+        {
+            // get closest to capital as supporter
+            BaseUnit supporter = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: _myCapital.transform.position
+            );
+            
+            // safety bail
+            if (supporter == null) 
+                return;
+            
+            BaseUnit target = null;
+            float closeDist = float.MaxValue;
+            
+            // Reminder: use visible enemies only!!
+            foreach (BaseUnit enemy in _visibleEnemyUnits)
+            {
+                // skip null
+                if (enemy == null) 
+                    continue;
+
+                // skip enemies not engaged or engaging for support behavior
+                if (enemy.GetState() != BaseUnit.UnitState.Engaged &&
+                    enemy.GetState() != BaseUnit.UnitState.Engaging)
+                    continue;
+
+                float distance = Vector3.Distance(
+                    supporter.transform.position, 
+                    enemy.transform.position
+                );
+                
+                if (distance < closeDist)
+                {
+                    closeDist = distance;
+                    target = enemy;
+                }
+                
+                // safety bail
+                if (target == null) 
+                    return;
+                
+                supporter.OnCommand(target.transform.position, target);
+            }
+        }
+
+        /// <summary>
+        /// Logic for attacking the passed in building
+        ///
+        /// Get: closest idle unit as Attacker, and:
+        /// 
+        /// If: all capture points are fogged, attack nearest tile,
+        /// If: I can see an enemy on a tile, attack the enemy,
+        /// Else: attack nearest tile to me.
+        /// 
+        /// NOTE: Important to check if tiles are fogged,
+        /// Agent can cheat about occupancy logic
+        /// </summary>
+        /// <param name="building"></param>
+        private void AttackBuilding(BuildingScript building)
+        {
+            // safety bail
+            if (building == null) 
+                return;
+            
+            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+            
+            // safety bail
+            if (tiles == null || tiles.Count == 0)
+                return;
+            
+            // get the closest idle unit as attacker
+            BaseUnit attacker = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: building.transform.position
+            );
+            
+            // safety bail
+            if (attacker == null)
+                return;
+            
+            // setup tile iteration logic helpers
+            TileScript closestEnemyTile = null;
+            TileScript closestAvailableTile = null;
+            
+            float enemyDist = float.MaxValue;
+            float availableDist = float.MaxValue;
+            
+            // tile iteration logic
+            foreach (TileScript tile in tiles)
+            {
+                bool fogged = IsFogged(tile);
+                
+                float distance = Vector3.Distance(
+                    attacker.transform.position,
+                    tile.transform.position
+                );
+
+                // visible tile
+                if (!fogged)
+                {
+                    // occupied
+                    if (tile.OccupyingUnit != null)
+                    {
+                        // enemy occupancy
+                        if (tile.OccupyingUnit.Owner != team)
+                        {
+                            if (distance < enemyDist)
+                            {
+                                enemyDist = distance;
+                                closestEnemyTile = tile;
+                            }
+                        }
+                        // skip allied occupancy
+                        continue;
+                    }
+
+                    // Visible + unoccupied is available case 1
+                    if (distance < availableDist)
+                    {
+                        availableDist = distance;
+                        closestAvailableTile = tile;
+                    }
+                }
+                else // fogged tile is available case 2
+                {
+                    if (distance < availableDist)
+                    {
+                        availableDist = distance;
+                        closestAvailableTile = tile;
+                    }
+                }
+            }
+
+            // Case A: Enemy is visible on a tile => attack
+            if (closestEnemyTile != null)
+            {
+                attacker.OnCommand(
+                    closestEnemyTile.transform.position,
+                    closestEnemyTile.OccupyingUnit
+                );
+                return;
+            }
+
+            // Case B: No enemy visible => closest available space
+            if (closestAvailableTile != null)
+            {
+                attacker.OnCommand(
+                    closestAvailableTile.transform.position,
+                    closestAvailableTile
+                );
+                return;
+            }
+            
+            Debug.LogError("[TestAgent] Unit Attack logic failed");
+        }
+
+        /// <summary>
+        /// Logic for defending the passed in building
+        ///
+        /// Get: the closest idle unit as Defender, and:
+        ///
+        /// Attack the closest enemy unit
+        ///
+        /// NOTE: Important to check if tiles are fogged,
+        /// Agent can cheat about occupancy logic
+        /// </summary>
+        /// <param name="building"></param>
+        private void DefendBuilding(BuildingScript building)
+        {
+            // safety bail
+            if (building == null) 
+                return;
+            
+            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+            
+            // safety bail
+            if (tiles == null)
+                return;
+            
+            // get closest idle unit as defender
+            BaseUnit defender = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: building.transform.position
+            );
+            
+            // safety bail
+            if (defender == null) 
+                return;
+            
+            TileScript enemyTile = null;
+            float closeDist = float.MaxValue;
+            
+            foreach (TileScript tile in tiles)
+            {
+                // skip fogged
+                if (IsFogged(tile)) continue;
+                
+                // skip empty
+                if (tile.OccupyingUnit == null) continue;
+                
+                // skip ally owned
+                if (tile.OccupyingUnit.Owner == team) continue;
+
+                // else : enemy occupies
+                // record distance to defender
+                float distance = Vector3.Distance(
+                    defender.transform.position,
+                    tile.transform.position
+                );
+                
+                if (distance < closeDist)
+                {
+                    closeDist = distance;
+                    enemyTile = tile;
+                }
+            }
+            
+            // safety bail
+            if (enemyTile == null) 
+                return;
+            
+            defender.OnCommand(
+                enemyTile.transform.position,
+                enemyTile.OccupyingUnit
+            );
+        }
+
+        /// <summary>
+        /// Logic for Guarding the passed in building
+        ///
+        /// Get: closest idle unit as Guardian, and:
+        ///
+        /// Move to the closest available tile
+        ///
+        /// NOTE: Important to check if tiles are fogged,
+        /// Agent can cheat about occupancy logic
+        /// </summary>
+        /// <param name="building"></param>
+        private void GuardBuilding(BuildingScript building)
+        {
+            // safety bail
+            if (building == null)
+                return;
+            
+            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+            
+            // safety bail
+            if (tiles == null) 
+                return;
+            
+            // get closest unit as Guardian
+            BaseUnit guardian = GetClosestUnit(
+                state: BaseUnit.UnitState.Idle,
+                origin: building.transform.position
+            );
+            
+            // safety bail
+            if (guardian == null) 
+                return;
+            
+            TileScript unoccupiedTile = null;
+            float closeDist = float.MaxValue;
+            
+            foreach (TileScript tile in tiles)
+            {
+                // skip fogged
+                if (IsFogged(tile)) continue;
+
+                // skip occupied
+                if (tile.OccupyingUnit != null) continue;
+
+                float distance = Vector3.Distance(
+                    guardian.transform.position, 
+                    tile.transform.position);
+
+                if (distance < closeDist)
+                {
+                    closeDist = distance;
+                    unoccupiedTile = tile;
+                }
+            }
+            
+            // safety bail
+            if (unoccupiedTile == null) 
+                return;
+            
+            guardian.OnCommand(
+                unoccupiedTile.transform.position,
+                unoccupiedTile
+            );
+        }
+
+        #endregion
+
+        #region Unit Movement Helpers
+
+        private TileScript GetClosestFogClusterTile()
+        {
+            TileScript exploreTile = null;
+            float exploreDist = float.MaxValue;
+            
+            List<TileScript> fogTiles = _allWalkableTiles.FindAll(IsFogged);
+            
+            // bail flag for if you somehow can see all game tiles haha
+            if (fogTiles.Count == 0)
+                return null;
+
+            foreach (TileScript tile in fogTiles)
+            {
+                // skip tiles where exploration might not "help"
+                if (CountFogNeighbors(tile) < 3)
+                    continue;
+
+                float distance = Vector3.Distance(
+                    _myCapital.transform.position,
+                    tile.transform.position
+                );
+
+                if (distance < exploreDist)
+                {
+                    exploreDist = distance;
+                    exploreTile = tile;
+                }
+            }
+            
+            return exploreTile;
+        }
+        
+        private int CountFogNeighbors(TileScript tile)
+        {
+            int count = 0;
+
+            foreach (TileScript n in tile.GetNeighbours())
+            {
+                // safety skip
+                if (n == null) 
+                    continue;
+                
+                // count if has fog
+                if (IsFogged(n)) 
+                    count++;
+            }
+
+            return count;
+        }
+
+        private bool IsFogged(TileScript tile)
         {
             return team switch
             {
@@ -117,52 +632,6 @@ namespace RL_Agent
                 UnitOwner.Enemy => tile.fogForEnemy,
                 _ => false
             };
-        }
-
-        private TileScript GetRandomFogTile()
-        {
-            List<TileScript> fogTiles = _allWalkableTiles.FindAll(IsFogForTeam);
-            
-            if (fogTiles.Count == 0)
-                return null;
-
-            int randomIndex = Random.Range(0, fogTiles.Count);
-            return fogTiles[randomIndex];
-        }
-
-        private void UnitExploreTarget(TileScript target)
-        {
-            if (target == null)
-                return;
-            
-            BaseUnit scout = GetRandomIdleUnit();
-            if (scout == null)
-                return;
-
-            scout.OnCommand(target.transform.position, target);
-        }
-
-        private BaseUnit GetRandomIdleUnit()
-        {
-            List<BaseUnit> idleUnits = new();
-            
-            foreach (BaseUnit unit in _mySoldiers)
-                if (unit != null && unit.IsIdle())
-                    idleUnits.Add(unit);
-            
-            foreach (BaseUnit unit in _myArchers)
-                if (unit != null && unit.IsIdle())
-                    idleUnits.Add(unit);
-
-            foreach (BaseUnit unit in _myHorsemen)
-                if (unit != null && unit.IsIdle())
-                    idleUnits.Add(unit);
-            
-            if (idleUnits.Count == 0)
-                return null;
-            
-            int index = Random.Range(0, idleUnits.Count);
-            return idleUnits[index];
         }
 
         #endregion
@@ -523,127 +992,208 @@ namespace RL_Agent
         #endregion // building logic
 
         #region Unit Logic
+        
+        private readonly List<BaseUnit> _myUnits = new();
 
-        private readonly List<BaseUnit> _mySoldiers = new();
-        private readonly List<BaseUnit> _myArchers = new();
-        private readonly List<BaseUnit> _myHorsemen = new();
+        private int _mySoldierCount;
+        private int _myArcherCount;
+        private int _myHorsemanCount;
+        
+        private int _myIdleUnitCount;
+        private int _myMovingUnitCount;
+        private int _myEngagingUnitCount;
+        private int _myEngagedUnitCount;
+        private int _myCapturingUnitCount;
+        private int _myDyingUnitCount;
         
         // CHEAT WARNING
         // This is the list of units the own, regardless of if we see them or not
         // DO NOT OBSERVE THIS
-        private readonly List<BaseUnit> _enemySoldiers = new();
-        private readonly List<BaseUnit> _enemyArchers = new();
-        private readonly List<BaseUnit> _enemyHorsemen = new();
+        private readonly List<BaseUnit> _enemyUnits = new();
 
         // instead only observe units if we CAN see them
-        private readonly List<BaseUnit> _visibleEnemySoldiers = new();
-        private readonly List<BaseUnit> _visibleEnemyArchers = new();
-        private readonly List<BaseUnit> _visibleEnemyHorsemen = new();
+        private readonly List<BaseUnit> _visibleEnemyUnits  = new();
+        
+        private int _enemyVisibleSoldierCount;
+        private int _enemyVisibleArcherCount;
+        private int _enemyVisibleHorsemanCount;
 
-        private void HandleUnitCreated(BaseUnit unit, UnitOwner owner, int type)
+        private void HandleUnitCreated(BaseUnit unit)
         {
+            // bail if this is somehow null
             if (unit == null)
                 return;
+
+            if (unit.Owner == team)
+                _myUnits.Add(unit);
+            else
+                _enemyUnits.Add(unit);
             
-            if (owner == team)
-            {
-                switch (type)
-                {
-                    case 0:
-                        _mySoldiers.Add(unit);
-                        break;
-
-                    case 1:
-                        _myArchers.Add(unit);
-                        break;
-
-                    case 2:
-                        _myHorsemen.Add(unit);
-                        break;
-                }
-            }
-            else // owner != team
-            {
-                switch (type)
-                {
-                    case 0:
-                        _enemySoldiers.Add(unit);
-                        break;
-
-                    case 1:
-                        _enemyArchers.Add(unit);
-                        break;
-
-                    case 2:
-                        _enemyHorsemen.Add(unit);
-                        break;
-                }
-            }
-            // subscribe to handle when unit dies
             unit.OnUnitDeath += HandleUnitDeath;
         }
         
         private void HandleUnitDeath(BaseUnit deadUnit)
         {
-            _mySoldiers.Remove(deadUnit);
-            _myArchers.Remove(deadUnit);
-            _myHorsemen.Remove(deadUnit);
-
-            _enemySoldiers.Remove(deadUnit);
-            _enemyArchers.Remove(deadUnit);
-            _enemyHorsemen.Remove(deadUnit);
-
-            _visibleEnemySoldiers.Remove(deadUnit);
-            _visibleEnemyArchers.Remove(deadUnit);
-            _visibleEnemyHorsemen.Remove(deadUnit);
+            bool wasEnemy = deadUnit.Owner != team;
+            
+            if (wasEnemy)
+                AddReward(+0.1f);
+            else
+                AddReward(-0.1f);
+            
+            _myUnits.Remove(deadUnit);
+            _enemyUnits.Remove(deadUnit);
+            
+            _visibleEnemyUnits.Remove(deadUnit);
         }
 
-        private void ObserveUnitCount(VectorSensor sensor)
+        private void ObserveMyUnits(VectorSensor sensor)
         {
-            sensor.AddObservation(_mySoldiers.Count);
-            sensor.AddObservation(_myArchers.Count);
-            sensor.AddObservation(_myHorsemen.Count);
+            UpdateMyUnitCounters();
+            
+            sensor.AddObservation(NormalizeMyUnitCount(_mySoldierCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myArcherCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myHorsemanCount));
+            
+            sensor.AddObservation(NormalizeMyUnitCount(_myIdleUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myMovingUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myEngagingUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myEngagedUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myCapturingUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myDyingUnitCount));
+        }
+
+        private void UpdateMyUnitCounters()
+        {
+            // reset
+            _mySoldierCount = 0;
+            _myArcherCount = 0;
+            _myHorsemanCount = 0;
+
+            _myIdleUnitCount = 0;
+            _myMovingUnitCount = 0;
+            _myEngagingUnitCount = 0;
+            _myEngagedUnitCount = 0;
+            _myCapturingUnitCount = 0;
+            _myDyingUnitCount = 0;
+            
+            // Iterate backwards for null safety cleanup
+            for (int i = _myUnits.Count - 1; i >= 0; i--)
+            {
+                BaseUnit unit = _myUnits[i];
+
+                // null safety removal
+                if (unit == null)
+                {
+                    _myUnits.RemoveAt(i);
+                    continue;
+                }
+
+                // unit type counter
+                switch (unit.UnitType)
+                {
+                    case 0: _mySoldierCount++; break;
+                    case 1: _myArcherCount++; break;
+                    case 2: _myHorsemanCount++; break;
+                }
+
+                // unit state counter
+                switch (unit.GetState())
+                {
+                    case BaseUnit.UnitState.Idle:
+                        _myIdleUnitCount++;
+                        break;
+
+                    case BaseUnit.UnitState.Moving:
+                        _myMovingUnitCount++;
+                        break;
+
+                    case BaseUnit.UnitState.Engaging:
+                        _myEngagingUnitCount++;
+                        break;
+
+                    case BaseUnit.UnitState.Engaged:
+                        _myEngagedUnitCount++;
+                        break;
+
+                    case BaseUnit.UnitState.Capturing:
+                        _myCapturingUnitCount++;
+                        break;
+
+                    case BaseUnit.UnitState.Dying:
+                        _myDyingUnitCount++;
+                        break;
+                    
+                    default:
+                        Debug.LogError($"[TestAgent] Not Tracking unit state: {unit.GetState()}");
+                        break;
+                }
+            }
+        }
+
+        private float NormalizeMyUnitCount(int count) => NormalizeUnitCount(count, _myUnits);
+        private float NormalizeEnemyUnitCount(int count) => NormalizeUnitCount(count, _enemyUnits);
+
+        private float NormalizeUnitCount(int count, List<BaseUnit> unitList)
+        {
+            int total = unitList.Count;
+
+            if (total == 0)
+                return 0;
+            
+            return (float) count / total;
         }
 
         private void ObserveVisibleEnemyUnits(VectorSensor sensor)
         {
             // WARNING : Only observe the visible enemy units list
+            UpdateVisibleEnemyCounters();
             
-            UpdateSeenEnemyUnits(_enemySoldiers, _visibleEnemySoldiers);
-            UpdateSeenEnemyUnits(_enemyArchers, _visibleEnemyArchers);
-            UpdateSeenEnemyUnits(_enemyHorsemen, _visibleEnemyHorsemen);
-            
-            sensor.AddObservation(_visibleEnemySoldiers.Count);
-            sensor.AddObservation(_visibleEnemyArchers.Count);
-            sensor.AddObservation(_visibleEnemyHorsemen.Count);
+            sensor.AddObservation(NormalizeEnemyUnitCount(_enemyVisibleSoldierCount));
+            sensor.AddObservation(NormalizeEnemyUnitCount(_enemyVisibleArcherCount));
+            sensor.AddObservation(NormalizeEnemyUnitCount(_enemyVisibleHorsemanCount));
         }
 
-        private void UpdateSeenEnemyUnits(List<BaseUnit> enemyUnits, List<BaseUnit> visibleEnemyUnits)
+        private void UpdateVisibleEnemyCounters()
         {
-            // backwards iterate and remove null references
-            for (int i = enemyUnits.Count - 1; i >= 0; i--)
+            // reset
+            _enemyVisibleSoldierCount = 0;
+            _enemyVisibleArcherCount = 0;
+            _enemyVisibleHorsemanCount = 0;
+            
+            // backwards iterate for null safety cleanup
+            for (int i = _enemyUnits.Count - 1; i >= 0; i--)
             {
-                BaseUnit enemy = enemyUnits[i];
+                BaseUnit enemy = _enemyUnits[i];
 
-                // if we happen to encounter nulls, remove them
+                // null safety removal
                 if (enemy == null)
                 {
-                    enemyUnits.RemoveAt(i);
+                    _enemyUnits.RemoveAt(i);
 // ReSharper disable ExpressionIsAlwaysNull
                     // UNITY FAKE NULL
-                    visibleEnemyUnits.Remove(enemy);
+                    _visibleEnemyUnits.Remove(enemy);
 // ReSharper restore ExpressionIsAlwaysNull
                     continue;
                 }
 
                 if (EnemyUnitIsVisible(enemy))
                 {
-                    if (!visibleEnemyUnits.Contains(enemy))
-                        visibleEnemyUnits.Add(enemy);
+                    if (!_visibleEnemyUnits.Contains(enemy))
+                        _visibleEnemyUnits.Add(enemy);
+                    
+                    // update visible enemy type counter
+                    switch (enemy.UnitType)
+                    {
+                        case 0: _enemyVisibleSoldierCount++; break;
+                        case 1: _enemyVisibleArcherCount++; break;
+                        case 2: _enemyVisibleHorsemanCount++; break;
+                        default : Debug.LogError($"[TestAgent] Not tracking enemy unit type of: {enemy.UnitType}"); break;
+                    }
                 }
                 else
                 {
-                    visibleEnemyUnits.Remove(enemy);
+                    _visibleEnemyUnits.Remove(enemy);
                 }
             }
         }
@@ -651,7 +1201,10 @@ namespace RL_Agent
         private bool EnemyUnitIsVisible(BaseUnit enemyUnit)
         {
             TileScript tile = enemyUnit.CurrentHex;
-            if (tile == null) return false; // NRE safety bail
+            
+            // NRE safety bail
+            if (tile == null) 
+                return false;
 
             // can our team see the tile the enemy unit is on?
             return team switch
@@ -661,7 +1214,7 @@ namespace RL_Agent
                 _ => false
             };
         }
-
+        
         #endregion // Unit Logic
 
         #region Game State Observations
@@ -687,9 +1240,15 @@ namespace RL_Agent
 
         #endregion
     
-        #region Tile Setup
+        #region Fog Observations
         
         private readonly List<TileScript> _allWalkableTiles = new();
+        
+        // used for reward system
+        private readonly Dictionary<TileScript, bool> _previousFogState = new();
+        
+        private int _foggedTileCount;
+        private int _visibleTileCount;
 
         private void CacheWalkableTiles()
         {
@@ -702,8 +1261,140 @@ namespace RL_Agent
                 if (tile.getMovement() > 0)
                     _allWalkableTiles.Add(tile);
             }
+            
+            // init fog state memory dict
+            _previousFogState.Clear();
+            foreach (TileScript tile in _allWalkableTiles)
+                _previousFogState[tile] = IsFogged(tile);
+        }
+
+        private void ObserveFogCoverage(VectorSensor sensor)
+        {
+            UpdateFogCounters();
+            
+            sensor.AddObservation(NormalizeFogCount(_foggedTileCount));
+            sensor.AddObservation(NormalizeFogCount(_visibleTileCount));
+        }
+
+        private void UpdateFogCounters()
+        {
+            _foggedTileCount = 0;
+            _visibleTileCount = 0;
+            
+            for (int i = _allWalkableTiles.Count - 1; i >= 0; i--)
+            {
+                TileScript tile = _allWalkableTiles[i];
+
+                // null safety bail + log error - but do not remove
+                if (tile == null)
+                {
+                    Debug.LogError("[TestAgent] A walkable tile became null!?");
+                    continue;
+                }
+
+                // record fog bool
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+
+                // update counter
+                if (fogged)
+                    _foggedTileCount++;
+                else
+                    _visibleTileCount++;
+            }
+        }
+
+        private float NormalizeFogCount(int count)
+        {
+            int total = _allWalkableTiles.Count;
+
+            if (total == 0)
+            {
+                Debug.LogError($"[TestAgent] Team: '{team}' is observing no walkable tiles");
+                return 0;
+            }
+            
+            return (float) count / total;
         }
         
+        private void RewardFogReveals()
+        {
+            foreach (TileScript tile in _allWalkableTiles)
+            {
+                bool wasFogged = _previousFogState[tile];
+                bool isFogged = IsFogged(tile);
+
+                // very small reward for reveal of fog
+                if (wasFogged && !isFogged)
+                    AddReward(+0.005f);
+
+                // update fog memory dict
+                _previousFogState[tile] = isFogged;
+            }
+        }
+
+        #endregion
+
+        #region Capture Observations
+
+        private void ObserveCapturePoints(VectorSensor sensor)
+        {
+            // 9 buildings // 2 observations foreach of the 6 tiles
+            // 9 x 12
+            // 108 observation space
+            
+            ObserveCapturePointsForBuilding(sensor, _myCapitalCapturePoints);
+            ObserveCapturePointsForBuilding(sensor, _enemyCapitalCapturePoints);
+            
+            ObserveCapturePointsForBuilding(sensor, _myFoodCapturePoints);
+            ObserveCapturePointsForBuilding(sensor, _enemyFoodCapturePoints);
+            
+            ObserveCapturePointsForBuilding(sensor, _myWoodCapturePoints);
+            ObserveCapturePointsForBuilding(sensor, _enemyWoodCapturePoints);
+            
+            ObserveCapturePointsForBuilding(sensor, _topIronCapturePoints);
+            ObserveCapturePointsForBuilding(sensor, _bottomIronCapturePoints);
+            
+            ObserveCapturePointsForBuilding(sensor, _fortCapturePoints);
+        }
+
+        private void ObserveCapturePointsForBuilding(
+            VectorSensor sensor,
+            List<TileScript> capturePoints)
+        {
+            foreach (TileScript tile in capturePoints)
+            {
+                // check if visible
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+                
+                int visible = fogged ? 0 : 1;
+                sensor.AddObservation(visible);
+                
+                // state of capture
+                int state;
+
+                if (fogged)
+                    state = 0; // unknown state
+                else if (tile.OccupyingUnit == null)
+                    state = 1; // empty
+                else if (tile.OccupyingUnit.Owner == team)
+                    state = 2; // our unit
+                else
+                    state = 3; // enemy unit
+                
+                sensor.AddObservation(state);
+            }
+        }
+
         #endregion
         
         #region Difficulty
@@ -757,6 +1448,156 @@ namespace RL_Agent
         
     #endregion
 
+        #region Tile Utility
+        
+        private List<TileScript> GetCaptureTilesForBuilding(BuildingScript building)
+        {
+            if (building == _myCapital) return _myCapitalCapturePoints;
+            if (building == _enemyCapital) return _enemyCapitalCapturePoints;
+
+            if (building == _myFoodBuilding) return _myFoodCapturePoints;
+            if (building == _enemyFoodBuilding) return _enemyFoodCapturePoints;
+
+            if (building == _myWoodBuilding) return _myWoodCapturePoints;
+            if (building == _enemyWoodBuilding) return _enemyWoodCapturePoints;
+
+            if (building == _topIronBuilding) return _topIronCapturePoints;
+            if (building == _bottomIronBuilding) return _bottomIronCapturePoints;
+
+            if (building == _fortBuilding) return _fortCapturePoints;
+
+            Debug.LogError("[TestAgent] Unknown building passed to GetCapturePoints");
+            return null;
+        }
+
+        #endregion
+
+        #region Get Unit Utility Core
+        
+        private BaseUnit GetClosestUnitOfType(int type, Vector3? origin = null) 
+            => GetClosestUnit(type: type, origin: origin);
+        
+        private BaseUnit GetClosestUnitOfState(BaseUnit.UnitState state, Vector3? origin = null) 
+            => GetClosestUnit(state: state, origin: origin);
+
+        private BaseUnit GetFirstUnitOfType(int type) 
+            => FilterMyUnits(type: type).FirstOrDefault();
+
+        private BaseUnit GetFirstUnitOfState(BaseUnit.UnitState state) 
+            => FilterMyUnits(state: state).FirstOrDefault();
+
+        private BaseUnit GetFirstUnit(int type, BaseUnit.UnitState state) 
+            => FilterMyUnits(type: type, state: state).FirstOrDefault();
+
+        private BaseUnit GetRandomUnitOfType(int type)
+        {
+            List<BaseUnit> list = FilterMyUnits(type: type);
+            
+            if (list.Count == 0)
+                return null;
+
+            return list[Random.Range(0, list.Count)];
+        }
+
+        private BaseUnit GetRandomUnitOfState(BaseUnit.UnitState state)
+        {
+            List<BaseUnit> list = FilterMyUnits(state: state);
+            
+            if (list.Count == 0)
+                return null;
+
+            return list[Random.Range(0, list.Count)];
+        }
+
+        private BaseUnit GetRandomUnit(int type, BaseUnit.UnitState state)
+        {
+            List<BaseUnit> list = FilterMyUnits(type: type, state: state);
+            
+            if (list.Count == 0)
+                return null;
+
+            return list[Random.Range(0, list.Count)];
+        }
+
+        #endregion
+        
+        #region Get Unit Utility Core Helpers
+
+        // NOTE: if no origin, it will use our capital as closest reference
+        private BaseUnit GetClosestUnit(
+            int? type = null,
+            BaseUnit.UnitState? state = null,
+            Vector3? origin = null)
+        {
+            Vector3 originPos = origin ?? _myCapital.transform.position;
+            
+            BaseUnit closest = null;
+            float closestDist = float.MaxValue;
+            
+            // backwards iterate for, you guessed it, null safety removal
+            for (int i = _myUnits.Count - 1; i >= 0; i--)
+            {
+                BaseUnit u = _myUnits[i];
+
+                // null safety removal
+                if (u == null)
+                {
+                    _myUnits.RemoveAt(i);
+                    continue;
+                }
+
+                // filter type if provided
+                if (type.HasValue && u.UnitType != type.Value)
+                    continue;
+
+                // filter state if provided
+                if (state.HasValue && u.GetState() != state.Value)
+                    continue;
+
+                float d = Vector3.Distance(u.transform.position, originPos);
+
+                if (d < closestDist)
+                {
+                    closestDist = d;
+                    closest = u;
+                }
+            }
+            
+            return closest;
+        }
+
+        private List<BaseUnit> FilterMyUnits(int? type = null, BaseUnit.UnitState? state = null)
+        {
+            List<BaseUnit> result = new();
+            
+            // backwards iteration for null safety removal
+            for (int i = _myUnits.Count - 1; i >= 0; i--)
+            {
+                BaseUnit u = _myUnits[i];
+
+                // null safety removal
+                if (u == null)
+                {
+                    _myUnits.RemoveAt(i);
+                    continue;
+                }
+
+                // filter type if provided
+                if (type.HasValue && u.UnitType != type.Value)
+                    continue;
+
+                // filter state if provided
+                if (state.HasValue && u.GetState() != state.Value)
+                    continue;
+
+                result.Add(u);
+            }
+
+            return result;
+        }
+        
+        #endregion
+
         private void HandleGameEnded(UnitOwner winner)
         {
             if (winner == team)
@@ -764,7 +1605,7 @@ namespace RL_Agent
             else
                 AddReward(-1f);
 
-            _episodeResetsGame = true;
+            _nextEpisodeResetsGame = true;
             
             EndEpisode();
         }
