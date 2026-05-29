@@ -19,6 +19,7 @@ namespace RL_Agent
         
         // cache field for gameManager
         private GameManager _gameManager;
+        private techController _techController;
         
         private bool _episodeResetsGame;
         
@@ -42,6 +43,8 @@ namespace RL_Agent
             
             _gameManager = GameManager.Instance;
             _gameManager.OnGameEnded += HandleGameEnded;
+            
+            _techController = techController.Instance;
             
             if (_episodeResetsGame)
             {
@@ -67,6 +70,7 @@ namespace RL_Agent
             ObserveBuildingOwnership(sensor);   // 9 sensors
             ObserveUnitCount(sensor);           // 3 sensors
             ObserveResources(sensor);           // 3 sensors
+            ObserveTechUpgrades(sensor);        // 3 sensors
             ObserveTime(sensor);                // 1 sensor
         }
         
@@ -564,6 +568,13 @@ namespace RL_Agent
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 0)); // 0 = food
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 1)); // 1 = wood
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 2)); // 2 = iron
+        }
+
+        private void ObserveTechUpgrades(VectorSensor sensor)
+        {
+            sensor.AddObservation(_techController.getLevelUnit(team, 0));
+            sensor.AddObservation(_techController.getLevelUnit(team, 1));
+            sensor.AddObservation(_techController.getLevelUnit(team, 2));
         }
 
         private void ObserveTime(VectorSensor sensor)
