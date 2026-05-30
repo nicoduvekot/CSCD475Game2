@@ -96,6 +96,12 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
+        if (hexObject == null)
+        {
+            Debug.LogError("hexObject is NULL — raycast did not hit a tile!");
+            return;
+        }
+
 
         // Opens the recuit menu if the building is a fort.
         if (hex.getTerrain() == TerrainType.building){
@@ -117,7 +123,7 @@ public class MouseInput : MonoBehaviour
 
             if (temp.getResource() == ResourceType.Fort)
             {
-                UnitRecruitPopup.Instance.show(temp);
+                UnitRecruitPopup.Instance.show(temp); // was Line 120
             }
         }
 
