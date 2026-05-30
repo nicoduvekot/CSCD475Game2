@@ -96,7 +96,7 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
-        // Opens the recuit menu if the building is a fort.
+        // Opens the recuit menu if the building is a fort and controlled by the player
         if (hex.getTerrain() == TerrainType.building){
             Transform building = hexObject.transform.Find("Building");
 
@@ -114,7 +114,7 @@ public class MouseInput : MonoBehaviour
                 return;
             }
 
-            if (temp.getResource() == ResourceType.Fort)
+            if (temp.getResource() == ResourceType.Fort && temp.getOwner() == UnitOwner.Player)
             {
                 UnitRecruitPopup.Instance.show(temp);
             }
