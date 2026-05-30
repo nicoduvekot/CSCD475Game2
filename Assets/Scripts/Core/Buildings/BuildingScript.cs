@@ -360,5 +360,12 @@ public class BuildingScript : MonoBehaviour
 
     }
 
+    // Added by Nathan for getting the Queue for display
+    // Passes a clone of the queue
+    public Queue<int> getUnitProductionQueue()
+    {
+        return new Queue<int>(recruitQueue);
+    } 
+
 
 }
