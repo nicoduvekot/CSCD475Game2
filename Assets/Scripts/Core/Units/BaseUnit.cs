@@ -185,6 +185,8 @@ namespace Units
                     return;
                 }
                 
+                // TODO : FIXME! If tile fogged, we should not know if it is occupied!
+                
                 // Hex is occupied -> check if it's a unit
                 if (occupant is BaseUnit targetUnit)
                 {
