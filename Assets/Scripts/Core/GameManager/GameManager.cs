@@ -231,15 +231,20 @@ public class GameManager : MonoBehaviour
         eScore = EnemyScore;
     }
 
+    // Used to end the game. Calls the GameOverPopup to end the game
     public void gameOver(UnitOwner owner)
     {
         if (owner == UnitOwner.Player)
         {
             Debug.Log("Player won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Player);
         }
         else if(owner == UnitOwner.Enemy)
         {
             Debug.Log("Enemy won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Enemy);
         }
         else
         {
@@ -247,8 +252,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Used to set the game speed. Mostly done for RL
+    // Time scale is based around normal being 1.0
     public void gameSpeed(float speed)
     {
         Time.timeScale = speed;
+    }
+
+    public int getPScore()
+    {
+        return pScore;
+    }
+
+    public int getEScore()
+    {
+        return eScore;
+    }
+
+    // Used to get the total time that is left
+    public float getTimeLeft()
+    {
+        return timeRemaining;
     }
 }
