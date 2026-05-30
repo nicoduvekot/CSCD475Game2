@@ -67,27 +67,22 @@ public class UnitRecruitPopup : MonoBehaviour
 
     void Update()
     {
-        // Checks to see what the UI for the queue is
-        if (canvasGroup.interactable == true && building != null)
+        // Check to see if there is a queue for buildings
+        if (canvasGroup.interactable && building != null)
         {
-            string temp = "";
-            Queue<int> queue = building.getUnitProductionQueue();
+            Queue<int> queue = new Queue<int>(building.getUnitProductionQueue());
 
-            if (queue.Count > 0) {
+            if (queue.Count > 0)
+            {
+                string temp = "";
+
                 while (queue.Count > 0)
                 {
-                    if (queue.Dequeue() == 0)
-                    {
-                        temp += "S, ";
-                    }
-                    else if (queue.Dequeue() == 1)
-                    {
-                        temp += "A, ";
-                    }
-                    else if (queue.Dequeue() == 2)
-                    {
-                        temp += "H, ";
-                    }
+                    int unit = queue.Dequeue();
+
+                    if (unit == 0) temp += "S, ";
+                    else if (unit == 1) temp += "A, ";
+                    else if (unit == 2) temp += "H, ";
                 }
 
                 QueueDisplay.text = temp.Substring(0, temp.Length - 2);
