@@ -90,7 +90,7 @@ public class UnitRecruitPopup : MonoBehaviour
         }
     }
 
-    private void hide()
+    public void hide()
     {
         canvasGroup.alpha = 0f;
         canvasGroup.interactable = false;
