@@ -7,6 +7,8 @@ using Resource;
 public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private GameObject recruitBar;
+    private bool recruiting;
 
     private bool isFort = false;
     
@@ -44,7 +46,8 @@ public class BuildingScript : MonoBehaviour
 
     void Start()
     {
-       
+       recruitBar = transform.Find("RecruitBar").gameObject;
+       recruitBar.SetActive(false);
     }
 
     
@@ -91,11 +94,23 @@ public class BuildingScript : MonoBehaviour
 
         if(recruitQueue.Count >= 1 && recruitTimePassed >= recruitCooldown){
             print("cooldown has passed");
+            recruitBar.SetActive(false);
+            recruiting = false;
             recruitUnit();
             recruitTimePassed = 0f;
+
         }else if(recruitQueue.Count >= 1 && recruitTimePassed >= 0){
+            if(!recruiting){
+                recruitBar.SetActive(true);
+                recruiting = true;
+                recruitBar.GetComponent<BuildingRecruitment>().startRecruit(recruitCooldown);
+            }
             recruitTimePassed += Time.deltaTime;
+            recruitBar.GetComponent<BuildingRecruitment>().setFill(recruitTimePassed);
+
         }else if(recruitQueue.Count == 0){
+            recruitBar.SetActive(false);
+            recruiting = false;
             recruitTimePassed = 0f;
         }
         
@@ -336,12 +351,15 @@ public class BuildingScript : MonoBehaviour
 
         if(openHex == null){
             print("no open hexes");
+            int refundType = recruitQueue.Dequeue();
+            GameManager.Instance.addResource(controller,refundType,100);
             return;
         }else{
             type = recruitQueue.Dequeue();
         }
 
         if(controller == UnitOwner.Player){
+            
             if(type == 0){
                 openHex.makeUnit(Resources.Load("Prefabs/PlayerSoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
             }else if(type == 1){
@@ -349,6 +367,7 @@ public class BuildingScript : MonoBehaviour
             }else if(type == 2){
                 openHex.makeUnit(Resources.Load("Prefabs/PlayerHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
             }
+            GlobalSound.recruitUnitSound();
         }else{
             if(type == 0){
                 openHex.makeUnit(Resources.Load("Prefabs/EnemySoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);

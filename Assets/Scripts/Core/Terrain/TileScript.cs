@@ -704,4 +704,8 @@ public class TileScript : MonoBehaviour, ISelectable
         if (_occupyingUnit != null)
             _occupyingUnit.UpdateVisibility(p);
     }
+
+    public float getHeight(){
+        return GetComponentInChildren<MeshRenderer>().bounds.size.y;
+    }
 }

@@ -146,6 +146,11 @@ namespace Units
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
         {
+            if(PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && Owner != UnitOwner.Player){
+                return;
+            }else if (PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && Owner != UnitOwner.Enemy){
+                return;
+            }
             // 1. If clicked a hex
             if (targetSelectable is TileScript hexTile)
             {
@@ -169,7 +174,7 @@ namespace Units
                     NextHex = null;
                     
                     SetState(UnitState.Moving);
-                    
+                    GlobalSound.playMovement(0);
                     return;
                 }
                 
@@ -604,6 +609,8 @@ namespace Units
             SetState(UnitState.Dying);
 
             _unitAnimator.TriggerDeath();
+
+            GlobalSound.unitDead(2);
         }
         
         public void OnDeathAnimationCompleted()
@@ -839,6 +846,18 @@ namespace Units
             _currentStepTimer = _currentStepDuration;
             
             _unitAnimator.SetWalking(true);
+        }
+    
+
+        public void OnSelected(){
+            float height = CurrentHex.getHeight() / 1.95f;
+            GameObject t = Instantiate(Resources.Load("Prefabs/SelectionHex", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(90,0,0),transform);
+            t.name = "SelectionHex";
+            
+        }
+
+        public void OnDeselected(){
+            Destroy(transform.Find("SelectionHex").gameObject);
         }
     }
 }
