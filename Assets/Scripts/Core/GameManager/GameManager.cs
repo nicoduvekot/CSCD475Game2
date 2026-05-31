@@ -23,6 +23,11 @@ public class GameManager : MonoBehaviour
     private int pScore = 0;
     private int eScore = 0;
 
+    // privately gets set within GameOver flag
+    // next frame does the reset,
+    // frame after we play again like a new game started.
+    public bool ResetNextFrame { get; private set; }
+
     // Varable used for resource cap
     private int resourceCap = 2000;
 
@@ -49,7 +54,12 @@ public class GameManager : MonoBehaviour
         start();
     }
 
-    
+    void Start()
+    {
+        SetupGameManagerTracking();
+    }
+
+
     void Update()
     {
         if (!paused && timeRemaining > 0)
@@ -80,6 +90,14 @@ public class GameManager : MonoBehaviour
             // Reset the timer
             resourceUpdateTimer -= updateResourceInterval;
         }
+    }
+
+    void LateUpdate()
+    {
+        if (!ResetNextFrame) return;
+        
+        reset();
+        ResetNextFrame = false;
     }
 
     // Sets the base resources for both the player and enemy to the values.
@@ -237,6 +255,18 @@ public class GameManager : MonoBehaviour
         pause();
         TechController.Instance.reset();
 
+        DestroyAllUnits();
+        
+        foreach (BuildingScript building in _allBuildings)
+        {
+            if (building == _playerCapital)
+                building.ResetBuilding(UnitOwner.Player);
+            else if (building == _enemyCapital)
+                building.ResetBuilding(UnitOwner.Enemy);
+            else
+                building.ResetBuilding(UnitOwner.World);
+        }
+
         for (int i = 0; i < 3; i++)
         {
             player[i] = 0;
@@ -252,7 +282,6 @@ public class GameManager : MonoBehaviour
     // Generates the resources every generation time
     public void GenerateResources()
     {
-        List<BuildingScript> buildings = MapGenerateScript.getBuildingList();
         int PlayerScore = 0;
         int EnemyScore = 0;
 
@@ -263,28 +292,28 @@ public class GameManager : MonoBehaviour
             addResource(UnitOwner.Enemy, i, 10);
         }
 
-        for (int i = 0; i < buildings.Count; i++)
+        for (int i = 0; i < _allBuildings.Count; i++)
         {
-            ResourceType temp = buildings[i].getResource();
-            UnitOwner owner = buildings[i].getOwner();
+            ResourceType temp = _allBuildings[i].getResource();
+            UnitOwner owner = _allBuildings[i].getOwner();
 
-            if (buildings[i].getOwner() == UnitOwner.Player || buildings[i].getOwner() == UnitOwner.Enemy)
+            if (_allBuildings[i].getOwner() == UnitOwner.Player || _allBuildings[i].getOwner() == UnitOwner.Enemy)
             {
                 switch (temp)
                 {
                     case ResourceType.Food:
-                        addResource(owner, 0, buildings[i].resourceGeneration);
+                        addResource(owner, 0, _allBuildings[i].resourceGeneration);
                         break;
                     case ResourceType.Iron:
-                        addResource(owner, 1, buildings[i].resourceGeneration);
+                        addResource(owner, 1, _allBuildings[i].resourceGeneration);
                         break;
                     case ResourceType.Wood:
-                        addResource(owner, 2, buildings[i].resourceGeneration);
+                        addResource(owner, 2, _allBuildings[i].resourceGeneration);
                         break;
                 }
             }
 
-            if(buildings[i].getOwner() == UnitOwner.Player)
+            if(_allBuildings[i].getOwner() == UnitOwner.Player)
             {
                 PlayerScore += 100;
                 EnemyScore += 100;
@@ -310,8 +339,12 @@ public class GameManager : MonoBehaviour
             Debug.Log("UnitOwner must be player or enemy for losing the game");
         }
 
-        // Used for RL
+        // Used for RL please ensure reset happens AFTER the event call, thanks - nico
+        // currently this happens because LateUpdate actually does the reset
         OnGameEnded?.Invoke(owner);
+        
+        // flag for late update to do the game reset
+        ResetNextFrame = true;
     }
 
     public void gameSpeed(float speed)
@@ -319,10 +352,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = speed;
     }
 
-    public float GetTimeNormalized()
-    {
-        return timeRemaining / gameTime;
-    }
+    public float GetTimeNormalized() => timeRemaining / gameTime;
 
     public int GetFood(UnitOwner owner)  => GetResourceAmount(owner, 0);
     public int GetIron(UnitOwner owner)  => GetResourceAmount(owner, 1);
@@ -330,4 +360,191 @@ public class GameManager : MonoBehaviour
     
     private int GetResourceAmount(UnitOwner owner, int type) 
         => owner == UnitOwner.Player ? player[type] : enemy[type];
+
+    #region Game Tracking Operations
+    
+    // all building in game (cap = 9 : for 9 possible buildings)
+    private List<BuildingScript> _allBuildings = new(9);
+    // all spawn tiles in game (cap = 18 : for 3 spawn buildings x 6 tiles each)
+    private readonly List<TileScript> _allSpawnTiles = new(18);
+    // reference to the player capital building
+    private BuildingScript _playerCapital;
+    // reference to the enemy capital building
+    private BuildingScript _enemyCapital;
+    // list of all the units in the game (only add cap if there ever is a unit cap (then x per team))
+    private readonly List<BaseUnit> _allUnits = new();
+
+    /// <summary>
+    /// Called at start in order to set up GameManager tracking references
+    ///
+    /// Author : Nico
+    ///
+    /// Gets all buildings in the game,
+    /// stores as <see cref="_allBuildings"/>
+    /// 
+    /// for all buildings, also stores both capitals as:
+    /// <see cref="_playerCapital"/> for the capital who player owns
+    /// <see cref="_enemyCapital"/> for the capital the enemy owns
+    ///
+    /// Stores reference to all spawn tiles as:
+    /// <see cref="_allSpawnTiles"/>
+    /// so that GameManger can subscribe to unit spawning
+    /// See: <see cref="RegisterSpawnTiles"/>
+    /// </summary>
+    private void SetupGameManagerTracking()
+    {
+        // clear units
+        _allUnits.Clear();
+        _allSpawnTiles.Clear();
+        
+        _allBuildings = MapGenerateScript.getBuildingList();
+
+        foreach (BuildingScript building in _allBuildings)
+        {
+            // get the buildings resource
+            ResourceType buildingResource = building.getResource();
+
+            // if not resource type fort, skip (only resource type fort can spawn)
+            if (buildingResource != ResourceType.Fort) continue;
+            
+            // we need to track capitals
+            if (building.isCapital)
+            {
+                if (building.getOwner() == UnitOwner.Player) 
+                    _playerCapital = building;
+
+                if (building.getOwner() == UnitOwner.Enemy) 
+                    _enemyCapital = building;
+            }
+            // capitals and forts can spawn units
+            RegisterSpawnTiles(building);
+        }
+    }
+    
+    /// <summary>
+    /// Used to Register the spawn tiles of fort buildings
+    /// Called by <see cref="SetupGameManagerTracking"/>
+    ///
+    /// Author : Nico
+    ///
+    /// For the passed in building,
+    /// Will add each tile around it as a spawn tile
+    /// and subscribe to that tiles OnUnitCreated event
+    ///
+    /// so that each spawn event can call <see cref="HandleUnitCreated"/>
+    /// </summary>
+    /// <param name="building">
+    /// The Building for which we need to get SpawnTiles for
+    /// This operation will use any building passed in, but prefer to:
+    /// Only give it a building that can actually spawn units
+    /// </param>
+    private void RegisterSpawnTiles(BuildingScript building)
+    {
+        // for each neighbor tile
+        foreach (TileScript tile in building.GetNeighbourTiles())
+        {
+            // if we already registerd this tile, skip
+            if (_allSpawnTiles.Contains(tile)) 
+                continue;
+                
+            // add the tile and subscribe
+            _allSpawnTiles.Add(tile);
+            tile.OnUnitCreated += HandleUnitCreated;
+        }
+    }
+    
+    /// <summary>
+    /// To be called by unit creation event
+    ///
+    /// Author : Nico
+    ///
+    /// We register to a tiles unit creation event in:
+    /// <see cref="RegisterSpawnTiles"/>
+    /// Allowing us to know when a unit was spawned
+    ///
+    /// This adds the unit to unit tracking, so we can destroy every unit on game reset
+    /// </summary>
+    /// <param name="unit">
+    /// The unit that was created, passed in by the event
+    /// </param>
+    private void HandleUnitCreated(BaseUnit unit)
+    {
+        // safety bail
+        if (unit == null)
+            return;
+
+        // already in list bail
+        if (_allUnits.Contains(unit))
+            return;
+        
+        // add unit and subscribe
+        _allUnits.Add(unit);
+        unit.OnUnitDeath += HandleUnitDeath;
+    }
+    
+    /// <summary>
+    /// Called when a unit dies in game
+    ///
+    /// Author : Nico
+    ///
+    /// NOTE: Unit handles destruction here
+    /// We handle removal from list and unsubscription
+    /// </summary>
+    /// <param name="unit">
+    /// The Unit that died, passed in by unit on death event
+    /// <see cref="Units.BaseUnit.OnUnitDeath"/>
+    /// </param>
+    private void HandleUnitDeath(BaseUnit unit)
+    {
+        // safety bail
+        if (unit == null)
+            return;
+        
+        // unsubscribe! and remove
+        unit.OnUnitDeath -= HandleUnitDeath;
+        _allUnits.Remove(unit);
+    }
+    
+    // Destroys all units in '_allUnits' list
+    // Author Nico, sorry I didn't summary this one,
+    // Realized I was getting carried away summarizing them as this stage
+    private void DestroyAllUnits()
+    {
+        // backwards iteration just so we could report errors at specific unit
+        for (int i = _allUnits.Count - 1; i >= 0; i--)
+        {
+            BaseUnit unit = _allUnits[i];
+
+            if (unit == null)
+            {
+                Debug.LogWarning("[GameManager] Null unit found during reset");
+                _allUnits.RemoveAt(i);
+                continue;
+            }
+
+            DestroyUnit(unit);
+        }
+    }
+
+    // Destroys the passed in unit
+    // Author Nico, sorry I didn't summary this one,
+    // Realized I was getting carried away summarizing them as this stage
+    private void DestroyUnit(BaseUnit unit)
+    {
+        // safety bail
+        if (unit == null)
+            return;
+        
+        // unsubscribe!
+        unit.OnUnitDeath -= HandleUnitDeath;
+        
+        // remove the unit
+        _allUnits.Remove(unit);
+        
+        // destroy the unit
+        unit.MarkForDestruction();
+    }
+
+    #endregion
+    
 }
