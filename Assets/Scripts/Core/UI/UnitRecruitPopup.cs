@@ -86,6 +86,10 @@ public class UnitRecruitPopup : MonoBehaviour
 
                 QueueDisplay.text = temp.Substring(0, temp.Length - 2);
             }
+            else
+            {
+                QueueDisplay.text = "";
+            }
         }
     }
 
