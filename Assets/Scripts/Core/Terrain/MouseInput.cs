@@ -2,6 +2,7 @@ using Units;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Resource;                // Used for building type
 
 public class MouseInput : MonoBehaviour
 {
@@ -95,20 +96,40 @@ public class MouseInput : MonoBehaviour
         TileScript hex = hit.collider.gameObject.GetComponent<TileScript>();
         GameObject hexObject = hit.collider.gameObject;
 
+        // Opens the recuit menu if the building is a fort and controlled by the player
         if (hex.getTerrain() == TerrainType.building){
-            hexObject.transform.Find("Building").GetComponent<BuildingScript>().recruitUnit(0);
+            Transform building = hexObject.transform.Find("Building");
+
+            if (building == null)
+            {
+                Debug.LogWarning("Tile marked as building but has no Building child");
+                return;
+            }
+
+            BuildingScript temp = building.GetComponent<BuildingScript>();
+
+            if (temp == null)
+            {
+                Debug.LogWarning("Building child has no BuildingScript");
+                return;
+            }
+
+            if (temp.getResource() == ResourceType.Fort && temp.getOwner() == UnitOwner.Player)
+            {
+                UnitRecruitPopup.Instance.show(temp);
+            }
         }
 
         //hit.collider.gameObject.GetComponent<TileScript>().removeFog();
-        
-        
 
-//         print($"hit hex is {hex.x},{hex.y},{hex.z}");
-// 
-//         TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
-// 
-//         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
-        
+
+
+        //         print($"hit hex is {hex.x},{hex.y},{hex.z}");
+        // 
+        //         TileScript tempHex = MapGenerateScript.getHex(hex.x,hex.y,hex.z).GetComponent<TileScript>();
+        // 
+        //         print($"hit hex is {tempHex.x},{tempHex.y},{tempHex.z}");
+
     }
 
     public void changeTerrainType(InputAction.CallbackContext context){

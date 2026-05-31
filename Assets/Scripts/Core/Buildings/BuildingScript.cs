@@ -3,10 +3,16 @@ using UnityEngine;
 using System.Collections.Generic;
 using Units;
 using Resource;
+using TeamControl;
 
 public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private GameObject recruitBar;
+    private bool recruiting;
+    private GameObject captureBar;
+
+    private bool visibleToPerspective = false;
 
     private bool isFort = false;
     
@@ -32,7 +38,7 @@ public class BuildingScript : MonoBehaviour
 
     private float captureTimePassed = 0;
     private float recruitTimePassed = 0;
-    public float recruitCooldown = 3f;
+    private float recruitCooldown = 5f;
 
     private Queue<int> recruitQueue = new();
 
@@ -46,12 +52,35 @@ public class BuildingScript : MonoBehaviour
 
     void Start()
     {
+        recruitBar = transform.Find("RecruitBar").gameObject;
+        captureBar = transform.Find("CaptureBar").gameObject;
        
+        captureBar.GetComponent<BuildingCapture>().setFill(100,controller);
+     
+        recruitBar.SetActive(false);
+        captureBar.SetActive(false);
     }
 
     
     void Update()
     {
+        // this checks if the tile has fog for the current perspective, if it does it will disable the color of the hex, recruit and capture bar
+        if(visibleToPerspective){
+            visibleToPerspective = !occupantTile.GetComponent<TileScript>().getFog();
+            if(!visibleToPerspective){
+                captureBar.SetActive(false);
+                recruitBar.SetActive(false);
+                occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
+            }
+        }else{
+            visibleToPerspective = !occupantTile.GetComponent<TileScript>().getFog();
+            if(visibleToPerspective){
+                captureBar.SetActive(true);
+                updateVisuals();
+            }
+        }
+        
+        
         
         if(capturing > 0){
             captureTimePassed += Time.deltaTime * capturing;
@@ -63,10 +92,12 @@ public class BuildingScript : MonoBehaviour
             captureTimePassed = 0f;
             controlPercent += 15;
             print("control percentage is " + controlPercent + "%");
+            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
         }else if(captureTimePassed < -1f){
             captureTimePassed = 0f;
             controlPercent -= 15;
             print("control percentage is " + controlPercent + "%");
+            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
         }
 
         controlPercent = controlPercent > 100 ? 100:controlPercent;
@@ -97,12 +128,25 @@ public class BuildingScript : MonoBehaviour
         }
 
         if(recruitQueue.Count >= 1 && recruitTimePassed >= recruitCooldown){
-            print("cooldown has passed");
+            recruitBar.SetActive(false);
+            recruiting = false;
             recruitUnit();
             recruitTimePassed = 0f;
+
         }else if(recruitQueue.Count >= 1 && recruitTimePassed >= 0){
+            if(!recruiting){
+                if(visibleToPerspective){
+                    recruitBar.SetActive(true);
+                    recruitBar.GetComponent<BuildingRecruitment>().startRecruit(recruitCooldown);
+                }
+                recruiting = true;
+            }
             recruitTimePassed += Time.deltaTime;
+            recruitBar.GetComponent<BuildingRecruitment>().setFill(recruitTimePassed);
+
         }else if(recruitQueue.Count == 0){
+            recruitBar.SetActive(false);
+            recruiting = false;
             recruitTimePassed = 0f;
         }
         
@@ -175,6 +219,7 @@ public class BuildingScript : MonoBehaviour
         GetComponent<SpriteRenderer>().sprite = resourceBuilding;
         
         
+        
     }
 
     
@@ -241,9 +286,11 @@ public class BuildingScript : MonoBehaviour
 
         if(player[0] > player[1]){
             print("new capturer is player");
+            GlobalSound.capturePOI();
             return UnitOwner.Player;
         }else{
             print("new capturer is enemy");
+            GlobalSound.losePOI();
             return UnitOwner.Enemy;
         }
 
@@ -265,11 +312,15 @@ public class BuildingScript : MonoBehaviour
     }
 
     private void updateVisuals(){
-        if(controller == UnitOwner.Player){
-            occupantTile.addOverlay(playerControl);
-        }else if(controller == UnitOwner.Enemy){
-            occupantTile.addOverlay(enemyControl);
-        }else if(controller == UnitOwner.World){
+        if(visibleToPerspective){
+            if(controller == UnitOwner.Player){
+                occupantTile.addOverlay(playerControl);
+            }else if(controller == UnitOwner.Enemy){
+                occupantTile.addOverlay(enemyControl);
+            }else if(controller == UnitOwner.World){
+                occupantTile.addOverlay(neutralControl);
+            }
+        }else{
             occupantTile.addOverlay(neutralControl);
         }
     }
@@ -326,6 +377,22 @@ public class BuildingScript : MonoBehaviour
 
     public void recruitUnit(int type){
 
+        if(controller == UnitOwner.World){
+            print("cannot created units if owned by world");
+            return;
+        }
+
+        if(resource != ResourceType.Fort){
+            print("cannot create units at buildings other than forts");
+            return;
+        }
+
+        if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
+        PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
+            print("cannot create units if fort is owner by other player");
+            return;
+        }
+
         int available = 0;
         TileScript tile = occupantTile.GetComponent<TileScript>();
 
@@ -346,10 +413,7 @@ public class BuildingScript : MonoBehaviour
             return;
         }
 
-        if(controller == UnitOwner.World){
-            print("cannot created units if owned by world");
-            return;
-        }
+        
 
         int[] spend = {0,0,0};
         spend[type] = 100;
@@ -390,12 +454,15 @@ public class BuildingScript : MonoBehaviour
 
         if(openHex == null){
             print("no open hexes");
+            int refundType = recruitQueue.Dequeue();
+            GameManager.Instance.addResource(controller,refundType,100);
             return;
         }else{
             type = recruitQueue.Dequeue();
         }
 
         if(controller == UnitOwner.Player){
+            
             if(type == 0){
                 openHex.makeUnit(Resources.Load("Prefabs/PlayerSoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player, type);
             }else if(type == 1){
@@ -403,6 +470,7 @@ public class BuildingScript : MonoBehaviour
             }else if(type == 2){
                 openHex.makeUnit(Resources.Load("Prefabs/PlayerHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player, type);
             }
+            GlobalSound.recruitUnitSound();
         }else{
             if(type == 0){
                 openHex.makeUnit(Resources.Load("Prefabs/EnemySoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy, type);
@@ -415,6 +483,13 @@ public class BuildingScript : MonoBehaviour
         
 
     }
+
+    // Added by Nathan for getting the Queue for display
+    // Passes a clone of the queue
+    public Queue<int> getUnitProductionQueue()
+    {
+        return new Queue<int>(recruitQueue);
+    } 
 
 
 }

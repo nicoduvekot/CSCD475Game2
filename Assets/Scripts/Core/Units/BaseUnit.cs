@@ -85,10 +85,8 @@ namespace Units
             
             _unitAnimator = GetComponentInChildren<UnitAnimator>();
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            
 
-            print("_ownerInitialized in awake is " + _ownerInitialized);
-            print("current hex in awake is " + CurrentHex);
-            print("starting hex in awake is " + startingHex);
         }
         
         public virtual void Start()
@@ -112,10 +110,6 @@ namespace Units
             _transform.position = CurrentHex.transform.position;
             
             PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
-
-            print("_ownerInitialized in start is " + _ownerInitialized);
-            print("current hex in start is " + CurrentHex);
-            print("starting hex in start is " + startingHex);
 
             UpdateVisibility(PerspectiveManager.Instance.CurrentPerspective);
 
@@ -154,7 +148,6 @@ namespace Units
 
             Owner = newOwner;
             _ownerInitialized = true;
-            print("_ownerInitialized in init is " + _ownerInitialized);
         }
 
         public void debugInitializeOwner(UnitOwner newOwner){
@@ -177,6 +170,12 @@ namespace Units
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
         {
+            // disallow player or enemy from controlling each others units
+            if(PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && Owner != UnitOwner.Player){
+                return;
+            }else if (PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && Owner != UnitOwner.Enemy){
+                return;
+            }
             // 1. If clicked a hex
             if (targetSelectable is TileScript hexTile)
             {
@@ -200,7 +199,7 @@ namespace Units
                     NextHex = null;
                     
                     SetState(UnitState.Moving);
-                    
+                    GlobalSound.playMovement(0);
                     return;
                 }
                 
@@ -264,6 +263,7 @@ namespace Units
         
         private float moveTime = 0f;
         private int moveDirection = 0;
+        private float timePassed = 0f;
         protected virtual void HandleMoving()
         {
             // bail out if no path
@@ -298,8 +298,29 @@ namespace Units
                 
                 BeginStep(NextHex);
                 _isStepping = true;
-                moveTime = _currentStepTimer;
+                moveTime = 1f / _currentStepTimer;
                 moveDirection = UnitPathing.getDirection(new int[] {CurrentHex.x,CurrentHex.y,CurrentHex.z},new int[] {NextHex.x,NextHex.y,NextHex.z});
+               
+                
+
+                GameObject Arrow =  transform.Find("Arrow").gameObject;
+                
+                Arrow.transform.rotation = Quaternion.Euler(ArrowDir.getArrowDirection(moveDirection));
+                Arrow.transform.localPosition = ArrowDir.getPosition(moveDirection);
+                if(Arrow.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("arrow")){
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().Play("arrow",0,0f);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                    
+                }else{
+                    
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                }
+                
+                
+                
+                
                 
                 return;
             }
@@ -307,6 +328,7 @@ namespace Units
             // if we are currently stepping - increment timer
             
             _currentStepTimer -= Time.deltaTime;
+            
             
 
 
@@ -316,7 +338,7 @@ namespace Units
                 return;
             
             // step completed
-            
+
             // attempt to claim the step hex
             if (!NextHex.TrySetUnitOccupant(this))
             {
@@ -542,6 +564,7 @@ namespace Units
         protected virtual void Attack(BaseUnit enemy)
         {
             enemy.TakeDamage(Stats.BaseAttackPower, this);
+            GlobalSound.playFight(0);
         }
 
         protected virtual void TryMoveTowards(Vector3 targetPos)
@@ -625,6 +648,8 @@ namespace Units
             SetState(UnitState.Dying);
 
             _unitAnimator.TriggerDeath();
+
+            GlobalSound.unitDead(2);
         }
         
         public void OnDeathAnimationCompleted()
@@ -871,6 +896,18 @@ namespace Units
             _currentStepTimer = _currentStepDuration;
             
             _unitAnimator.SetWalking(true);
+        }
+    
+
+        public void OnSelected(){
+            float height = CurrentHex.getHeight() / 1.95f;
+            GameObject t = Instantiate(Resources.Load("Prefabs/SelectionHex", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(90,0,0),transform);
+            t.name = "SelectionHex";
+            
+        }
+
+        public void OnDeselected(){
+            Destroy(transform.Find("SelectionHex").gameObject);
         }
     }
 }

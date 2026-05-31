@@ -36,8 +36,8 @@ public class UnitPathing : MonoBehaviour
         return new int[] { pos[0] + dir[0], pos[1] + dir[1], pos[2] + dir[2] };
     }
 
-    public static int getDirection(int[] cur, int[] pos){
-        int[] diff = {cur[0] - pos[0],cur[1] - pos[1],cur[2] - pos[2]};
+    public static int getDirection(int[] cur, int[] nextPos){
+        int[] diff = {nextPos[0] - cur[0],nextPos[1] - cur[1],nextPos[2] - cur[2]};
         if(diff[0] == 1 && diff[2] == -1){
             return 1;
         }else if(diff[0] == 1 && diff[1] == 1){

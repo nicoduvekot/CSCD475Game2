@@ -40,6 +40,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: arrows
+    uniqueID: 823341331
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
