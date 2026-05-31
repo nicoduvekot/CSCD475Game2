@@ -5,6 +5,7 @@ using Selection;
 using UnityEngine;
 using HealthSystem;
 using EditorTools.Attributes;
+using RL_Agent;
 using TeamControl;
 
 namespace Units
@@ -55,6 +56,13 @@ namespace Units
 
         public event Action<BaseUnit> OnUnitDeath;
         
+        // int represents the value of TacticalAction in agent
+        public event Action<BaseUnit, TacticalAction> OnTacticalActionCompleted;
+        
+        private void ReportActionCompleted(TacticalAction completed) 
+            => OnTacticalActionCompleted?.Invoke(this, completed);
+
+
         //private float _attackCooldownTimer;
         
         private Transform _transform;
@@ -81,8 +89,6 @@ namespace Units
             print("_ownerInitialized in awake is " + _ownerInitialized);
             print("current hex in awake is " + CurrentHex);
             print("starting hex in awake is " + startingHex);
-            
-
         }
         
         public virtual void Start()
@@ -118,14 +124,27 @@ namespace Units
             if (!_ownerInitialized)
                 Debug.LogWarning($"CAUTION: {name} was spawned with default ownership of {Owner}");
         }
-        
-        protected virtual void OnDestroy()
+
+        public void MarkForDestruction()
         {
-            if (Health != null) Health.OnHealthEmpty -= HandleDeath;
+            // unsubscribe from own health bar's event
+            if (Health != null) 
+                Health.OnHealthEmpty -= HandleDeath;
             
+            // unsubscribe from perspective manager events
             PerspectiveManager.Instance.OnPerspectiveChanged -= UpdateVisibility;
+            
+            // if we occupied a hex (should always be true), clear ourselves from it
+            if (CurrentHex != null)
+            {
+                // Only clear if we were actually the occupant
+                CurrentHex.TryClearUnitOccupant(this);
+            }
+            
+            // unity only does the destroy AFTER this frame
+            Destroy(gameObject);
         }
-        
+
         // public API
         // called before unit is instantiated
         public void initializeUnit(TileScript startingTile, UnitOwner newOwner){
