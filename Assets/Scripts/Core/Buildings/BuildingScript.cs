@@ -40,7 +40,7 @@ public class BuildingScript : MonoBehaviour
     private ResourceType resource;
 
     private List<TileScript> surroundingTiles = new();
-    private TileScript occupantTile; // the tile this building is on
+    public TileScript occupantTile; // the tile this building is on
 
     public IReadOnlyList<TileScript> GetNeighbourTiles() => surroundingTiles;
 
