@@ -21,6 +21,12 @@ namespace RL_Agent
         // cache field for gameManager and techController
         private GameManager _gameManager;
         private TechController _techController;
+
+        private bool _hasCached;
+        private bool _isFirstEpisode;
+        
+        private float _episodeStartTime;
+        public float episodeLengthSeconds = 60f;
         
         private bool _nextEpisodeResetsGame;
         
@@ -40,21 +46,51 @@ namespace RL_Agent
         // this is where we define each episode start definition
         public override void OnEpisodeBegin()
         {
-            SetDifficulty();
-            
-            _gameManager = GameManager.Instance;
-            _gameManager.OnGameEnded += HandleGameEnded;
-            
-            _techController = TechController.Instance;
-            
-            if (_nextEpisodeResetsGame)
+            // first start up cache
+            if (!_hasCached)
             {
-                _gameManager.reset();
-                _nextEpisodeResetsGame = false;
-            }
+                // get tech and game instance references
+                _gameManager = GameManager.Instance;
+                _techController = TechController.Instance;
+                
+                // subscribe to end of game event
+                _gameManager.OnGameEnded += HandleGameEnded;
+                
+                // these only needs to happen once
+                CacheBuildingReferences();
+                CacheWalkableTiles();
 
-            CacheBuildingReferences();
-            CacheWalkableTiles();
+                // ensure prev fog count is init
+                ResetPrevCounts();
+                
+                // init difficulty settings
+                SetDifficulty();
+                
+                // flag that we have done first game start up
+                _hasCached = true;
+            }
+            
+            // track when this episode started
+            _episodeStartTime = Time.time;
+
+            // if this episode is a new game start
+            if (!_nextEpisodeResetsGame) 
+                return;
+            
+            // these only occur on game over episode resets
+            // logic was removed, but I kept the space in case I needed to use it again
+            // well, logic was move to HandleGameEnded as a state needed to be reset PRIOR to the next episode
+            
+            _nextEpisodeResetsGame = false;
+        }
+        
+        // hook into unity function to tick the time
+        private void Update()
+        {
+            if (Time.time - _episodeStartTime >= episodeLengthSeconds)
+            {
+                EndEpisode();
+            }
         }
 
         private void OnDestroy()
@@ -63,14 +99,18 @@ namespace RL_Agent
             
             foreach (TileScript tile in _spawnTiles)
                 tile.OnUnitCreated -= HandleUnitCreated;
+
+            foreach (BuildingScript building in _allBuildings)
+                building.OnBuildingCaptured -= HandleCapturedEvent;
         }
 
         // this is where we design state knowledge
-        public override void CollectObservations(VectorSensor sensor) // 138 total
+        public override void CollectObservations(VectorSensor sensor) // 144 total
         {
             ObserveTime(sensor);                    // 1 sensor
             ObserveBuildingOwnership(sensor);       // 9 sensors
             ObserveMyUnits(sensor);                 // 9 sensors
+            ObserveTacticalLoad(sensor);            // 6 sensors
             ObserveVisibleEnemyUnits(sensor);       // 3 sensors
             ObserveResources(sensor);               // 3 sensors
             ObserveTechUpgrades(sensor);            // 3 sensors
@@ -78,11 +118,11 @@ namespace RL_Agent
             ObserveCapturePoints(sensor);           // 108 sensors
         }
         
-        // called before agent choose action, hides these from option map
+        // called before agent choose action, disables these from option map
         public override void WriteDiscreteActionMask(IDiscreteActionMask actionMask)
         {
             CheckRecruitmentMasks(actionMask);
-            //CheckMovementMasks(actionMask);
+            CheckTacticalMasks(actionMask);
         }
         
         // this is where we design action space
@@ -106,10 +146,10 @@ namespace RL_Agent
             // 9 = horseman upgrade
             
             // the actual movement action "type"
-            int movementAction = actions.DiscreteActions[1]; // 7 total
-            // identifier for building movement action
+            int tacticalAction = actions.DiscreteActions[1]; // 7 total
+            // identifier for building to be used for tactical action
             int buildingIndex  = actions.DiscreteActions[2]; // 9 total
-            HandleMovementAction(movementAction, buildingIndex);
+            HandleTacticalAction(tacticalAction, buildingIndex);
             // Action Summary
             // 0 = do nothing
             // 1 = scout fog
@@ -118,15 +158,18 @@ namespace RL_Agent
             // 4 = Attack Building (index)
             // 5 = Defend Building (index)
             // 6 = Guard Building (index)
+
+            RewardResourceIncome();
+            RewardFogReveals();
         }
 
-        #region Movement Action Logic
+        #region Tactical Action Logic
         
-        private void HandleMovementAction(int movementAction, int buildingIndex)
+        private void HandleTacticalAction(int tacticalAction, int buildingIndex)
         {
             BuildingScript targetBuilding = GetBuildingByIndex(buildingIndex);
             
-            switch (movementAction)
+            switch (tacticalAction)
             {
                 case 0:
                     // do nothing
@@ -157,7 +200,7 @@ namespace RL_Agent
                     break;
                 
                 default:
-                    Debug.LogWarning($"[TestAgent] value: {movementAction}, being skipped");
+                    Debug.LogWarning($"[TestAgent] value: {tacticalAction}, being skipped");
                     break;
             }
         }
@@ -204,6 +247,7 @@ namespace RL_Agent
             if (scout == null)
                 return;
 
+            StartTacticalAction(scout, TacticalAction.ScoutFog);
             scout.OnCommand(target.transform.position, target);
         }
 
@@ -265,6 +309,7 @@ namespace RL_Agent
             if (target == null) 
                 return;
             
+            StartTacticalAction(attacker, TacticalAction.AttackEnemy);
             attacker.OnCommand(target.transform.position, target);
         }
 
@@ -322,6 +367,7 @@ namespace RL_Agent
                 if (target == null) 
                     return;
                 
+                StartTacticalAction(supporter, TacticalAction.SupportAlly);
                 supporter.OnCommand(target.transform.position, target);
             }
         }
@@ -417,24 +463,38 @@ namespace RL_Agent
             // Case A: Enemy is visible on a tile => attack
             if (closestEnemyTile != null)
             {
+                // tiny bonus reward for small shaping
+                if (building.getOwner() != team)
+                    AddReward(+0.01f);
+                
+                StartTacticalAction(attacker, TacticalAction.AttackBuilding);
+                
                 attacker.OnCommand(
                     closestEnemyTile.transform.position,
                     closestEnemyTile.OccupyingUnit
                 );
                 return;
             }
-
+            
             // Case B: No enemy visible => closest available space
             if (closestAvailableTile != null)
             {
+                // tiny bonus reward for small shaping
+                if (building.getOwner() != team)
+                    AddReward(+0.01f);
+                
+                StartTacticalAction(attacker, TacticalAction.AttackBuilding);
+                
                 attacker.OnCommand(
                     closestAvailableTile.transform.position,
                     closestAvailableTile
                 );
-                return;
+                //return;
             }
             
-            Debug.LogError("[TestAgent] Unit Attack logic failed");
+            // this space get is reached when we fully occupy the capture points
+            // this possible logic branch is being masked
+            // is there any negative to the agent model if it calls this action and nothing happens?
         }
 
         /// <summary>
@@ -502,6 +562,8 @@ namespace RL_Agent
             if (enemyTile == null) 
                 return;
             
+            StartTacticalAction(defender, TacticalAction.DefendBuilding);
+            
             defender.OnCommand(
                 enemyTile.transform.position,
                 enemyTile.OccupyingUnit
@@ -567,6 +629,8 @@ namespace RL_Agent
             if (unoccupiedTile == null) 
                 return;
             
+            StartTacticalAction(guardian, TacticalAction.GuardBuilding);
+            
             guardian.OnCommand(
                 unoccupiedTile.transform.position,
                 unoccupiedTile
@@ -619,7 +683,7 @@ namespace RL_Agent
                 if (n == null) 
                     continue;
                 
-                // count if has fog
+                // count++ if has fog
                 if (IsFogged(n)) 
                     count++;
             }
@@ -641,10 +705,63 @@ namespace RL_Agent
     
         #region Movement Masking
 
-        // private void CheckMovementMasks(IDiscreteActionMask actionMask)
-        // {
-        //     
-        // }
+        private void CheckTacticalMasks(IDiscreteActionMask actionMask)
+        {
+            MaskBuildingsWeFullyOwn(actionMask);
+        }
+
+        private void MaskBuildingsWeFullyOwn(IDiscreteActionMask actionMask)
+        {
+            // Building Index branch is = 2
+            
+            // we will disable a building from being an option for the action
+            // if it meets this iteration checks (building is null or full owned by us)
+
+            for (int buildingIndex = 0; buildingIndex < 9; buildingIndex++)
+            {
+                BuildingScript building = GetBuildingByIndex(buildingIndex);
+                
+                if (building == null)
+                {
+                    // Disable action to this building if it is null (safety)
+                    actionMask.SetActionEnabled(2, buildingIndex, false);
+                    continue;
+                }
+                
+                // disable actions to this building if we fully own
+                if (AllBuildingCapturePointsAreOurs(building))
+                {
+                    actionMask.SetActionEnabled(2, buildingIndex, false);
+                }
+            }
+        }
+
+        private bool AllBuildingCapturePointsAreOurs(BuildingScript building)
+        {
+            // NRE bail
+            if (building == null)
+                return false;
+            
+            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+            
+            // null or empty bail
+            if (tiles == null || tiles.Count == 0)
+                return false;
+            
+            foreach (TileScript tile in tiles)
+            {
+                // if any tile is empty - false
+                if (tile.OccupyingUnit == null)
+                    return false;
+
+                // if any tile is occupied by enemy - false
+                if (tile.OccupyingUnit.Owner != team)
+                    return false;
+            }
+            
+            // all tiles were occupied by our team
+            return true;
+        }
 
         #endregion
     
@@ -741,6 +858,7 @@ namespace RL_Agent
                 return;
             
             // checks passed, do the recruitment action
+            AddReward(+0.02f); // small shape reward
             building.recruitUnit(type);
         }
 
@@ -765,6 +883,7 @@ namespace RL_Agent
             if (!canAfford)
                 return;
             
+            AddReward(+0.03f); // small shape reward
             _techController.upgradeUnit(team, type);
         }
 
@@ -893,6 +1012,8 @@ namespace RL_Agent
             
             foreach (BuildingScript building in _allBuildings)
             {
+                building.OnBuildingCaptured += HandleCapturedEvent;
+                
                 switch (building.getResource())
                 {
                     case ResourceType.Food:
@@ -1072,13 +1193,20 @@ namespace RL_Agent
         
         private void HandleUnitDeath(BaseUnit deadUnit)
         {
+            deadUnit.OnUnitDeath -= HandleUnitDeath;
+            
             bool wasEnemy = deadUnit.Owner != team;
             
             if (wasEnemy)
                 AddReward(+0.1f);
             else
+            {
                 AddReward(-0.1f);
-            
+                
+                // this removes the unit from action tracking
+                FinishTacticalActions(deadUnit);
+            }
+
             _myUnits.Remove(deadUnit);
             _enemyUnits.Remove(deadUnit);
             
@@ -1299,11 +1427,6 @@ namespace RL_Agent
                 if (tile.getMovement() > 0)
                     _allWalkableTiles.Add(tile);
             }
-            
-            // init fog state memory dict
-            _previousFogState.Clear();
-            foreach (TileScript tile in _allWalkableTiles)
-                _previousFogState[tile] = IsFogged(tile);
         }
 
         private void ObserveFogCoverage(VectorSensor sensor)
@@ -1636,6 +1759,198 @@ namespace RL_Agent
         
         #endregion
 
+        #region Tactical Recording System
+        
+        // dictionary storing the current active actions
+        private readonly Dictionary<BaseUnit, TacticalAction> _activeActions = new();
+        // dictionary storing start times of actions for discount rate usage
+        private readonly Dictionary<BaseUnit, float> _actionStartTime = new();
+
+        /// <summary>
+        /// Call this to start a tactical action recording.
+        /// </summary>
+        /// <param name="unit">The unit performing the action</param>
+        /// <param name="action">THe action being taken</param>
+        private void StartTacticalAction(BaseUnit unit, TacticalAction action)
+        {
+            // NRE safety bail
+            if (unit == null)
+                return;
+            
+            // if the unit already had an action, clear it
+            if (_activeActions.ContainsKey(unit))
+                FinishTacticalActions(unit);
+            
+            _activeActions[unit] = action;
+            _actionStartTime[unit] = Time.time;
+            
+            unit.OnTacticalActionCompleted += HandleUnitActionCompleted;
+        }
+        
+        private const float ActionDiscountRate = -0.15f;
+
+        /// <summary>
+        /// Intermediate between Start Action and Finish Action
+        ///
+        /// Allows a Unit to report a completed action
+        ///
+        /// Intended to be called by the unit's OnTacticalActionCompleted event
+        /// </summary>
+        /// <param name="unit">The Unit that reported finishing an action</param>
+        /// <param name="action">The Action the unit is reporting completed</param>
+        private void HandleUnitActionCompleted(BaseUnit unit, TacticalAction action)
+        {
+            // get the action mapped to this unit, if the unit exists in mapping
+            if (!_activeActions.TryGetValue(unit, out TacticalAction expected))
+                return; // else bail (unit was not in mapping)
+
+            if (action == expected)
+            {
+                float duration = Time.time - _actionStartTime[unit];
+                float discount = Mathf.Exp(ActionDiscountRate * duration);
+                
+                // reward for doing the action requested, with discount factor applied
+                switch (action)
+                {
+                    case TacticalAction.None:
+                        break;
+                    
+                    case TacticalAction.ScoutFog:
+                        AddReward(+ 0.02f * discount);
+                        break;
+                    
+                    case TacticalAction.AttackEnemy:
+                        // same reward for both
+                    case TacticalAction.SupportAlly:
+                        AddReward(+ 0.05f * discount);
+                        break;
+
+                    case TacticalAction.AttackBuilding:
+                        AddReward(+ 0.10f * discount);
+                        break;
+
+                    case TacticalAction.DefendBuilding:
+                        AddReward(+ 0.03f * discount);
+                        break;
+
+                    case TacticalAction.GuardBuilding:
+                        AddReward(+ 0.02f * discount);
+                        break;
+                    
+                    default:
+                        Debug.LogError($"[TestAgent] Unit: '{unit}' Reported Unknown Tactical Action: {action}");
+                        break;
+                }
+            }
+            FinishTacticalActions(unit);
+        }
+
+        /// <summary>
+        /// Call this to finish a tactical action recording
+        /// </summary>
+        /// <param name="unit">The unit performing the action</param>
+        private void FinishTacticalActions(BaseUnit unit)
+        {
+            // NRE safety bail
+            if (unit == null)
+                return;
+            
+            unit.OnTacticalActionCompleted -= HandleUnitActionCompleted;
+            
+            _activeActions.Remove(unit);
+            _actionStartTime.Remove(unit);
+        }
+
+        /// <summary>
+        /// Call this to clear the tactical recording system
+        /// </summary>
+        private void ClearTacticalActions()
+        {
+            foreach (BaseUnit unit in _activeActions.Keys)
+                unit.OnTacticalActionCompleted -= HandleUnitActionCompleted;
+            
+            _activeActions.Clear();
+            _actionStartTime.Clear();
+        }
+
+        private void ObserveTacticalLoad(VectorSensor sensor)
+        {
+            int total = _myUnits.Count;
+            
+            int scoutCount = 0;
+            int attackEnemyCount = 0;
+            int supportCount = 0;
+            int attackBuildingCount = 0;
+            int defendBuildingCount = 0;
+            int guardBuildingCount = 0;
+            
+            foreach (KeyValuePair<BaseUnit, TacticalAction> kvp in _activeActions)
+            {
+                switch (kvp.Value)
+                {
+                    case TacticalAction.ScoutFog: scoutCount++;
+                        break;
+                    case TacticalAction.AttackEnemy: attackEnemyCount++;
+                        break;
+                    case TacticalAction.SupportAlly: supportCount++;
+                        break;
+                    case TacticalAction.AttackBuilding: attackBuildingCount++;
+                        break;
+                    case TacticalAction.DefendBuilding: defendBuildingCount++;
+                        break;
+                    case TacticalAction.GuardBuilding: guardBuildingCount++;
+                        break;
+                    case TacticalAction.None: // don't observe this
+                        break;
+                    default:
+                        Debug.LogError($"[TestAgent] Unknown Tactical Action: {kvp.Value}"); break;
+                }
+            }
+            
+            sensor.AddObservation(NormalizeTacticalCount(total, scoutCount));
+            sensor.AddObservation(NormalizeTacticalCount(total, attackEnemyCount));
+            sensor.AddObservation(NormalizeTacticalCount(total, supportCount));
+            sensor.AddObservation(NormalizeTacticalCount(total, attackBuildingCount));
+            sensor.AddObservation(NormalizeTacticalCount(total, defendBuildingCount));
+            sensor.AddObservation(NormalizeTacticalCount(total, guardBuildingCount));
+        }
+
+        private float NormalizeTacticalCount(int total, int count)
+            => total == 0 ? 0f : (float)count / total;
+
+        #endregion
+
+        #region Reward Helpers
+        
+        private int _prevFood, _prevWood, _prevIron;
+        
+        private void RewardResourceIncome()
+        {
+            int food = _gameManager.GetFood(team);
+            int wood = _gameManager.GetWood(team);
+            int iron = _gameManager.GetIron(team);
+            
+            if (food > _prevFood) AddReward((food - _prevFood) * 0.001f);
+            if (wood > _prevWood) AddReward((wood - _prevWood) * 0.001f);
+            if (iron > _prevIron) AddReward((iron - _prevIron) * 0.001f);
+            
+            _prevFood = food;
+            _prevWood = wood;
+            _prevIron = iron;
+        }
+
+        private void HandleCapturedEvent(BuildingScript building, UnitOwner newOwner)
+        {
+            if (newOwner == team)
+                AddReward(+1f);
+            else
+                AddReward(-1f);
+        }
+
+        #endregion
+
+        #region End Game
+
         private void HandleGameEnded(UnitOwner winner)
         {
             if (winner == team)
@@ -1643,9 +1958,60 @@ namespace RL_Agent
             else
                 AddReward(-1f);
 
+            ResetPrevCounts();
+            EndGameAgentClearLists();
+
             _nextEpisodeResetsGame = true;
             
             EndEpisode();
         }
+
+        private void EndGameAgentClearLists()
+        {
+            ClearTacticalActions();
+            
+            UnsubscribeDeathEventsForUnits(_myUnits);
+            UnsubscribeDeathEventsForUnits(_enemyUnits);
+            
+            _myUnits.Clear();
+            _enemyUnits.Clear();
+            _visibleEnemyUnits.Clear();
+        }
+
+        private void UnsubscribeDeathEventsForUnits(List<BaseUnit> unitList)
+        {
+            foreach (BaseUnit unit in unitList)
+                if (unit != null)
+                    unit.OnUnitDeath -= HandleUnitDeath;
+        }
+
+        #endregion
+
+        private void ResetPrevCounts()
+        {
+            // reset prev resource counters
+            _prevFood = 0;
+            _prevWood = 0;
+            _prevIron = 0;
+            
+            // reset prev fog state
+            _previousFogState.Clear();
+            foreach (TileScript tile in _allWalkableTiles)
+                _previousFogState[tile] = IsFogged(tile);
+        }
+    }
+    
+    /// <summary>
+    /// Intended to be used between Units and RL-Agent
+    /// </summary>
+    public enum TacticalAction
+    {
+        None,
+        ScoutFog,
+        AttackEnemy,
+        SupportAlly,
+        AttackBuilding,
+        DefendBuilding,
+        GuardBuilding
     }
 }
