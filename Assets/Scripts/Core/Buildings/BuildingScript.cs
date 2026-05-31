@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using Units;
 using Unity.Collections;
 using Resource;
+using TeamControl;
 
 public class BuildingScript : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private GameObject recruitBar;
     private bool recruiting;
+    private GameObject captureBar;
+
+    private bool visibleToPerspective = false;
 
     private bool isFort = false;
     
@@ -32,7 +36,7 @@ public class BuildingScript : MonoBehaviour
 
     private float captureTimePassed = 0;
     private float recruitTimePassed = 0;
-    public float recruitCooldown = 3f;
+    private float recruitCooldown = 5f;
 
     private Queue<int> recruitQueue = new();
 
@@ -46,13 +50,35 @@ public class BuildingScript : MonoBehaviour
 
     void Start()
     {
-       recruitBar = transform.Find("RecruitBar").gameObject;
-       recruitBar.SetActive(false);
+        recruitBar = transform.Find("RecruitBar").gameObject;
+        captureBar = transform.Find("CaptureBar").gameObject;
+       
+        captureBar.GetComponent<BuildingCapture>().setFill(100,controller);
+     
+        recruitBar.SetActive(false);
+        captureBar.SetActive(false);
     }
 
     
     void Update()
     {
+        // this checks if the tile has fog for the current perspective, if it does it will disable the color of the hex, recruit and capture bar
+        if(visibleToPerspective){
+            visibleToPerspective = !occupantTile.GetComponent<TileScript>().getFog();
+            if(!visibleToPerspective){
+                captureBar.SetActive(false);
+                recruitBar.SetActive(false);
+                occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
+            }
+        }else{
+            visibleToPerspective = !occupantTile.GetComponent<TileScript>().getFog();
+            if(visibleToPerspective){
+                captureBar.SetActive(true);
+                updateVisuals();
+            }
+        }
+        
+        
         
         if(capturing > 0){
             captureTimePassed += Time.deltaTime * capturing;
@@ -64,10 +90,13 @@ public class BuildingScript : MonoBehaviour
             captureTimePassed = 0f;
             controlPercent += 15;
             print("control percentage is " + controlPercent + "%");
+            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
         }else if(captureTimePassed < -1f){
             captureTimePassed = 0f;
             controlPercent -= 15;
             print("control percentage is " + controlPercent + "%");
+            print("capture bar is " + captureBar);
+            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
         }
 
         controlPercent = controlPercent > 100 ? 100:controlPercent;
@@ -101,12 +130,15 @@ public class BuildingScript : MonoBehaviour
 
         }else if(recruitQueue.Count >= 1 && recruitTimePassed >= 0){
             if(!recruiting){
-                recruitBar.SetActive(true);
+                if(visibleToPerspective){
+                    recruitBar.SetActive(true);
+                    recruitBar.GetComponent<BuildingRecruitment>().startRecruit(recruitCooldown);
+                }
                 recruiting = true;
-                recruitBar.GetComponent<BuildingRecruitment>().startRecruit(recruitCooldown);
             }
             recruitTimePassed += Time.deltaTime;
             recruitBar.GetComponent<BuildingRecruitment>().setFill(recruitTimePassed);
+            print(recruitTimePassed + " seconds passed");
 
         }else if(recruitQueue.Count == 0){
             recruitBar.SetActive(false);
@@ -181,6 +213,7 @@ public class BuildingScript : MonoBehaviour
 
         updateVisuals();
         GetComponent<SpriteRenderer>().sprite = resourceBuilding;
+        
         
         
     }
@@ -264,11 +297,15 @@ public class BuildingScript : MonoBehaviour
     }
 
     private void updateVisuals(){
-        if(controller == UnitOwner.Player){
-            occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
-        }else if(controller == UnitOwner.Enemy){
-            occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
-        }else if(controller == UnitOwner.World){
+        if(visibleToPerspective){
+            if(controller == UnitOwner.Player){
+                occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
+            }else if(controller == UnitOwner.Enemy){
+                occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
+            }else if(controller == UnitOwner.World){
+                occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
+            }
+        }else{
             occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
         }
     }
@@ -286,6 +323,22 @@ public class BuildingScript : MonoBehaviour
     }
 
     public void recruitUnit(int type){
+
+        if(controller == UnitOwner.World){
+            print("cannot created units if owned by world");
+            return;
+        }
+
+        if(resource != ResourceType.Fort){
+            print("cannot create units at buildings other than forts");
+            return;
+        }
+
+        if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
+        PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
+            print("cannot create units if fort is owner by other player");
+            return;
+        }
 
         int available = 0;
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -307,10 +360,7 @@ public class BuildingScript : MonoBehaviour
             return;
         }
 
-        if(controller == UnitOwner.World){
-            print("cannot created units if owned by world");
-            return;
-        }
+        
 
         int[] spend = {0,0,0};
         spend[type] = 100;

@@ -19,17 +19,15 @@ public class TileScript : MonoBehaviour, ISelectable
     
     public int x;
     public int y;
-
     public int z;
 
     private UnitOwner tileOccupant = UnitOwner.World;
     private GameObject OwnerOutline;
     private BuildingScript attachedBuilding;
-  
-
-    public bool buildingTile = false;
    
-
+   // real hex outline is used when the player can see the tile and fake fog which is always nuetral is used when the player cannot
+    private Sprite realHexOutline;
+    private Sprite fakeHexOutline;
     
 
     [SerializeField]
@@ -55,15 +53,15 @@ public class TileScript : MonoBehaviour, ISelectable
 
     private int viewRange = 3;
 
+    
+
     void Start()
     {
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
-
-        
-
-        
+        realHexOutline = fakeHexOutline;
+            
     }
 
     // initialize the hexes values
@@ -77,6 +75,7 @@ public class TileScript : MonoBehaviour, ISelectable
         
 
         terrain = incomingTerrain;
+        fakeHexOutline = Resources.Load("PixelArt/BuildingHexGrey", typeof(Sprite)) as Sprite;
 
 
         switch (terrain){
@@ -146,6 +145,7 @@ public class TileScript : MonoBehaviour, ISelectable
         addFog();
         if(transform.Find("HexOutline") != null){
             OwnerOutline = transform.Find("HexOutline").gameObject;
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = fakeHexOutline;
         }else{
             OwnerOutline = null;
         }
@@ -200,12 +200,11 @@ public class TileScript : MonoBehaviour, ISelectable
         float height = GetComponent<MeshCollider>().bounds.size.y / 1.98f;
         
 
-        if(!buildingTile){
+        if(transform.Find("Building") == null){
             tempBuilding = Instantiate(Resources.Load("Prefabs/Building", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0) ,Quaternion.Euler(90,0,0),transform);
             tempBuilding.transform.localScale = new Vector3(0.73f,0.68f,1);
             tempBuilding.GetComponent<BuildingScript>().createBuilding(gameObject,out tileOccupant);
             tempBuilding.name = "Building";
-            buildingTile = true;
         }else{
             
             tempBuilding = transform.Find("Building").gameObject;
@@ -333,8 +332,15 @@ public class TileScript : MonoBehaviour, ISelectable
     // }
 
     // this adds the hex overlay to view who controls the tile, used on and around buildings
+    
     public void addOverlay(Sprite sprite){
-        OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        realHexOutline = sprite;
+        if(!getFog()){
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
+        }else{
+            print("added fake fog");
+            OwnerOutline.GetComponent<SpriteRenderer>().sprite = fakeHexOutline;
+        }
     }
 
     public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
@@ -414,7 +420,7 @@ public class TileScript : MonoBehaviour, ISelectable
 
         if(attachedBuilding != null){
             
-            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveIntoHex(unit.Owner);
+            addOverlay(attachedBuilding.moveIntoHex(unit.Owner));
         }
        
         RevealForOwner(unit.Owner);
@@ -466,7 +472,7 @@ public class TileScript : MonoBehaviour, ISelectable
         
 
         if(OwnerOutline != null){
-            OwnerOutline.GetComponent<SpriteRenderer>().sprite = attachedBuilding.moveOutOfHex(tileOccupant);
+            addOverlay(attachedBuilding.moveOutOfHex(tileOccupant));
         }
         
         HideForOwner(tileOccupant);
@@ -696,6 +702,16 @@ public class TileScript : MonoBehaviour, ISelectable
             Perspective.Admin  => false,
             _ => false
         };
+        if(OwnerOutline != null){
+            addOverlay(realHexOutline);
+            // if(showFog){
+            //     print("hiding hex");
+            //     addOverlay(realHexOutline);
+            // }else{
+            //     print("showing real hex sprite");
+            //     addOverlay(realHexOutline);
+            // }
+        }
 
         Transform fog = transform.Find("Fog");
         if (fog != null)

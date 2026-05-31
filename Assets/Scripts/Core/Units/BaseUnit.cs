@@ -146,6 +146,7 @@ namespace Units
         
         public virtual void OnCommand(Vector3 worldPos, ISelectable targetSelectable)
         {
+            // disallow player or enemy from controlling each others units
             if(PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && Owner != UnitOwner.Player){
                 return;
             }else if (PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && Owner != UnitOwner.Enemy){
