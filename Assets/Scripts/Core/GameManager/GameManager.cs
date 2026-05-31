@@ -31,6 +31,9 @@ public class GameManager : MonoBehaviour
     // Varable used for resource cap
     private int resourceCap = 2000;
 
+    // The Max amount of units a "team" should have
+    public const int MaxUnitsListCount = 25;
+
     // Used for event update for RL training
     public event Action<UnitOwner> OnGameEnded;
 
