@@ -95,7 +95,6 @@ public class BuildingScript : MonoBehaviour
             captureTimePassed = 0f;
             controlPercent -= 15;
             print("control percentage is " + controlPercent + "%");
-            print("capture bar is " + captureBar);
             captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
         }
 
@@ -122,7 +121,6 @@ public class BuildingScript : MonoBehaviour
         }
 
         if(recruitQueue.Count >= 1 && recruitTimePassed >= recruitCooldown){
-            print("cooldown has passed");
             recruitBar.SetActive(false);
             recruiting = false;
             recruitUnit();
@@ -138,7 +136,6 @@ public class BuildingScript : MonoBehaviour
             }
             recruitTimePassed += Time.deltaTime;
             recruitBar.GetComponent<BuildingRecruitment>().setFill(recruitTimePassed);
-            print(recruitTimePassed + " seconds passed");
 
         }else if(recruitQueue.Count == 0){
             recruitBar.SetActive(false);

@@ -13,8 +13,6 @@ public class BuildingCapture : MonoBehaviour
     }
 
     public void setFill(float capturePercent, UnitOwner unitOwner){
-
-            print("set fill with " + capturePercent + " percent");
             
             if(owner != unitOwner){
                 owner = unitOwner;

@@ -338,7 +338,6 @@ public class TileScript : MonoBehaviour, ISelectable
         if(!getFog()){
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = sprite;
         }else{
-            print("added fake fog");
             OwnerOutline.GetComponent<SpriteRenderer>().sprite = fakeHexOutline;
         }
     }
@@ -704,13 +703,6 @@ public class TileScript : MonoBehaviour, ISelectable
         };
         if(OwnerOutline != null){
             addOverlay(realHexOutline);
-            // if(showFog){
-            //     print("hiding hex");
-            //     addOverlay(realHexOutline);
-            // }else{
-            //     print("showing real hex sprite");
-            //     addOverlay(realHexOutline);
-            // }
         }
 
         Transform fog = transform.Find("Fog");
