@@ -38,7 +38,8 @@ public class GameManager : MonoBehaviour
     public event Action<UnitOwner> OnGameEnded;
 
     // Variables for time situation
-    [SerializeField] private float timeRemaining = 30;
+    private float timeRemaining = 0f;
+    [SerializeField] private float gameTime = 1200f;
     private bool paused = false;
     private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
     private float resourceUpdateTimer = 0f;     // variable for counting time
@@ -359,6 +360,22 @@ public class GameManager : MonoBehaviour
     public void gameSpeed(float speed)
     {
         Time.timeScale = speed;
+    }
+    
+    public int getPScore()
+    {
+        return pScore;
+    }
+
+    public int getEScore()
+    {
+        return eScore;
+    }
+
+    // Used to get the total time that is left
+    public float getTimeLeft()
+    {
+        return timeRemaining;
     }
 
     public float GetTimeNormalized() => timeRemaining / gameTime;
