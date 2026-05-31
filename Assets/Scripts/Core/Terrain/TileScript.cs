@@ -353,6 +353,7 @@ public class TileScript : MonoBehaviour, ISelectable
     
     
     //remove later, only used for testing
+    // please don't - Nico (this is being used)
     public int getMovement()
     {
         return movementPoints;
@@ -579,7 +580,7 @@ public class TileScript : MonoBehaviour, ISelectable
         
         GameObject go = Instantiate(unitPrefab, transform.position, transform.rotation);
         BaseUnit unit = go.GetComponent<BaseUnit>();
-        unit.initializeUnit(this, owner);
+        unit.Initialize(this, owner);
 
         OnUnitCreated?.Invoke(unit);
     }
@@ -649,7 +650,7 @@ public class TileScript : MonoBehaviour, ISelectable
     // not the best programming here, but it works
     public List<TileScript> GetNeighbours() => GetTilesInRange(1);
 
-    private List<TileScript> GetTilesInRange(int range)
+    public List<TileScript> GetTilesInRange(int range)
     {
         List<TileScript> results = new();
         
@@ -691,6 +692,26 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Operation to determine if this tile is visible
+    /// </summary>
+    /// <param name="owner">
+    /// The UnitOwner trying to request visibility status of the tile
+    /// </param>
+    /// <returns>
+    /// Bool for visibility
+    /// </returns>
+    public bool IsVisibleTo(UnitOwner owner)
+    {
+        return owner switch
+        {
+            UnitOwner.Player => !fogForPlayer,
+            UnitOwner.Enemy => !fogForEnemy,
+            UnitOwner.World => !fogForWorld,
+            _ => false
+        };
     }
 
     public void UpdateVisibilityForCurrentPerspective()
