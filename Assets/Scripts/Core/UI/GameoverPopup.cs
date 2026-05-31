@@ -11,29 +11,14 @@ public class GameoverPopup : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
 
     [SerializeField] private Button menuButton;
-    [SerializeField] private Button replayButton;
 
     [SerializeField] private TMP_Text victoryConditionText;
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private TMP_Text winningText;
 
     void awake()
     {
-        Debug.Log("GameoverPopup Awake() running");
         if (canvasGroup == null) canvasGroup = transform.Find("GameOverCanvas").GetComponent<CanvasGroup>();
-
-        
-
-        if (menuButton != null)
-        {
-            menuButton.onClick.RemoveAllListeners();
-            menuButton.onClick.AddListener(onMenuClick);
-        }
-
-        if (replayButton != null)
-        {
-            replayButton.onClick.RemoveAllListeners();
-            replayButton.onClick.AddListener(onReplayClick);
-        }
     }
 
     void Start()
@@ -46,6 +31,12 @@ public class GameoverPopup : MonoBehaviour
         {
             Destroy(gameObject);
             return;
+        }
+
+        if (menuButton != null)
+        {
+            menuButton.onClick.RemoveAllListeners();
+            menuButton.onClick.AddListener(onMenuClick);
         }
 
         hide();
@@ -75,8 +66,9 @@ public class GameoverPopup : MonoBehaviour
 
         if(owner == UnitOwner.Player)
         {
+            winningText.text = "You won";
             // Game must be over from losing your capital
-            if(GameManager.Instance.getTimeLeft() > 1)
+            if (GameManager.Instance.getTimeLeft() > 1)
             {
                 victoryConditionText.text = "You took the enemy capital!";
             }
@@ -88,6 +80,7 @@ public class GameoverPopup : MonoBehaviour
         }
         else   // Must be enemy
         {
+            winningText.text = "The Enemy Won";
             // Game must be over from losing your capital
             if(GameManager.Instance.getTimeLeft() > 1)
             {
@@ -104,15 +97,7 @@ public class GameoverPopup : MonoBehaviour
     private void onMenuClick()
     {
         // Needs to return to the menu
-
-    }
-
-    private void onReplayClick()
-    {
-        // Needs to allow to replay the game
-        // Get the active scene and reload it by its build index
-        Scene currentScene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(currentScene.buildIndex);
+        SceneManager.LoadScene("MainMenu");
     }
 
 }
