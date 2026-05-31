@@ -2,6 +2,7 @@ using UnityEngine;
 using Units;                // Imports the name space for the enum types. 
 using TMPro;                // Used for buttons
 using UnityEngine.UI;       // Also used for buttons
+using UnityEngine.SceneManagement;
 
 public class GameoverPopup : MonoBehaviour
 {
@@ -17,17 +18,10 @@ public class GameoverPopup : MonoBehaviour
 
     void awake()
     {
+        Debug.Log("GameoverPopup Awake() running");
         if (canvasGroup == null) canvasGroup = transform.Find("GameOverCanvas").GetComponent<CanvasGroup>();
 
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else if (Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        
 
         if (menuButton != null)
         {
@@ -44,6 +38,16 @@ public class GameoverPopup : MonoBehaviour
 
     void Start()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         hide();
     }
 
@@ -58,6 +62,10 @@ public class GameoverPopup : MonoBehaviour
     // owner is for the winner of the game and 
     public void show(UnitOwner owner)
     {
+        Debug.Log("canvasGroup = " + canvasGroup);
+        Debug.Log("scoreText = " + scoreText);
+        Debug.Log("victoryConditionText = " + victoryConditionText);
+
         canvasGroup.alpha = 1f;
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
@@ -102,7 +110,9 @@ public class GameoverPopup : MonoBehaviour
     private void onReplayClick()
     {
         // Needs to allow to replay the game
-
+        // Get the active scene and reload it by its build index
+        Scene currentScene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(currentScene.buildIndex);
     }
 
 }

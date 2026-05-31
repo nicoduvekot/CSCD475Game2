@@ -10,12 +10,11 @@ public class UnitRecruitPopup : MonoBehaviour
 
     [SerializeField] private CanvasGroup canvasGroup;
 
+    [SerializeField] private TMP_Text QueueDisplay;
     [SerializeField] private Button returnButton;
     [SerializeField] private Button horsemanButton;
     [SerializeField] private Button soldierButton;
     [SerializeField] private Button archerButton;
-
-    [SerializeField] private TMP_Text QueueDisplay;
 
     // [SerializeField] private Animator horseman;
     // [SerializeField] private Animator soldier;
