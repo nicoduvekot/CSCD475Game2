@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     private int eScore = 0;
 
     // Variables for time situation
-    [SerializeField] private float timeRemaining = 1200;
+    [SerializeField] private float timeRemaining = 30;
     private bool paused = false;
     private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
     private float resourceUpdateTimer = 0f;     // variable for counting time
@@ -52,13 +52,13 @@ public class GameManager : MonoBehaviour
         else if (!paused && timeRemaining <= 0)
         {
             // end of the game, code for this is reqired for that
-            if(pScore > eScore)
+            if(pScore >= eScore)
             {
-                gameOver(UnitOwner.Enemy);
+                gameOver(UnitOwner.Player);
             }
             else
             {
-                gameOver(UnitOwner.Player);
+                gameOver(UnitOwner.Enemy);
             }
         }
 
@@ -231,15 +231,20 @@ public class GameManager : MonoBehaviour
         eScore = EnemyScore;
     }
 
+    // Used to end the game. Calls the GameOverPopup to end the game
     public void gameOver(UnitOwner owner)
     {
         if (owner == UnitOwner.Player)
         {
             Debug.Log("Player won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Player); // Line 241
         }
         else if(owner == UnitOwner.Enemy)
         {
             Debug.Log("Enemy won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Enemy);
         }
         else
         {
@@ -247,8 +252,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Used to set the game speed. Mostly done for RL
+    // Time scale is based around normal being 1.0
     public void gameSpeed(float speed)
     {
         Time.timeScale = speed;
+    }
+
+    public int getPScore()
+    {
+        return pScore;
+    }
+
+    public int getEScore()
+    {
+        return eScore;
+    }
+
+    // Used to get the total time that is left
+    public float getTimeLeft()
+    {
+        return timeRemaining;
     }
 }
