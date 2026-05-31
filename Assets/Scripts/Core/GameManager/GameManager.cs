@@ -38,10 +38,9 @@ public class GameManager : MonoBehaviour
     public event Action<UnitOwner> OnGameEnded;
 
     // Variables for time situation
-    [SerializeField] private float timeRemaining = 0;
-    private float gameTime = 1200;
-    private bool paused = true;
-    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update, change this if you want to make it faster or slower
+    [SerializeField] private float timeRemaining = 30;
+    private bool paused = false;
+    private float updateResourceInterval = 1f;  // used for counting the time it needs for each update
     private float resourceUpdateTimer = 0f;     // variable for counting time
 
     void Awake()
@@ -75,13 +74,13 @@ public class GameManager : MonoBehaviour
         else if (!paused && timeRemaining <= 0)
         {
             // end of the game, code for this is reqired for that
-            if(pScore > eScore)
+            if(pScore >= eScore)
             {
-                gameOver(UnitOwner.Enemy);
+                gameOver(UnitOwner.Player);
             }
             else
             {
-                gameOver(UnitOwner.Player);
+                gameOver(UnitOwner.Enemy);
             }
         }
 
@@ -327,15 +326,20 @@ public class GameManager : MonoBehaviour
         eScore = EnemyScore;
     }
 
+    // Used to end the game. Calls the GameOverPopup to end the game
     public void gameOver(UnitOwner owner)
     {
         if (owner == UnitOwner.Player)
         {
             Debug.Log("Player won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Player); // Line 241
         }
         else if(owner == UnitOwner.Enemy)
         {
             Debug.Log("Enemy won the game!");
+            pause();
+            GameoverPopup.Instance.show(UnitOwner.Enemy);
         }
         else
         {
@@ -350,6 +354,8 @@ public class GameManager : MonoBehaviour
         ResetNextFrame = true;
     }
 
+    // Used to set the game speed. Mostly done for RL
+    // Time scale is based around normal being 1.0
     public void gameSpeed(float speed)
     {
         Time.timeScale = speed;

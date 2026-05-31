@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 03ebbafd03e0ebb439cc30ddef0216de
+guid: 5ba5cbb9c4f12e748beb8d3da5a39601
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,29 +97,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: arrow_0
-      rect:
-        serializedVersion: 2
-        x: 34
-        y: 0
-        width: 60
-        height: 122
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 2fc99ef785adc744ca6969c3bc0c1c4a
-      internalID: 41667141
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: arrow_1
+      name: arrow 1_1
       rect:
         serializedVersion: 2
         x: 162
@@ -134,14 +112,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f620725502063334d8bff6ab4250fe07
-      internalID: -1132809466
+      spriteID: 56e2849c7b69af345ba725e2adc56514
+      internalID: 1284159989
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: arrow_2
+      name: arrow 1_2
       rect:
         serializedVersion: 2
         x: 290
@@ -156,14 +134,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c563df4b217505d4a89e2e9c22dbc08e
-      internalID: -1013908194
+      spriteID: f7185b955729e2f49852a613b1f1a548
+      internalID: 1846770176
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: arrow_3
+      name: arrow 1_3
       rect:
         serializedVersion: 2
         x: 418
@@ -178,14 +156,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8c4886692ea468844a2bb3d36adadb48
-      internalID: -41845240
+      spriteID: 15b71fae6009fac4cac162331dec6b8c
+      internalID: 1200662022
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: arrow_4
+      name: arrow 1_4
       rect:
         serializedVersion: 2
         x: 546
@@ -200,8 +178,52 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8eeb0ca738434224095ef354d679bd2b
-      internalID: -2143882562
+      spriteID: ebd3933de28421441aaea1d9090ef456
+      internalID: 507468965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: arrow 1_5
+      rect:
+        serializedVersion: 2
+        x: 674
+        y: 0
+        width: 60
+        height: 122
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b03acbf50f6a1a439b12c923e30c5ce
+      internalID: -992062680
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: arrow 1_0
+      rect:
+        serializedVersion: 2
+        x: 35
+        y: 0
+        width: 81
+        height: 120
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7e2803c39c9701b41b4685b811ffb183
+      internalID: 491020846
       vertices: []
       indices: 
       edges: []
@@ -210,7 +232,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 234f5cd5b51bf5d4588597934481a5c4
+    spriteID: ea51eec46c3d6724cbede6bcc3555460
     internalID: 0
     vertices: []
     indices: 
@@ -222,11 +244,12 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      arrow_0: 41667141
-      arrow_1: -1132809466
-      arrow_2: -1013908194
-      arrow_3: -41845240
-      arrow_4: -2143882562
+      arrow 1_0: 491020846
+      arrow 1_1: 1284159989
+      arrow 1_2: 1846770176
+      arrow 1_3: 1200662022
+      arrow 1_4: 507468965
+      arrow 1_5: -992062680
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
