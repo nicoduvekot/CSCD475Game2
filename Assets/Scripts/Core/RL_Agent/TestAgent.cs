@@ -110,7 +110,6 @@ namespace RL_Agent
             ObserveTime(sensor);                    // 1 sensor
             ObserveBuildingOwnership(sensor);       // 9 sensors
             ObserveMyUnits(sensor);                 // 9 sensors
-            ObserveTacticalLoad(sensor);            // 6 sensors
             ObserveVisibleEnemyUnits(sensor);       // 3 sensors
             ObserveResources(sensor);               // 3 sensors
             ObserveTechUpgrades(sensor);            // 3 sensors
@@ -146,61 +145,67 @@ namespace RL_Agent
             // 9 = horseman upgrade
             
             // the actual movement action "type"
-            int tacticalAction = actions.DiscreteActions[1]; // 7 total
-            // identifier for building to be used for tactical action
-            int buildingIndex  = actions.DiscreteActions[2]; // 9 total
-            HandleTacticalAction(tacticalAction, buildingIndex);
+            UnitAgentGoal goal = (UnitAgentGoal) actions.DiscreteActions[1];   // 11 total
+            
+            // Target index meaning depends on goal:
+            //  - For tile-based goals: this is a tile index
+            //  - For enemy-based goals: this is an enemy index
+            //  - For Support: this is an ally unit index
+            int targetIndex = actions.DiscreteActions[2];   // variable meaning
+            
+            // Which of OUR units is performing the goal
+            int unitIndex = actions.DiscreteActions[3];     // our unit index
+            
+            HandleGoalAction(goal, targetIndex, unitIndex);
             // Action Summary
-            // 0 = do nothing
-            // 1 = scout fog
-            // 2 = Attack unit
-            // 3 = Support Ally
-            // 4 = Attack Building (index)
-            // 5 = Defend Building (index)
-            // 6 = Guard Building (index)
+            //  0 = None
+            //  1 = Move            :(myUnit and tile),
+            //  2 = Explore         :(myUnit and tile),
+            //  3 = Capture         :(myUnit and tile),
+            //  4 = Guard           :(myUnit and tile),
+            //  5 = Secure          :(myUnit and tile),
+            //  6 = Defend          :(myUnit and enemy),
+            //  7 = Fight           :(myUnit and enemy),
+            //  8 = Support        *:(myUnit and myUnit),
+            //  9 = flyYouFools     :(myUnit and tile)
 
             RewardResourceIncome();
-            RewardFogReveals();
         }
 
         #region Tactical Action Logic
         
-        private void HandleTacticalAction(int tacticalAction, int buildingIndex)
+        private void HandleGoalAction(UnitAgentGoal goal, int targetIndex, int unitIndex)
         {
-            BuildingScript targetBuilding = GetBuildingByIndex(buildingIndex);
+            if (goal == UnitAgentGoal.None)
+                return;
             
-            switch (tacticalAction)
+            BaseUnit unit = GetMyUnitByIndex(unitIndex);
+            
+            switch (goal)
             {
-                case 0:
-                    // do nothing
+                // Tile based goals
+                case UnitAgentGoal.Move:
+                case UnitAgentGoal.Explore:
+                case UnitAgentGoal.Capture:
+                case UnitAgentGoal.Guard:
+                case UnitAgentGoal.Secure:
+                case UnitAgentGoal.FlyYouFools:
+                    HandleUnitTileGoal(unit, goal, targetIndex);
                     break;
                 
-                case 1:
-                    ScoutFog();
+                // Enemy based goals
+                case UnitAgentGoal.Defend:
+                case UnitAgentGoal.Fight:
+                    HandleUnitEnemyGoal(unit, goal, targetIndex);
                     break;
                 
-                case 2:
-                    AttackEnemyUnit();
-                    break;
-                
-                case 3:
-                    SupportAllyAttack();
-                    break;
-                
-                case 4:
-                    AttackBuilding(targetBuilding);
-                    break;
-                
-                case 5:
-                    DefendBuilding(targetBuilding);
-                    break;
-                
-                case 6:
-                    GuardBuilding(targetBuilding);
+                // Ally based goals
+                case UnitAgentGoal.Support:
+                    HandleUnitAllyGoal(unit, goal, targetIndex);
                     break;
                 
                 default:
-                    Debug.LogWarning($"[TestAgent] value: {tacticalAction}, being skipped");
+                    Debug.LogWarning($"[TestAgent] goal: {goal}, being skipped");
                     break;
             }
         }
@@ -221,420 +226,101 @@ namespace RL_Agent
                 _ => null
             };
         }
-
-        /// <summary>
-        /// Logic for exploring fog that is surrounded by fog
-        ///
-        /// Get: closest fog tile to capital that is surrounded by fog
-        ///
-        /// then get: closest unit to that spot to explore the spot
-        /// </summary>
-        private void ScoutFog()
+        
+        private void HandleUnitTileGoal(BaseUnit unit, UnitAgentGoal goal, int tileIndex)
         {
-            TileScript target = GetClosestFogClusterTile();
+            TileScript tile = GetTileByIndex(tileIndex);
 
-            // null safety bail
-            if (target == null)
-                return;
-            
-            // closest idle unit as Scout
-            BaseUnit scout = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: target.transform.position
-            );
-            
-            // null safety bail
-            if (scout == null)
-                return;
-
-            StartTacticalAction(scout, TacticalAction.ScoutFog);
-            scout.OnCommand(target.transform.position, target);
-        }
-
-        /// <summary>
-        /// Logic for attacking enemy units (non-engaged / engaging)
-        ///
-        /// Get: closest idle unit to capital as Attacker, and:
-        ///
-        /// Attack closest visible enemy unit (NOT ENGAGED || ENGAGING)
-        ///
-        /// Has room for improvement, but hopefully designed to give agent
-        /// policy that might behave close enough to attack response feel
-        ///
-        /// NOTE: Important to use only visible enemy units as target choice
-        /// </summary>
-        private void AttackEnemyUnit()
-        {
-            // safety bail - should be masked though
-            if (_visibleEnemyUnits.Count == 0)
-                return;
-            
-            // get closest to capital as attacker
-            BaseUnit attacker = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: _myCapital.transform.position
-            );
-            
-            // safety bail
-            if (attacker == null) 
-                return;
-            
-            BaseUnit target = null;
-            float closeDist = float.MaxValue;
-            
-            foreach (BaseUnit enemy in _visibleEnemyUnits)
+            // null safety bail shape reward
+            if (tile == null)
             {
-                // skip if we get a null
-                if (enemy == null) 
-                    continue;
-
-                // skip engaged || Engaging enemies (support logic should policy those) 
-                if (enemy.GetState() == BaseUnit.UnitState.Engaged ||
-                    enemy.GetState() == BaseUnit.UnitState.Engaging)
-                    continue;
-
-                float distance = Vector3.Distance(
-                    attacker.transform.position, 
-                    enemy.transform.position
-                );
-                
-                if (distance < closeDist)
-                {
-                    closeDist = distance;
-                    target = enemy;
-                }
+                AddReward(-0.05f);
+                return;
             }
             
-            // safety bail
-            if (target == null) 
-                return;
-            
-            StartTacticalAction(attacker, TacticalAction.AttackEnemy);
-            attacker.OnCommand(target.transform.position, target);
-        }
-
-        /// <summary>
-        /// Logic for attacking enemy unit (engaged / engaging)
-        ///
-        /// Get: closest idle unit to capital as Supporter, and:
-        ///
-        /// Attack closest visible engaged or engaging enemy
-        ///
-        /// Has room for improvement, but hopefully designed to give agent
-        /// policy that might behave close enough to support response feel
-        ///
-        /// NOTE: Important to use only visible enemy units as target choice
-        /// </summary>
-        private void SupportAllyAttack()
-        {
-            // get closest to capital as supporter
-            BaseUnit supporter = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: _myCapital.transform.position
-            );
-            
-            // safety bail
-            if (supporter == null) 
-                return;
-            
-            BaseUnit target = null;
-            float closeDist = float.MaxValue;
-            
-            // Reminder: use visible enemies only!!
-            foreach (BaseUnit enemy in _visibleEnemyUnits)
+            // slight negative for shaping when not selecting a capture point to capture
+            if (goal is UnitAgentGoal.Capture or UnitAgentGoal.Secure
+                && !IsCaptureTile(tile))
             {
-                // skip null
-                if (enemy == null) 
-                    continue;
+                AddReward(-0.1f);
+                return;
+            }
+            
+            // shaping for explore action
+            if (goal == UnitAgentGoal.Explore && !IsFogged(tile))
+            {
+                AddReward(-0.05f);
+                return;
+            }
+            
+            // if picking flyYouFools, and new tile not closer to capital - Shaping Reward
+            if (goal == UnitAgentGoal.FlyYouFools)
+            {
+                // distance from both tiles to capital
+                float oldDist = Vector3.Distance(unit.transform.position, _myCapital.transform.position);
+                float newDist = Vector3.Distance(tile.transform.position, _myCapital.transform.position);
 
-                // skip enemies not engaged or engaging for support behavior
-                if (enemy.GetState() != BaseUnit.UnitState.Engaged &&
-                    enemy.GetState() != BaseUnit.UnitState.Engaging)
-                    continue;
-
-                float distance = Vector3.Distance(
-                    supporter.transform.position, 
-                    enemy.transform.position
-                );
-                
-                if (distance < closeDist)
+                // If the tile is NOT closer to capital → negative shaping
+                if (newDist >= oldDist)
                 {
-                    closeDist = distance;
-                    target = enemy;
-                }
-                
-                // safety bail
-                if (target == null) 
+                    AddReward(-0.05f);
                     return;
-                
-                StartTacticalAction(supporter, TacticalAction.SupportAlly);
-                supporter.OnCommand(target.transform.position, target);
+                }
             }
+
+            StartGoalTracking(unit, goal);   // must be BEFORE SetGoal
+            // unit.SetGoal(goal);              // must be BEFORE OnCommand
+            // unit.OnCommand(tile.transform.position, tile);
         }
 
-        /// <summary>
-        /// Logic for attacking the passed in building
-        ///
-        /// Get: closest idle unit as Attacker, and:
-        /// 
-        /// If: all capture points are fogged, attack nearest tile,
-        /// If: I can see an enemy on a tile, attack the enemy,
-        /// Else: attack nearest tile to me.
-        /// 
-        /// NOTE: Important to check if tiles are fogged,
-        /// Agent can cheat about occupancy logic
-        /// </summary>
-        /// <param name="building"></param>
-        private void AttackBuilding(BuildingScript building)
+        private void HandleUnitEnemyGoal(BaseUnit unit, UnitAgentGoal goal, int enemyIndex)
         {
-            // safety bail
-            if (building == null) 
-                return;
+            BaseUnit enemy = GetVisibleEnemyByIndex(enemyIndex);
             
-            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
-            
-            // safety bail
-            if (tiles == null || tiles.Count == 0)
-                return;
-            
-            // get the closest idle unit as attacker
-            BaseUnit attacker = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: building.transform.position
-            );
-            
-            // safety bail
-            if (attacker == null)
-                return;
-            
-            // setup tile iteration logic helpers
-            TileScript closestEnemyTile = null;
-            TileScript closestAvailableTile = null;
-            
-            float enemyDist = float.MaxValue;
-            float availableDist = float.MaxValue;
-            
-            // tile iteration logic
-            foreach (TileScript tile in tiles)
+            if (goal == UnitAgentGoal.Defend)
             {
-                bool fogged = IsFogged(tile);
-                
-                float distance = Vector3.Distance(
-                    attacker.transform.position,
-                    tile.transform.position
-                );
-
-                // visible tile
-                if (!fogged)
+                // shaping to support picking an ally under attack
+                if (!EnemyThreatensOurBuilding(enemy))
                 {
-                    // occupied
-                    if (tile.OccupyingUnit != null)
-                    {
-                        // enemy occupancy
-                        if (tile.OccupyingUnit.Owner != team)
-                        {
-                            if (distance < enemyDist)
-                            {
-                                enemyDist = distance;
-                                closestEnemyTile = tile;
-                            }
-                        }
-                        // skip allied occupancy
-                        continue;
-                    }
-
-                    // Visible + unoccupied is available case 1
-                    if (distance < availableDist)
-                    {
-                        availableDist = distance;
-                        closestAvailableTile = tile;
-                    }
-                }
-                else // fogged tile is available case 2
-                {
-                    if (distance < availableDist)
-                    {
-                        availableDist = distance;
-                        closestAvailableTile = tile;
-                    }
+                    AddReward(-0.05f);
+                    return;
                 }
             }
-
-            // Case A: Enemy is visible on a tile => attack
-            if (closestEnemyTile != null)
+            
+            if (goal == UnitAgentGoal.Fight)
             {
-                // tiny bonus reward for small shaping
-                if (building.getOwner() != team)
-                    AddReward(+0.01f);
-                
-                StartTacticalAction(attacker, TacticalAction.AttackBuilding);
-                
-                attacker.OnCommand(
-                    closestEnemyTile.transform.position,
-                    closestEnemyTile.OccupyingUnit
-                );
-                return;
+                // shaping should give something based on distance the unit must travel?
+                // this is handled by discount factor though?
             }
             
-            // Case B: No enemy visible => closest available space
-            if (closestAvailableTile != null)
-            {
-                // tiny bonus reward for small shaping
-                if (building.getOwner() != team)
-                    AddReward(+0.01f);
-                
-                StartTacticalAction(attacker, TacticalAction.AttackBuilding);
-                
-                attacker.OnCommand(
-                    closestAvailableTile.transform.position,
-                    closestAvailableTile
-                );
-                //return;
-            }
-            
-            // this space get is reached when we fully occupy the capture points
-            // this possible logic branch is being masked
-            // is there any negative to the agent model if it calls this action and nothing happens?
+            StartGoalTracking(unit, goal);
+            // unit.SetGoal(goal);
+            // unit.OnCommand(enemy.transform.position, enemy);
         }
 
-        /// <summary>
-        /// Logic for defending the passed in building
-        ///
-        /// Get: the closest idle unit as Defender, and:
-        ///
-        /// Attack the closest enemy unit
-        ///
-        /// NOTE: Important to check if tiles are fogged,
-        /// Agent can cheat about occupancy logic
-        /// </summary>
-        /// <param name="building"></param>
-        private void DefendBuilding(BuildingScript building)
+        private void HandleUnitAllyGoal(BaseUnit unit, UnitAgentGoal goal, int allyIndex)
         {
-            // safety bail
-            if (building == null) 
-                return;
+            BaseUnit ally = GetMyUnitByIndex(allyIndex);
             
-            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+            UnitMotorState allyState = ally.MotorState;
             
-            // safety bail
-            if (tiles == null)
-                return;
-            
-            // get closest idle unit as defender
-            BaseUnit defender = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: building.transform.position
-            );
-            
-            // safety bail
-            if (defender == null) 
-                return;
-            
-            TileScript enemyTile = null;
-            float closeDist = float.MaxValue;
-            
-            foreach (TileScript tile in tiles)
+            if (allyState != UnitMotorState.Fighting &&
+                allyState != UnitMotorState.Pursuing)
             {
-                // skip fogged
-                if (IsFogged(tile)) continue;
-                
-                // skip empty
-                if (tile.OccupyingUnit == null) continue;
-                
-                // skip ally owned
-                if (tile.OccupyingUnit.Owner == team) continue;
-
-                // else : enemy occupies
-                // record distance to defender
-                float distance = Vector3.Distance(
-                    defender.transform.position,
-                    tile.transform.position
-                );
-                
-                if (distance < closeDist)
-                {
-                    closeDist = distance;
-                    enemyTile = tile;
-                }
+                AddReward(-0.05f);
+                return;
             }
             
-            // safety bail
-            if (enemyTile == null) 
-                return;
-            
-            StartTacticalAction(defender, TacticalAction.DefendBuilding);
-            
-            defender.OnCommand(
-                enemyTile.transform.position,
-                enemyTile.OccupyingUnit
-            );
-        }
-
-        /// <summary>
-        /// Logic for Guarding the passed in building
-        ///
-        /// Get: closest idle unit as Guardian, and:
-        ///
-        /// Move to the closest available tile
-        ///
-        /// NOTE: Important to check if tiles are fogged,
-        /// Agent can cheat about occupancy logic
-        /// </summary>
-        /// <param name="building"></param>
-        private void GuardBuilding(BuildingScript building)
-        {
-            // safety bail
-            if (building == null)
-                return;
-            
-            List<TileScript> tiles = GetCaptureTilesForBuilding(building);
-            
-            // safety bail
-            if (tiles == null) 
-                return;
-            
-            // get closest unit as Guardian
-            BaseUnit guardian = GetClosestUnit(
-                state: BaseUnit.UnitState.Idle,
-                origin: building.transform.position
-            );
-            
-            // safety bail
-            if (guardian == null) 
-                return;
-            
-            TileScript unoccupiedTile = null;
-            float closeDist = float.MaxValue;
-            
-            foreach (TileScript tile in tiles)
+            BaseUnit enemy = ally.CurrentEnemyTarget();
+            if (enemy == null)
             {
-                // skip fogged
-                if (IsFogged(tile)) continue;
-
-                // skip occupied
-                if (tile.OccupyingUnit != null) continue;
-
-                float distance = Vector3.Distance(
-                    guardian.transform.position, 
-                    tile.transform.position);
-
-                if (distance < closeDist)
-                {
-                    closeDist = distance;
-                    unoccupiedTile = tile;
-                }
-            }
-            
-            // safety bail
-            if (unoccupiedTile == null) 
+                AddReward(-0.05f);
                 return;
-            
-            StartTacticalAction(guardian, TacticalAction.GuardBuilding);
-            
-            guardian.OnCommand(
-                unoccupiedTile.transform.position,
-                unoccupiedTile
-            );
+            }
+
+            StartGoalTracking(unit, goal);
+            // unit.SetGoal(goal);
+            // unit.OnCommand(ally.transform.position, ally);
         }
 
         #endregion
@@ -699,6 +385,79 @@ namespace RL_Agent
                 UnitOwner.Enemy => tile.fogForEnemy,
                 _ => false
             };
+        }
+
+        #endregion
+
+        #region New Helpers
+
+        // yes name so unique lmao, I gave up
+        private TileScript GetTileByIndex(int index)
+        {
+            if (index < 0 || index >= _allWalkableTiles.Count)
+                return null;
+            
+            return _allWalkableTiles[index];
+        }
+
+        private BaseUnit GetMyUnitByIndex(int index)
+        {
+            if (index < 0 || index >= GameManager.MaxUnitsListCount)
+                return null;
+            
+            if (index >= _myUnits.Count)
+                return null;
+            
+            return _myUnits[index];
+        }
+
+        private BaseUnit GetVisibleEnemyByIndex(int index)
+        {
+            if (index < 0 || index >= GameManager.MaxUnitsListCount)
+                return null;
+
+            if (index >= _visibleEnemyUnits.Count)
+                return null;
+
+            return _visibleEnemyUnits[index];
+        }
+
+        private bool IsCaptureTile(TileScript tile)
+        {
+            return _myCapitalCapturePoints.Contains(tile)
+                   || _fortCapturePoints.Contains(tile)
+                   || _myFoodCapturePoints.Contains(tile)
+                   || _enemyFoodCapturePoints.Contains(tile)
+                   || _myWoodCapturePoints.Contains(tile)
+                   || _enemyWoodCapturePoints.Contains(tile)
+                   || _topIronCapturePoints.Contains(tile)
+                   || _bottomIronCapturePoints.Contains(tile);
+        }
+
+        private bool EnemyThreatensOurBuilding(BaseUnit enemy)
+        {
+            foreach (BuildingScript building in _allBuildings)
+            {
+                if (building.getOwner() != team)
+                    continue;
+
+                // Get capture tiles for this building
+                List<TileScript> tiles = GetCaptureTilesForBuilding(building);
+                if (tiles == null || tiles.Count == 0)
+                    continue;
+
+                // Check if enemy is near any capture tile
+                foreach (TileScript tile in tiles)
+                {
+                    float dist = Vector3.Distance(enemy.transform.position, tile.transform.position);
+
+                    // Threat radius = 1.5f (tweakable)
+                    if (dist <= 1.5f)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion
@@ -1158,12 +917,16 @@ namespace RL_Agent
         private int _myArcherCount;
         private int _myHorsemanCount;
         
-        private int _myIdleUnitCount;
-        private int _myMovingUnitCount;
-        private int _myEngagingUnitCount;
-        private int _myEngagedUnitCount;
-        private int _myCapturingUnitCount;
-        private int _myDyingUnitCount;
+        private int _myNoGoalCount;
+        private int _myMoveGoalCount;
+        private int _myExploreGoalCount;
+        private int _myCaptureGoalCount;
+        private int _myGuardGoalCount;
+        private int _mySecureGoalCount;
+        private int _myDefendGoalCount;
+        private int _myFightGoalCount;
+        private int _mySupportGoalCount;
+        private int _myFleeGoalCount;
         
         // CHEAT WARNING
         // This is the list of units the own, regardless of if we see them or not
@@ -1204,7 +967,7 @@ namespace RL_Agent
                 AddReward(-0.1f);
                 
                 // this removes the unit from action tracking
-                FinishTacticalActions(deadUnit);
+                ManualRemoveFromGoalRecords(deadUnit);
             }
 
             _myUnits.Remove(deadUnit);
@@ -1221,12 +984,16 @@ namespace RL_Agent
             sensor.AddObservation(NormalizeMyUnitCount(_myArcherCount));
             sensor.AddObservation(NormalizeMyUnitCount(_myHorsemanCount));
             
-            sensor.AddObservation(NormalizeMyUnitCount(_myIdleUnitCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myMovingUnitCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myEngagingUnitCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myEngagedUnitCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myCapturingUnitCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myDyingUnitCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myNoGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myMoveGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myExploreGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myCaptureGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myGuardGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_mySecureGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myDefendGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myFightGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_mySupportGoalCount));
+            sensor.AddObservation(NormalizeMyUnitCount(_myFleeGoalCount));
         }
 
         private void UpdateMyUnitCounters()
@@ -1236,12 +1003,16 @@ namespace RL_Agent
             _myArcherCount = 0;
             _myHorsemanCount = 0;
 
-            _myIdleUnitCount = 0;
-            _myMovingUnitCount = 0;
-            _myEngagingUnitCount = 0;
-            _myEngagedUnitCount = 0;
-            _myCapturingUnitCount = 0;
-            _myDyingUnitCount = 0;
+            _myNoGoalCount = 0;
+            _myMoveGoalCount = 0;
+            _myExploreGoalCount = 0;
+            _myCaptureGoalCount = 0;
+            _myGuardGoalCount = 0;
+            _mySecureGoalCount = 0;
+            _myDefendGoalCount = 0;
+            _myFightGoalCount = 0;
+            _mySupportGoalCount = 0;
+            _myFleeGoalCount = 0;
             
             // Iterate backwards for null safety cleanup
             for (int i = _myUnits.Count - 1; i >= 0; i--)
@@ -1252,6 +1023,7 @@ namespace RL_Agent
                 if (unit == null)
                 {
                     _myUnits.RemoveAt(i);
+                    _activeGoals.Remove(unit);
                     continue;
                 }
 
@@ -1264,34 +1036,30 @@ namespace RL_Agent
                 }
 
                 // unit state counter
-                switch (unit.GetState())
+                switch (unit.CurrentGoal)
                 {
-                    case BaseUnit.UnitState.Idle:
-                        _myIdleUnitCount++;
-                        break;
+                    case UnitAgentGoal.None: _myNoGoalCount++; break;
 
-                    case BaseUnit.UnitState.Moving:
-                        _myMovingUnitCount++;
-                        break;
+                    case UnitAgentGoal.Move: _myMoveGoalCount++; break;
 
-                    case BaseUnit.UnitState.Engaging:
-                        _myEngagingUnitCount++;
-                        break;
+                    case UnitAgentGoal.Explore: _myExploreGoalCount++; break;
 
-                    case BaseUnit.UnitState.Engaged:
-                        _myEngagedUnitCount++;
-                        break;
+                    case UnitAgentGoal.Capture: _myCaptureGoalCount++; break;
 
-                    case BaseUnit.UnitState.Capturing:
-                        _myCapturingUnitCount++;
-                        break;
+                    case UnitAgentGoal.Guard: _myGuardGoalCount++; break;
 
-                    case BaseUnit.UnitState.Dying:
-                        _myDyingUnitCount++;
-                        break;
+                    case UnitAgentGoal.Secure: _mySecureGoalCount++; break;
+
+                    case UnitAgentGoal.Defend: _myDefendGoalCount++; break;
+
+                    case UnitAgentGoal.Fight: _myFightGoalCount++; break;
+                    
+                    case UnitAgentGoal.Support: _mySupportGoalCount++; break;
+
+                    case UnitAgentGoal.FlyYouFools: _myFleeGoalCount++; break;
                     
                     default:
-                        Debug.LogError($"[TestAgent] Not Tracking unit state: {unit.GetState()}");
+                        Debug.LogError($"[TestAgent] Not Tracking unit goal: {unit.CurrentGoal}");
                         break;
                 }
             }
@@ -1632,62 +1400,13 @@ namespace RL_Agent
         }
 
         #endregion
-
-        #region Get Unit Utility Core
-        
-        private BaseUnit GetClosestUnitOfType(int type, Vector3? origin = null) 
-            => GetClosestUnit(type: type, origin: origin);
-        
-        private BaseUnit GetClosestUnitOfState(BaseUnit.UnitState state, Vector3? origin = null) 
-            => GetClosestUnit(state: state, origin: origin);
-
-        private BaseUnit GetFirstUnitOfType(int type) 
-            => FilterMyUnits(type: type).FirstOrDefault();
-
-        private BaseUnit GetFirstUnitOfState(BaseUnit.UnitState state) 
-            => FilterMyUnits(state: state).FirstOrDefault();
-
-        private BaseUnit GetFirstUnit(int type, BaseUnit.UnitState state) 
-            => FilterMyUnits(type: type, state: state).FirstOrDefault();
-
-        private BaseUnit GetRandomUnitOfType(int type)
-        {
-            List<BaseUnit> list = FilterMyUnits(type: type);
-            
-            if (list.Count == 0)
-                return null;
-
-            return list[Random.Range(0, list.Count)];
-        }
-
-        private BaseUnit GetRandomUnitOfState(BaseUnit.UnitState state)
-        {
-            List<BaseUnit> list = FilterMyUnits(state: state);
-            
-            if (list.Count == 0)
-                return null;
-
-            return list[Random.Range(0, list.Count)];
-        }
-
-        private BaseUnit GetRandomUnit(int type, BaseUnit.UnitState state)
-        {
-            List<BaseUnit> list = FilterMyUnits(type: type, state: state);
-            
-            if (list.Count == 0)
-                return null;
-
-            return list[Random.Range(0, list.Count)];
-        }
-
-        #endregion
         
         #region Get Unit Utility Core Helpers
 
         // NOTE: if no origin, it will use our capital as closest reference
         private BaseUnit GetClosestUnit(
             int? type = null,
-            BaseUnit.UnitState? state = null,
+            UnitAgentGoal? goal = null,
             Vector3? origin = null)
         {
             Vector3 originPos = origin ?? _myCapital.transform.position;
@@ -1698,96 +1417,94 @@ namespace RL_Agent
             // backwards iterate for, you guessed it, null safety removal
             for (int i = _myUnits.Count - 1; i >= 0; i--)
             {
-                BaseUnit u = _myUnits[i];
+                BaseUnit unit = _myUnits[i];
 
                 // null safety removal
-                if (u == null)
+                if (unit == null)
                 {
                     _myUnits.RemoveAt(i);
                     continue;
                 }
 
                 // filter type if provided
-                if (type.HasValue && u.UnitType != type.Value)
+                if (type.HasValue && unit.UnitType != type.Value)
                     continue;
 
                 // filter state if provided
-                if (state.HasValue && u.GetState() != state.Value)
+                if (goal.HasValue && unit.CurrentGoal != goal.Value)
                     continue;
 
-                float d = Vector3.Distance(u.transform.position, originPos);
+                float d = Vector3.Distance(unit.transform.position, originPos);
 
                 if (d < closestDist)
                 {
                     closestDist = d;
-                    closest = u;
+                    closest = unit;
                 }
             }
             
             return closest;
         }
 
-        private List<BaseUnit> FilterMyUnits(int? type = null, BaseUnit.UnitState? state = null)
+        private List<BaseUnit> FilterMyUnits(
+            int? type = null,
+            UnitAgentGoal? goal = null)
         {
             List<BaseUnit> result = new();
             
             // backwards iteration for null safety removal
             for (int i = _myUnits.Count - 1; i >= 0; i--)
             {
-                BaseUnit u = _myUnits[i];
+                BaseUnit unit = _myUnits[i];
 
                 // null safety removal
-                if (u == null)
+                if (unit == null)
                 {
                     _myUnits.RemoveAt(i);
                     continue;
                 }
 
                 // filter type if provided
-                if (type.HasValue && u.UnitType != type.Value)
+                if (type.HasValue && unit.UnitType != type.Value)
                     continue;
 
                 // filter state if provided
-                if (state.HasValue && u.GetState() != state.Value)
+                if (goal.HasValue && unit.CurrentGoal != goal.Value)
                     continue;
 
-                result.Add(u);
+                result.Add(unit);
             }
-
             return result;
         }
         
         #endregion
 
-        #region Tactical Recording System
+        #region Goal Recording System
         
         // dictionary storing the current active actions
-        private readonly Dictionary<BaseUnit, TacticalAction> _activeActions = new();
-        // dictionary storing start times of actions for discount rate usage
-        private readonly Dictionary<BaseUnit, float> _actionStartTime = new();
+        private readonly Dictionary<BaseUnit, UnitAgentGoal> _activeGoals = new();
 
         /// <summary>
         /// Call this to start a tactical action recording.
         /// </summary>
         /// <param name="unit">The unit performing the action</param>
         /// <param name="action">THe action being taken</param>
-        private void StartTacticalAction(BaseUnit unit, TacticalAction action)
+        private void StartGoalTracking(BaseUnit unit, UnitAgentGoal action)
         {
             // NRE safety bail
             if (unit == null)
                 return;
             
             // if the unit already had an action, clear it
-            if (_activeActions.ContainsKey(unit))
-                FinishTacticalActions(unit);
+            if (_activeGoals.ContainsKey(unit))
+            {
+                unit.OnGoalResolved -= HandleUnitGoalResolved;
+                _activeGoals.Remove(unit);
+            }
             
-            _activeActions[unit] = action;
-            _actionStartTime[unit] = Time.time;
-            
-            unit.OnTacticalActionCompleted += HandleUnitActionCompleted;
+            _activeGoals[unit] = action;
+            unit.OnGoalResolved += HandleUnitGoalResolved;
         }
-        
-        private const float ActionDiscountRate = -0.15f;
 
         /// <summary>
         /// Intermediate between Start Action and Finish Action
@@ -1797,68 +1514,42 @@ namespace RL_Agent
         /// Intended to be called by the unit's OnTacticalActionCompleted event
         /// </summary>
         /// <param name="unit">The Unit that reported finishing an action</param>
-        /// <param name="action">The Action the unit is reporting completed</param>
-        private void HandleUnitActionCompleted(BaseUnit unit, TacticalAction action)
+        /// <param name="resolvedGoal">The Action the unit is reporting completed</param>
+        /// <param name="result"></param>
+        /// <param name="rewardFromUnit"></param>
+        private void HandleUnitGoalResolved(
+            BaseUnit unit, 
+            UnitAgentGoal resolvedGoal,
+            GoalResult result,
+            float rewardFromUnit)
         {
             // get the action mapped to this unit, if the unit exists in mapping
-            if (!_activeActions.TryGetValue(unit, out TacticalAction expected))
+            if (!_activeGoals.TryGetValue(unit, out UnitAgentGoal expected))
                 return; // else bail (unit was not in mapping)
 
-            if (action == expected)
+            // if the goal resolved was what we asked it to do
+            if (resolvedGoal == expected)
             {
-                float duration = Time.time - _actionStartTime[unit];
-                float discount = Mathf.Exp(ActionDiscountRate * duration);
-                
-                // reward for doing the action requested, with discount factor applied
-                switch (action)
-                {
-                    case TacticalAction.None:
-                        break;
-                    
-                    case TacticalAction.ScoutFog:
-                        AddReward(+ 0.02f * discount);
-                        break;
-                    
-                    case TacticalAction.AttackEnemy:
-                        // same reward for both
-                    case TacticalAction.SupportAlly:
-                        AddReward(+ 0.05f * discount);
-                        break;
+                // success means use units reward function
+                if (result == GoalResult.Success)
+                    AddReward(rewardFromUnit);
 
-                    case TacticalAction.AttackBuilding:
-                        AddReward(+ 0.10f * discount);
-                        break;
-
-                    case TacticalAction.DefendBuilding:
-                        AddReward(+ 0.03f * discount);
-                        break;
-
-                    case TacticalAction.GuardBuilding:
-                        AddReward(+ 0.02f * discount);
-                        break;
-                    
-                    default:
-                        Debug.LogError($"[TestAgent] Unit: '{unit}' Reported Unknown Tactical Action: {action}");
-                        break;
-                }
+                // goal was terminated because agent gave it new action
+                else if (result == GoalResult.OverriddenByAgent &&
+                         GoalAllowsPartialReward(resolvedGoal))
+                    AddReward(rewardFromUnit * 0.25f); 
+                // discount that we overwrote this
             }
-            FinishTacticalActions(unit);
+            
+            unit.OnGoalResolved -= HandleUnitGoalResolved;
+            _activeGoals.Remove(unit);
         }
-
-        /// <summary>
-        /// Call this to finish a tactical action recording
-        /// </summary>
-        /// <param name="unit">The unit performing the action</param>
-        private void FinishTacticalActions(BaseUnit unit)
+        
+        private bool GoalAllowsPartialReward(UnitAgentGoal goal)
         {
-            // NRE safety bail
-            if (unit == null)
-                return;
-            
-            unit.OnTacticalActionCompleted -= HandleUnitActionCompleted;
-            
-            _activeActions.Remove(unit);
-            _actionStartTime.Remove(unit);
+            return goal == UnitAgentGoal.Explore ||
+                   goal == UnitAgentGoal.Capture ||
+                   goal == UnitAgentGoal.Secure;
         }
 
         /// <summary>
@@ -1866,57 +1557,17 @@ namespace RL_Agent
         /// </summary>
         private void ClearTacticalActions()
         {
-            foreach (BaseUnit unit in _activeActions.Keys)
-                unit.OnTacticalActionCompleted -= HandleUnitActionCompleted;
+            foreach (BaseUnit unit in _activeGoals.Keys)
+                unit.OnGoalResolved -= HandleUnitGoalResolved;
             
-            _activeActions.Clear();
-            _actionStartTime.Clear();
+            _activeGoals.Clear();
         }
 
-        private void ObserveTacticalLoad(VectorSensor sensor)
+        private void ManualRemoveFromGoalRecords(BaseUnit unit)
         {
-            int total = _myUnits.Count;
-            
-            int scoutCount = 0;
-            int attackEnemyCount = 0;
-            int supportCount = 0;
-            int attackBuildingCount = 0;
-            int defendBuildingCount = 0;
-            int guardBuildingCount = 0;
-            
-            foreach (KeyValuePair<BaseUnit, TacticalAction> kvp in _activeActions)
-            {
-                switch (kvp.Value)
-                {
-                    case TacticalAction.ScoutFog: scoutCount++;
-                        break;
-                    case TacticalAction.AttackEnemy: attackEnemyCount++;
-                        break;
-                    case TacticalAction.SupportAlly: supportCount++;
-                        break;
-                    case TacticalAction.AttackBuilding: attackBuildingCount++;
-                        break;
-                    case TacticalAction.DefendBuilding: defendBuildingCount++;
-                        break;
-                    case TacticalAction.GuardBuilding: guardBuildingCount++;
-                        break;
-                    case TacticalAction.None: // don't observe this
-                        break;
-                    default:
-                        Debug.LogError($"[TestAgent] Unknown Tactical Action: {kvp.Value}"); break;
-                }
-            }
-            
-            sensor.AddObservation(NormalizeTacticalCount(total, scoutCount));
-            sensor.AddObservation(NormalizeTacticalCount(total, attackEnemyCount));
-            sensor.AddObservation(NormalizeTacticalCount(total, supportCount));
-            sensor.AddObservation(NormalizeTacticalCount(total, attackBuildingCount));
-            sensor.AddObservation(NormalizeTacticalCount(total, defendBuildingCount));
-            sensor.AddObservation(NormalizeTacticalCount(total, guardBuildingCount));
+            unit.OnGoalResolved -= HandleUnitGoalResolved;
+            _activeGoals.Remove(unit);
         }
-
-        private float NormalizeTacticalCount(int total, int count)
-            => total == 0 ? 0f : (float)count / total;
 
         #endregion
 
