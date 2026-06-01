@@ -172,6 +172,12 @@ namespace Units
         {
             if (_isGuardStandingPhase)
                 TickGuardCore();
+            
+            if (_isCaptureStandingPhase)
+                TickCaptureCore();
+            
+            if (_isSecureStandingPhase)
+                TickSecureCore();
         }
 
         private void HandleMoving()
@@ -182,7 +188,15 @@ namespace Units
                 TransitionToStanding();
                 return;
             }
-            
+
+            if (CurrentGoal == UnitAgentGoal.Capture && CaptureGoalInterruptedMidMove())
+            {
+                ComputeCaptureReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                TransitionToStanding();
+                return;
+            }
+
             // checked every frame during movement
             if (EnemySightedDuringMovement())
             {
@@ -591,6 +605,12 @@ namespace Units
 
         private void TransitionToStanding()
         {
+            if (CurrentGoal == UnitAgentGoal.Capture && !_isCaptureStandingPhase)
+                ActivateCaptureCore();
+            
+            if (CurrentGoal == UnitAgentGoal.Secure && !_isSecureStandingPhase)
+                ActivateSecureCore();
+            
             MotorState = UnitMotorState.Standing;
 
             _isStepping = false;
@@ -619,6 +639,11 @@ namespace Units
 
         private void TransitionToPursuing()
         {
+            if (CurrentGoal is UnitAgentGoal.Fight or UnitAgentGoal.Defend or UnitAgentGoal.Support)
+            {
+                _attackTimeSpentPursuing = 0f;
+            }
+            
             MotorState = UnitMotorState.Pursuing;
             
             _isStepping = false;
@@ -632,6 +657,17 @@ namespace Units
 
         private void TransitionToFighting()
         {
+            if (CurrentGoal == UnitAgentGoal.Capture)
+            {
+                ComputeCaptureReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+            }
+            
+            if (CurrentGoal is UnitAgentGoal.Fight or UnitAgentGoal.Defend or UnitAgentGoal.Support)
+            {
+                _attackTimeSpentFighting = 0f;
+            }
+            
             MotorState = UnitMotorState.Fighting;
             
             _isStepping = false;
@@ -994,6 +1030,9 @@ namespace Units
 
         private float _agentReward;
         private float _timeDuringAction;
+        
+        private float _goalTimeout;
+        private const float MaxGoalDuration = 30f;
 
         /// <summary>
         /// Used By Agent to set goal for action given to unit
@@ -1006,6 +1045,8 @@ namespace Units
             
             // reset helper tracker
             _timeDuringAction = 0f;
+
+            _goalTimeout = 0f;
         }
 
         private void EndGoalWithFailure()
@@ -1018,7 +1059,6 @@ namespace Units
                     break;
 
                 case UnitAgentGoal.Move:
-                case UnitAgentGoal.Explore:
                 case UnitAgentGoal.Capture:
                 case UnitAgentGoal.Defend:
                 case UnitAgentGoal.Secure:
@@ -1083,22 +1123,470 @@ namespace Units
         private void TickGoalCounters()
         {
             _timeDuringAction += Time.deltaTime;
+            _goalTimeout += Time.deltaTime;
+            
+            if (CurrentGoal is UnitAgentGoal.Fight or UnitAgentGoal.Defend or UnitAgentGoal.Support)
+                TickAttackCore();
+            
+            if (CurrentGoal == UnitAgentGoal.Move)
+                TickMoveCore();
+            
+            if (CurrentGoal == UnitAgentGoal.FlyYouFools)
+                TickFleeCore();
+
+            if (_goalTimeout >= MaxGoalDuration)
+            {
+                ResolveGoal(GoalResult.Interrupted);
+                return;
+            }
         }
 
-        /// <summary>
-        /// Used By the Agent to request an attack action with this goal
-        ///
-        /// Intended to be goals of:
-        /// Defend, Fight, Pursue, Support
-        /// Where success is if the target died in a certain way
-        /// Because we were fighting with them
-        /// </summary>
-        /// <param name="target"></param>
-        /// <param name="goal"></param>
+        #endregion
+
+        #region Move Agent Core
+
+        private TileScript _moveTile;
+        private float _moveTimeSpent;
+        private bool _moveSuccessTriggered;
+
+        public void RequestMoveTo(TileScript moveTile)
+        {
+            SetGoal(UnitAgentGoal.Move);
+
+            if (moveTile == null || !IsWalkable(moveTile))
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+
+            _moveTile = moveTile;
+            _moveTimeSpent = 0f;
+            _moveSuccessTriggered = false;
+
+            TryGetPathAndMove(moveTile);
+        }
+
+        private void TickMoveCore()
+        {
+            _moveTimeSpent += Time.deltaTime;
+
+            // SUCCESS: reached the tile
+            if (CurrentHex == _moveTile)
+            {
+                _moveSuccessTriggered = true;
+                ComputeMoveReward(GoalResult.Success);
+                ResolveGoal(GoalResult.Success);
+                return;
+            }
+
+            // INTERRUPTED: entered combat
+            if (MotorState == UnitMotorState.Fighting)
+            {
+                ComputeMoveReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                return;
+            }
+
+            // INTERRUPTED: tile no longer reachable
+            if (!TryComputePath(0))
+            {
+                ComputeMoveReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                return;
+            }
+        }
+        
+        private void ComputeMoveReward(GoalResult result)
+        {
+            _agentReward = 0f;
+
+            // Small reward for reaching the tile
+            if (_moveSuccessTriggered)
+                _agentReward += 0.1f;
+
+            // Small penalty for long travel
+            float travelPenalty = Mathf.Clamp01(_moveTimeSpent / 10f);
+            _agentReward -= travelPenalty * 0.05f;
+
+            ApplyGoalOutcomeModifier(result);   
+        }
+
+        #endregion
+
+        #region Attack Agent Core
+
+        private BaseUnit _attackTarget;
+        private float _attackTimeSpentPursuing;
+        private float _attackTimeSpentFighting;
+        private bool _attackSuccessTriggered;
+
         public void RequestAttackUnit(BaseUnit target, UnitAgentGoal goal)
         {
+            if (goal != UnitAgentGoal.Fight &&
+                goal != UnitAgentGoal.Defend &&
+                goal != UnitAgentGoal.Support)
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+            
+            if (target == null || !target.IsAlive || IsFriendly(target))
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+            
             SetGoal(goal);
+
+            _attackTarget = target;
+            _attackTimeSpentPursuing = 0f;
+            _attackTimeSpentFighting = 0f;
+            _attackSuccessTriggered = false;
+
+            // Use your existing attack logic
             TryAttackTarget(target);
+        }
+
+        private void TickAttackCore()
+        {
+            if (MotorState == UnitMotorState.Pursuing)
+                _attackTimeSpentPursuing += Time.deltaTime;
+            
+            if (MotorState == UnitMotorState.Fighting)
+                _attackTimeSpentFighting += Time.deltaTime;
+            
+            // target died
+            if (_attackTarget == null || !_attackTarget.IsAlive)
+            {
+                _attackSuccessTriggered = true;
+                ComputeAttackReward(GoalResult.Success);
+                ResolveGoal(GoalResult.Success);
+                return;
+            }
+            
+            // lost sight
+            if (!IsTileVisible(_attackTarget.CurrentHex))
+            {
+                ComputeAttackReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                return;
+            }
+        }
+        
+        private void ComputeAttackReward(GoalResult result)
+        {
+            _agentReward = 0f;
+
+            // Reward for time spent fighting
+            float fightRatio = Mathf.Clamp01(_attackTimeSpentFighting / 5f);
+            _agentReward += fightRatio * 0.3f;
+
+            // Penalty for long pursuit
+            float pursuePenalty = Mathf.Clamp01(_attackTimeSpentPursuing / 10f);
+            _agentReward -= pursuePenalty * 0.1f;
+
+            // Bonus for success
+            if (_attackSuccessTriggered)
+                _agentReward += 0.4f;
+
+            ApplyGoalOutcomeModifier(result);     
+        }
+        
+        private void ActivateSecureCore()
+        {
+            _secureTimeSpentMoving = _timeDuringAction;
+            _timeDuringAction = 0f;
+
+            _isSecureStandingPhase = true;
+            _secureElapsedStandingTime = 0f;
+        }
+        
+        private void TickSecureCore()
+        {
+            _secureElapsedStandingTime += Time.deltaTime;
+
+            // If we left the tile → interrupted
+            if (CurrentHex != _secureTile)
+            {
+                ComputeSecureReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                _isSecureStandingPhase = false;
+                return;
+            }
+
+            // If building ownership changes (enemy captured it) → interrupted
+            if (_secureBuilding.getOwner() != Owner)
+            {
+                ComputeSecureReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                _isSecureStandingPhase = false;
+                return;
+            }
+
+            // If enemy enters capture ring → fight
+            if (TryGetFirstClosestEnemyInArea(CurrentHex, 1, out BaseUnit enemy))
+            {
+                TryAttackTarget(enemy);
+                return;
+            }
+
+            // SUCCESS: held the tile long enough
+            if (_secureElapsedStandingTime >= 5f) // tune this
+            {
+                _secureSuccessTriggered = true;
+                ComputeSecureReward(GoalResult.Success);
+                ResolveGoal(GoalResult.Success);
+                _isSecureStandingPhase = false;
+                return;
+            }
+        }
+        
+        private void ComputeSecureReward(GoalResult result)
+        {
+            _agentReward = 0f;
+
+            // Reward for holding the tile
+            float holdRatio = Mathf.Clamp01(_secureElapsedStandingTime / 5f);
+            _agentReward += holdRatio * 0.2f;
+
+            // Penalty for long travel
+            float travelPenalty = Mathf.Clamp01(_secureTimeSpentMoving / 10f);
+            _agentReward -= travelPenalty * 0.05f;
+
+            // Bonus for success
+            if (_secureSuccessTriggered)
+                _agentReward += 0.3f;
+
+            ApplyGoalOutcomeModifier(result);
+        }
+
+        #endregion
+
+        #region Secure Agent Core
+
+        private TileScript _secureTile;
+        private BuildingScript _secureBuilding;
+
+        private float _secureTimeSpentMoving;
+        private float _secureElapsedStandingTime;
+        private bool _isSecureStandingPhase;
+        private bool _secureSuccessTriggered;
+        
+        public void RequestSecureLocation(TileScript tile)
+        {
+            SetGoal(UnitAgentGoal.Secure);
+
+            _secureTile = tile;
+            _secureBuilding = null;
+
+            // Find building via neighbors
+            foreach (TileScript n in tile.GetNeighbours())
+            {
+                if (n.AttachedBuilding != null)
+                {
+                    _secureBuilding = n.AttachedBuilding;
+                    break;
+                }
+            }
+
+            // Invalid secure target
+            if (_secureBuilding == null)
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+            
+            // Invalid: we do NOT own this building
+            if (_secureBuilding.getOwner() != Owner)
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+
+            // Reset tracking
+            _secureTimeSpentMoving = 0f;
+            _secureElapsedStandingTime = 0f;
+            _isSecureStandingPhase = false;
+            _secureSuccessTriggered = false;
+
+            TryGetPathAndMove(tile);
+        }
+
+        #endregion
+
+        #region Capture Agent Core
+
+        private TileScript _captureTile;
+        private BuildingScript _captureBuilding;
+        
+        private float _captureTimeSpentMoving;
+        private float _captureElapsedStandingTime;
+        private bool _isCaptureStandingPhase;
+        private bool _captureSuccessTriggered;
+
+        public void RequestCaptureLocation(TileScript captureTile)
+        {
+            SetGoal(UnitAgentGoal.Capture);
+            
+            // cache tile
+            _captureTile = captureTile;
+            
+            // reset ref
+            _captureBuilding = null;
+            
+            // get neighbors - the unit with building is what we want
+            foreach (TileScript tiles in captureTile.GetNeighbours())
+            {
+                if (tiles.AttachedBuilding != null)
+                {
+                    _captureBuilding = tiles.AttachedBuilding;
+                    break;
+                }
+            }
+            
+            // NRE bail, and goal can not be achieved fail
+            if (_captureBuilding == null)
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+            
+            // if we own the building - uncapturable - fail
+            if (_captureBuilding.getOwner() == this.Owner)
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+            
+            // Reset capture tracking
+            _captureTimeSpentMoving = 0f;
+            _captureElapsedStandingTime = 0f;
+            _isCaptureStandingPhase = false;
+            _captureSuccessTriggered = false;
+
+            // Move toward capture tile
+            TryGetPathAndMove(captureTile);
+        }
+
+        private void ActivateCaptureCore()
+        {
+            // Record travel time
+            _captureTimeSpentMoving = _timeDuringAction;
+            _timeDuringAction = 0f;
+
+            // Begin standing phase
+            _isCaptureStandingPhase = true;
+            _captureElapsedStandingTime = 0f;
+        }
+
+        private void TickCaptureCore()
+        {
+            _captureElapsedStandingTime += Time.deltaTime;
+            
+            // left capture tile during capture
+            if (CurrentHex != _captureTile)
+            {
+                ComputeCaptureReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                _isCaptureStandingPhase = false;
+                return;
+            }
+            
+            // we captured building
+            if (_captureBuilding.getOwner() == this.Owner)
+            {
+                _captureSuccessTriggered = true;
+                ComputeCaptureReward(GoalResult.Success);
+                ResolveGoal(GoalResult.Success);
+                _isCaptureStandingPhase = false;
+            }
+        }
+
+        private void ComputeCaptureReward(GoalResult result)
+        {
+            _agentReward = 0f;
+            
+            // stand time shape
+            float standingRatio = Mathf.Clamp01(_captureElapsedStandingTime / 5f);
+            _agentReward += standingRatio * 0.3f;
+            
+            // travel time penalty
+            float travelPenalty = Mathf.Clamp01(_captureTimeSpentMoving / 10f);
+            _agentReward -= travelPenalty * 0.1f;
+            
+            if (_captureSuccessTriggered)
+                _agentReward += 0.4f;
+
+            ApplyGoalOutcomeModifier(result);
+        }
+
+        private bool CaptureGoalInterruptedMidMove()
+        {
+            return _captureBuilding.getOwner() == this.Owner;
+        }
+
+        #endregion
+
+        #region FlyYouFools Core
+
+        private TileScript _fleeTile;
+        private float _fleeTimeSpent;
+        private bool _fleeSuccessTriggered;
+        
+        public void RequestFlee(TileScript tile)
+        {
+            SetGoal(UnitAgentGoal.FlyYouFools);
+
+            // if trying to pass gandalf, don't
+            if (tile == null || !IsWalkable(tile))
+            {
+                ResolveGoal(GoalResult.Failure);
+                return;
+            }
+
+            _fleeTile = tile;
+            _fleeTimeSpent = 0f;
+            _fleeSuccessTriggered = false;
+
+            // If we are in combat, this forces a disengage
+            TryGetPathAndFlee(tile);
+        }
+        
+        private void TickFleeCore()
+        {
+            _fleeTimeSpent += Time.deltaTime;
+
+            // SUCCESS: reached safety
+            if (CurrentHex == _fleeTile)
+            {
+                _fleeSuccessTriggered = true;
+                ComputeFleeReward(GoalResult.Success);
+                ResolveGoal(GoalResult.Success);
+                return;
+            }
+
+            // INTERRUPTED: path breaks
+            if (!TryComputePath(0))
+            {
+                ComputeFleeReward(GoalResult.Interrupted);
+                ResolveGoal(GoalResult.Interrupted);
+                return;
+            }
+        }
+        
+        private void ComputeFleeReward(GoalResult result)
+        {
+            _agentReward = 0f;
+
+            // Reward for reaching safety
+            if (_fleeSuccessTriggered)
+                _agentReward += 0.1f;
+
+            // Penalty for long travel
+            float travelPenalty = Mathf.Clamp01(_fleeTimeSpent / 10f);
+            _agentReward -= travelPenalty * 0.05f;
+
+            ApplyGoalOutcomeModifier(result);
         }
 
         #endregion
@@ -1279,7 +1767,6 @@ namespace Units
         
         // Movement oriented goals:
         Move,           // Move to a space
-        Explore,        // Explore a space
         Capture,        // Capture a point
         
         // Standing oriented goals:
