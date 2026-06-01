@@ -230,7 +230,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9cd9e6b4b8a447da18014fc80e6d89a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Units.UnitStats
-  baseMaxHealth: 50
+  baseMaxHealth: 70
   baseMoveSpeed: 1
   baseAttackPower: 10
   baseAttackSpeed: 0.5

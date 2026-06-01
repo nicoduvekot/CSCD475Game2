@@ -260,7 +260,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Units.UnitStats
   baseMaxHealth: 50
-  baseMoveSpeed: 2
+  baseMoveSpeed: 1
   baseAttackPower: 10
   baseAttackSpeed: 0.5
   baseAttackRange: 1

@@ -293,8 +293,8 @@ public class GameManager : MonoBehaviour
         // This is for the base resources that is given while you have your capital. The passed in number is a magic number as of right now.
         for(int i = 0; i < 3; i++)
         {
-            addResource(UnitOwner.Player, i, 10);
-            addResource(UnitOwner.Enemy, i, 10);
+            addResource(UnitOwner.Player, i, 5);
+            addResource(UnitOwner.Enemy, i, 5);
         }
 
         for (int i = 0; i < _allBuildings.Count; i++)

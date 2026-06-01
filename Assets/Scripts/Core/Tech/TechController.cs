@@ -168,7 +168,7 @@ public class TechController : MonoBehaviour
         {
             if (GameManager.Instance.spendResources(owner, temp, temp, temp))
             {
-                playerResourceUpgrade += 0.1;
+                playerResourceUpgrade += 0.2;
                 return;
             }
         }
@@ -177,7 +177,7 @@ public class TechController : MonoBehaviour
             
             if (GameManager.Instance.spendResources(owner, temp, temp, temp))
             {
-                enemyResourceUpgrade += 0.1;
+                enemyResourceUpgrade += 0.2;
                 return;
             }
         }
