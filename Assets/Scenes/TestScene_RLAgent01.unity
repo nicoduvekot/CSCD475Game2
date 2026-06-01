@@ -683,7 +683,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &892543158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -700,9 +700,9 @@ MonoBehaviour:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
   MaxStep: 50000
-  team: 0
+  team: 1
   tilesParent: {fileID: 1609277178}
-  episodeLengthSeconds: 60
+  episodeLengthSeconds: 30
   soldierUnitCost: 100
   archerUnitCost: 100
   horsemanUnitCost: 100
@@ -723,19 +723,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Policies.BehaviorParameters
   m_BrainParameters:
-    VectorObservationSize: 144
+    VectorObservationSize: 141
     NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 0
-      BranchSizes: 0a0000000700000009000000
-    VectorActionSize: 0a0000000700000009000000
+      BranchSizes: 0a000000090000003e020000c8000000
+    VectorActionSize: 0a000000090000003e020000c8000000
     VectorActionDescriptions: []
     VectorActionSpaceType: 0
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 0}
+  m_Model: {fileID: 5022602860645237092, guid: ea8d05c8637663e44ac4968222bf535b, type: 3}
   m_InferenceDevice: 0
-  m_BehaviorType: 0
-  m_BehaviorName: TestAgent
+  m_BehaviorType: 2
+  m_BehaviorName: TestAgentEnemy
   TeamId: 0
   m_UseChildSensors: 1
   m_UseChildActuators: 1
@@ -1122,6 +1122,112 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1332297380
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1332297384}
+  - component: {fileID: 1332297383}
+  - component: {fileID: 1332297382}
+  - component: {fileID: 1332297381}
+  m_Layer: 0
+  m_Name: TestAgent (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1332297381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332297380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
+  DecisionPeriod: 5
+  DecisionStep: 0
+  TakeActionsBetweenDecisions: 1
+--- !u!114 &1332297382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332297380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Policies.BehaviorParameters
+  m_BrainParameters:
+    VectorObservationSize: 141
+    NumStackedVectorObservations: 1
+    m_ActionSpec:
+      m_NumContinuousActions: 0
+      BranchSizes: 0a000000090000003e020000c8000000
+    VectorActionSize: 0a000000090000003e020000c8000000
+    VectorActionDescriptions: []
+    VectorActionSpaceType: 0
+    hasUpgradedBrainParametersWithActionSpec: 1
+  m_Model: {fileID: 0}
+  m_InferenceDevice: 0
+  m_BehaviorType: 0
+  m_BehaviorName: TestAgentPlayer
+  TeamId: 0
+  m_UseChildSensors: 1
+  m_UseChildActuators: 1
+  m_DeterministicInference: 0
+  m_ObservableAttributeHandling: 0
+--- !u!114 &1332297383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332297380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49f9b913d52d4cd88f263ae8526d2775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RL_Agent.Test_Agent
+  agentParameters:
+    maxStep: 0
+  hasUpgradedFromAgentParameters: 1
+  MaxStep: 50000
+  team: 0
+  tilesParent: {fileID: 1609277178}
+  episodeLengthSeconds: 30
+  soldierUnitCost: 100
+  archerUnitCost: 100
+  horsemanUnitCost: 100
+  difficulty: 1
+  easyModeCooldown: 2
+  mediumModeCooldown: 1
+  hardModeCooldown: 0
+--- !u!4 &1332297384
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332297380}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -40.78666, y: 0.5, z: -71.21834}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1502206405
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1131,16 +1237,28 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
+      propertyPath: 'enemy.Array.data[0]'
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
+      propertyPath: 'enemy.Array.data[1]'
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
+      propertyPath: 'enemy.Array.data[2]'
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
       propertyPath: 'player.Array.data[0]'
-      value: 0
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
       propertyPath: 'player.Array.data[1]'
-      value: 0
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 867522772028858366, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
       propertyPath: 'player.Array.data[2]'
-      value: 0
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 2577282981587841041, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
       propertyPath: m_Name
@@ -1308,112 +1426,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8400066022769891860, guid: 7f1b30d0296a9f54590fb34896f0c3ad, type: 3}
   m_PrefabInstance: {fileID: 1085525855}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1907379300
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1907379304}
-  - component: {fileID: 1907379303}
-  - component: {fileID: 1907379302}
-  - component: {fileID: 1907379301}
-  m_Layer: 0
-  m_Name: TestAgent (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1907379301
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1907379300}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
-  DecisionPeriod: 5
-  DecisionStep: 0
-  TakeActionsBetweenDecisions: 1
---- !u!114 &1907379302
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1907379300}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Policies.BehaviorParameters
-  m_BrainParameters:
-    VectorObservationSize: 144
-    NumStackedVectorObservations: 1
-    m_ActionSpec:
-      m_NumContinuousActions: 0
-      BranchSizes: 0a0000000700000009000000
-    VectorActionSize: 0a0000000700000009000000
-    VectorActionDescriptions: []
-    VectorActionSpaceType: 0
-    hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 0}
-  m_InferenceDevice: 0
-  m_BehaviorType: 0
-  m_BehaviorName: TestAgent
-  TeamId: 0
-  m_UseChildSensors: 1
-  m_UseChildActuators: 1
-  m_DeterministicInference: 0
-  m_ObservableAttributeHandling: 0
---- !u!114 &1907379303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1907379300}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 49f9b913d52d4cd88f263ae8526d2775, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RL_Agent.Test_Agent
-  agentParameters:
-    maxStep: 0
-  hasUpgradedFromAgentParameters: 1
-  MaxStep: 50000
-  team: 1
-  tilesParent: {fileID: 1609277178}
-  episodeLengthSeconds: 60
-  soldierUnitCost: 100
-  archerUnitCost: 100
-  horsemanUnitCost: 100
-  difficulty: 1
-  easyModeCooldown: 2
-  mediumModeCooldown: 1
-  hardModeCooldown: 0
---- !u!4 &1907379304
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1907379300}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -40.78666, y: 0.5, z: -71.21834}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2075875867
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1583,7 +1595,7 @@ SceneRoots:
   - {fileID: 2075875867}
   - {fileID: 1307006492}
   - {fileID: 892543160}
-  - {fileID: 1907379304}
+  - {fileID: 1332297384}
   - {fileID: 1085525855}
   - {fileID: 1086616082}
   - {fileID: 1075963598}
