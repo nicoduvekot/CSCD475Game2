@@ -195,8 +195,8 @@ public class GameManager : MonoBehaviour
         // 
         for(int i = 0; i < 3; i++)
         {
-            addResource(UnitOwner.Player, i, 10);
-            addResource(UnitOwner.Enemy, i, 10);
+            addResource(UnitOwner.Player, i, 5);
+            addResource(UnitOwner.Enemy, i, 5);
         }
 
         for (int i = 0; i < buildings.Count; i++)
