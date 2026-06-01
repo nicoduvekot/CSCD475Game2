@@ -1,7 +1,7 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using Units;
-using Unity.Collections;
 using Resource;
 using TeamControl;
 
@@ -19,6 +19,8 @@ public class BuildingScript : MonoBehaviour
     public bool isCapital = false;
     public UnitOwner initialOwner = UnitOwner.World;
     private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
+    
+    public event Action<BuildingScript, UnitOwner> OnBuildingCaptured;
 
     //public int captureTime = 30;
     // public Material neutral;
@@ -44,9 +46,9 @@ public class BuildingScript : MonoBehaviour
     private ResourceType resource;
 
     private List<TileScript> surroundingTiles = new();
-    private GameObject occupantTile;
+    public TileScript occupantTile; // the tile this building is on
 
-    
+    public IReadOnlyList<TileScript> GetNeighbourTiles() => surroundingTiles;
 
     void Start()
     {
@@ -101,15 +103,20 @@ public class BuildingScript : MonoBehaviour
         controlPercent = controlPercent > 100 ? 100:controlPercent;
         
 
-        if(controlPercent < 0){
+        if(controlPercent < 0)
+        {
             UnitOwner newCapture = getNewCapturer();
-            if(newCapture == UnitOwner.World){
+            
+            if(newCapture == UnitOwner.World)
+            {
                 
-                occupantTile.GetComponent<TileScript>().removeBuildingOwner();
+                occupantTile.removeBuildingOwner();
             }else{
                 if(newCapture != controller){
-                    occupantTile.GetComponent<TileScript>().removeBuildingOwner();
-                    occupantTile.GetComponent<TileScript>().addBuildingOwner(newCapture);
+                    occupantTile.removeBuildingOwner();
+                    occupantTile.addBuildingOwner(newCapture);
+                    
+                    OnBuildingCaptured?.Invoke(this, newCapture);
                 }
                 controller = newCapture;
                 capturing = getCapturingCount();
@@ -150,7 +157,7 @@ public class BuildingScript : MonoBehaviour
     public void createBuilding(GameObject currentTile,out UnitOwner owner){
 
         
-        occupantTile = currentTile;
+        occupantTile = currentTile.GetComponent<TileScript>();
         controller = initialOwner;
 
         owner = controller;
@@ -168,7 +175,7 @@ public class BuildingScript : MonoBehaviour
         TileScript tile = occupantTile.GetComponent<TileScript>();
 
        
-        TileScript hex = MapGenerateScript.getHex(tile.x + 1,tile.y,tile.z - 1).GetComponent<TileScript>();
+        TileScript hex  = MapGenerateScript.getHex(tile.x + 1,tile.y,tile.z - 1).GetComponent<TileScript>();
         TileScript hex2 = MapGenerateScript.getHex(tile.x + 1,tile.y + 1,tile.z).GetComponent<TileScript>();
         TileScript hex3 = MapGenerateScript.getHex(tile.x,tile.y + 1,tile.z + 1).GetComponent<TileScript>();
         TileScript hex4 = MapGenerateScript.getHex(tile.x - 1,tile.y,tile.z + 1).GetComponent<TileScript>();
@@ -253,7 +260,6 @@ public class BuildingScript : MonoBehaviour
                 player[(int)tile.getOccupant()] += 1;
             }
         }
-
         
 
         if(player[0] == player[1]){
@@ -264,6 +270,18 @@ public class BuildingScript : MonoBehaviour
 
         if(isCapital){
             //Do stuff
+
+            // Used to end the game once the capital has been taken
+            if (player[0] > player[1])
+            {
+                print("Capital has been captured by player");
+                GameManager.Instance.gameOver(UnitOwner.Player);
+            }
+            else
+            {
+                print("Capital has been captured by enemy");
+                GameManager.Instance.gameOver(UnitOwner.Enemy);
+            }
         }
 
         if(player[0] > player[1]){
@@ -296,19 +314,57 @@ public class BuildingScript : MonoBehaviour
     private void updateVisuals(){
         if(visibleToPerspective){
             if(controller == UnitOwner.Player){
-                occupantTile.GetComponent<TileScript>().addOverlay(playerControl);
+                occupantTile.addOverlay(playerControl);
             }else if(controller == UnitOwner.Enemy){
-                occupantTile.GetComponent<TileScript>().addOverlay(enemyControl);
+                occupantTile.addOverlay(enemyControl);
             }else if(controller == UnitOwner.World){
-                occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
+                occupantTile.addOverlay(neutralControl);
             }
         }else{
-            occupantTile.GetComponent<TileScript>().addOverlay(neutralControl);
+            occupantTile.addOverlay(neutralControl);
         }
     }
 
     public UnitOwner getOwner(){
         return controller;
+    }
+
+    /// <summary>
+    /// Intended to be:
+    /// Called by GameManager to Reset the game (for agent usage primarily)
+    /// </summary>
+    /// <param name="resetOwnership">
+    /// The Ownership this building should be reset to
+    /// </param>
+    public void ResetBuilding(UnitOwner resetOwnership)
+    {
+        // reset internal trackers
+        capturing = 0;
+        captureTimePassed = 0f;
+        
+        // clear recruitment status
+        recruitQueue.Clear();
+        recruitTimePassed = 0f;
+        
+        // reset the ownership
+        controller = resetOwnership;
+        
+        // reset control percent (if capital 100 control, else 0)
+        controlPercent = isCapital ? 100f : 0f;
+
+        // change building owner to resetOwnership value
+        occupantTile.removeBuildingOwner();
+        occupantTile.addBuildingOwner(resetOwnership);
+        
+        // reset surrounding tiles (capture tiles)
+        foreach (TileScript tile in surroundingTiles)
+        {
+            // each surrounding tile to any building is neutral
+            tile.addOverlay(neutralControl);
+        }
+        
+        // reset the visual overlay
+        updateVisuals();
     }
 
     public ResourceType getResource(){
@@ -331,11 +387,11 @@ public class BuildingScript : MonoBehaviour
             return;
         }
 
-        if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
-        PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
-            print("cannot create units if fort is owner by other player");
-            return;
-        }
+        // if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
+        // PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
+        //     print("cannot create units if fort is owner by other player");
+        //     return;
+        // }
 
         int available = 0;
         TileScript tile = occupantTile.GetComponent<TileScript>();

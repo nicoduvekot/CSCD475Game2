@@ -78,13 +78,13 @@ public class GlobalSound : MonoBehaviour
     public static void playFight(int unitType){
        
         if(unitType == 0 && coolDowns["swordFight"] <= 0f){
-            dynamicAudio.PlayOneShot(soldierFight,.5f);
+            dynamicAudio.PlayOneShot(soldierFight,.25f);
             coolDowns["swordFight"] = 7f;
         }else if(unitType == 1 && coolDowns["archerFight"] <= 0f){
-            dynamicAudio.PlayOneShot(archerFight,.5f);
+            dynamicAudio.PlayOneShot(archerFight,.25f);
             coolDowns["archerFight"] = 5f;
-        }else if(unitType == 2){
-            dynamicAudio.PlayOneShot(horsesFight,.5f);
+        }else if(unitType == 2 && coolDowns["horsesFight"] <= 0f){
+            dynamicAudio.PlayOneShot(horsesFight,.25f);
             coolDowns["horsesFight"] = 5f;
         }
         

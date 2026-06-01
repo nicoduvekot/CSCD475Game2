@@ -1,10 +1,10 @@
 using UnityEngine;
 using Units;       // Imports the name space for the enum types. 
 
-public class techController : MonoBehaviour
+public class TechController : MonoBehaviour
 {
     // Variable for unit singleton
-    public static techController Instance { get; private set; }
+    public static TechController Instance { get; private set; }
 
     // Variables for unit health and damage scaling.
     private double[] playerUnitUpgrades = { 1.0, 1.0, 1.0 };
@@ -108,6 +108,17 @@ public class techController : MonoBehaviour
             Debug.Log("UnitOwner types must be either Player or Enemy in getCost");
             return 0.0;
         }
+    }
+
+    // Used to reset the techs
+    public void reset()
+    {
+        for (int i = 0; i < 3; i++) {
+            playerUnitUpgrades[i] = 1.0;
+            enemyUnitUpgrades[i] = 1.0;
+        }
+        playerResourceUpgrade = 1.0;
+        enemyResourceUpgrade = 1.0;
     }
 
     public double getResourceCost(UnitOwner owner)

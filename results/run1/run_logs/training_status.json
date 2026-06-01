@@ -1,0 +1,51 @@
+{
+    "TestAgentPlayer": {
+        "checkpoints": [
+            {
+                "steps": 1265,
+                "file_path": "results\\run1\\TestAgentPlayer\\TestAgentPlayer-1265.onnx",
+                "reward": 1.0022914642468095,
+                "creation_time": 1780286393.1785247,
+                "auxillary_file_paths": [
+                    "results\\run1\\TestAgentPlayer\\TestAgentPlayer-1265.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1265,
+            "file_path": "results\\run1\\TestAgentPlayer.onnx",
+            "reward": 1.0022914642468095,
+            "creation_time": 1780286393.1785247,
+            "auxillary_file_paths": [
+                "results\\run1\\TestAgentPlayer\\TestAgentPlayer-1265.pt"
+            ]
+        }
+    },
+    "TestAgentEnemy": {
+        "checkpoints": [
+            {
+                "steps": 1265,
+                "file_path": "results\\run1\\TestAgentEnemy\\TestAgentEnemy-1265.onnx",
+                "reward": -0.08374997787177563,
+                "creation_time": 1780286393.287151,
+                "auxillary_file_paths": [
+                    "results\\run1\\TestAgentEnemy\\TestAgentEnemy-1265.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1265,
+            "file_path": "results\\run1\\TestAgentEnemy.onnx",
+            "reward": -0.08374997787177563,
+            "creation_time": 1780286393.287151,
+            "auxillary_file_paths": [
+                "results\\run1\\TestAgentEnemy\\TestAgentEnemy-1265.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.2.2+cu121"
+    }
+}

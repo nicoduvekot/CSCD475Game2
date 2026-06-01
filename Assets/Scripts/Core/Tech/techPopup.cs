@@ -78,12 +78,12 @@ public class techPopup : MonoBehaviour
 
     private void upgradeUnit(int type)
     {
-        techController.Instance.upgradeUnit(UnitOwner.Player, type);
+        TechController.Instance.upgradeUnit(UnitOwner.Player, type);
     }
 
     private void upgradeResource()
     {
-        techController.Instance.upgradeResource(UnitOwner.Player);
+        TechController.Instance.upgradeResource(UnitOwner.Player);
     }
 
     private void close()
@@ -93,9 +93,9 @@ public class techPopup : MonoBehaviour
 
     private void updateTexts()
     {
-        unit0UpgradeText.text    = "Food: " + techController.Instance.getUnitCost(UnitOwner.Player, 0);
-        unit1UpgradeText.text    = "Iorn: " + techController.Instance.getUnitCost(UnitOwner.Player, 1);
-        unit2UpgradeText.text    = "Wood: " + techController.Instance.getUnitCost(UnitOwner.Player, 2);
-        resourceUpgradeText.text = "All Resources: " + techController.Instance.getResourceCost(UnitOwner.Player);
+        unit0UpgradeText.text    = "Food: " + TechController.Instance.getUnitCost(UnitOwner.Player, 0);
+        unit1UpgradeText.text    = "Iorn: " + TechController.Instance.getUnitCost(UnitOwner.Player, 1);
+        unit2UpgradeText.text    = "Wood: " + TechController.Instance.getUnitCost(UnitOwner.Player, 2);
+        resourceUpgradeText.text = "All Resources: " + TechController.Instance.getResourceCost(UnitOwner.Player);
     }
 }

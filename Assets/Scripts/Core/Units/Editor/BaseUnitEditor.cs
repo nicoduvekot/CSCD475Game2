@@ -35,17 +35,17 @@ namespace Units.Editor
             
             if (GUILayout.Button("Apply Owner to This Unit"))
             {
-                unit.debugInitializeOwner(_selectedOwner);
+                unit.Initialize(unit.CurrentHex,_selectedOwner);
                 Debug.Log($"[Editor] Set owner of {unit.name} to {_selectedOwner}");
             }
-
+            
             EditorGUILayout.Space(15);
             EditorGUILayout.LabelField("Debug Tools", EditorStyles.boldLabel);
-
+            
             // Damage amount field
             _debugDamage = EditorGUILayout.FloatField("Damage Amount", _debugDamage);
 
-            // Apply damage button
+            //Apply damage button
             // if (GUILayout.Button("Apply Damage"))
             // {
             //     unit.TakeDamage(_debugDamage);

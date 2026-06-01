@@ -1,7 +1,9 @@
+using System;
 using Selection;
 using UnityEngine;
 using Units;
 using System.Collections.Generic;
+using NUnit.Framework.Constraints;
 using TeamControl;
 
 public class TileScript : MonoBehaviour, ISelectable
@@ -24,6 +26,11 @@ public class TileScript : MonoBehaviour, ISelectable
     private UnitOwner tileOccupant = UnitOwner.World;
     private GameObject OwnerOutline;
     private BuildingScript attachedBuilding;
+    
+    public BuildingScript AttachedBuilding => attachedBuilding;
+
+
+    public event Action<BaseUnit> OnUnitCreated;
    
    // real hex outline is used when the player can see the tile and fake fog which is always nuetral is used when the player cannot
     private Sprite realHexOutline;
@@ -356,6 +363,7 @@ public class TileScript : MonoBehaviour, ISelectable
     
     
     //remove later, only used for testing
+    // please don't - Nico (this is being used)
     public int getMovement()
     {
         return movementPoints;
@@ -577,10 +585,13 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void makeUnit(GameObject unit,UnitOwner owner){
+    public void makeUnit(GameObject unitPrefab, UnitOwner owner){
         
-        unit.GetComponent<TestUnit>().initializeUnit(this,owner);
-        Instantiate(unit,transform.position,transform.rotation);
+        GameObject go = Instantiate(unitPrefab, transform.position, transform.rotation);
+        BaseUnit unit = go.GetComponent<BaseUnit>();
+        unit.Initialize(this, owner);
+
+        OnUnitCreated?.Invoke(unit);
     }
 
     private void RevealForOwner(UnitOwner owner)
@@ -645,7 +656,10 @@ public class TileScript : MonoBehaviour, ISelectable
             tile.HideForOwner(owner);
     }
 
-    private List<TileScript> GetTilesInRange(int range)
+    // not the best programming here, but it works
+    public List<TileScript> GetNeighbours() => GetTilesInRange(1);
+
+    public List<TileScript> GetTilesInRange(int range)
     {
         List<TileScript> results = new();
         
@@ -687,6 +701,26 @@ public class TileScript : MonoBehaviour, ISelectable
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Operation to determine if this tile is visible
+    /// </summary>
+    /// <param name="owner">
+    /// The UnitOwner trying to request visibility status of the tile
+    /// </param>
+    /// <returns>
+    /// Bool for visibility
+    /// </returns>
+    public bool IsVisibleTo(UnitOwner owner)
+    {
+        return owner switch
+        {
+            UnitOwner.Player => !fogForPlayer,
+            UnitOwner.Enemy => !fogForEnemy,
+            UnitOwner.World => !fogForWorld,
+            _ => false
+        };
     }
 
     public void UpdateVisibilityForCurrentPerspective()
