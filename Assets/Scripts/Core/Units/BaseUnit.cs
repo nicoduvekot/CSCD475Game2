@@ -1767,6 +1767,21 @@ namespace Units
             }
         }
 
+        public void OnSelected(){
+            if(Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
+                float height = CurrentHex.getHeight() / 1.95f;
+                GameObject t = Instantiate(Resources.Load("Prefabs/SelectionHex", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(90,0,0),transform);
+                t.name = "SelectionHex";
+            }
+            
+        }
+
+        public void OnDeselected(){
+            if(Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
+                Destroy(transform.Find("SelectionHex").gameObject);
+            }
+        }
+
         #endregion
     }
     
@@ -1819,4 +1834,6 @@ namespace Units
         OverriddenByAgent,
         Bugged
     }
+
+    
 }
