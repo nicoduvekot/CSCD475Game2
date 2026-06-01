@@ -94,9 +94,9 @@ public class GlobalSound : MonoBehaviour
         if((unitType == 0 || unitType  == 1) && coolDowns["unitDies"] <= 0f){
             dynamicAudio.PlayOneShot(unitDies,.5f);
             coolDowns["unitDies"] = 1f;
-        }else if (unitType == 2 && coolDowns["horseDies"] <= 0f){
+        }else if (unitType == 2 && coolDowns["horseFight"] <= 0f){
             dynamicAudio.PlayOneShot(horseDies,.2f);
-            coolDowns["horseDies"] = 1f;
+            coolDowns["horseFight"] = 1f;
         }
         
     }

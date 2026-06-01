@@ -9,8 +9,11 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 8498eee398870db438d456fae29c3c87
   - enabled: 1
-    path: Assets/Scenes/TestScene_NathanUI.unity
-    guid: b71734b2956720b4b969d9e537a84e8a
+    path: Assets/Scenes/TutorialScene.unity
+    guid: ff766ab07ee7e384bac099fdc169485b
+  - enabled: 1
+    path: Assets/Scenes/TestScene_RLAgent01.unity
+    guid: e5375e38600a4b34bb872fd5f645bc4a
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

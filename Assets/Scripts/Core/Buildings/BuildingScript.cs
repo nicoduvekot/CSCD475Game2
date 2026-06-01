@@ -38,7 +38,7 @@ public class BuildingScript : MonoBehaviour
 
     private float captureTimePassed = 0;
     private float recruitTimePassed = 0;
-    private float recruitCooldown = 5f;
+    private float recruitCooldown = 12f;
 
     private Queue<int> recruitQueue = new();
 

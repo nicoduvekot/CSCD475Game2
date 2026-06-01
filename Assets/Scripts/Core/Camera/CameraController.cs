@@ -18,7 +18,7 @@ public class CameraController : MonoBehaviour
     [Header("Movement Settings")]
     
     [Tooltip("Base movement speed of the camera. \nHigher = faster panning.")]
-    [SerializeField] private float moveSpeed = 100f;
+    [SerializeField] private float moveSpeed = 150;
     
     [Tooltip("How quickly the camera accelerates to full speed. \nHigher = snappier start.")]
     [SerializeField] private float acceleration = 40f;
