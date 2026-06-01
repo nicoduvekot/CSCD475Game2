@@ -128,6 +128,14 @@ namespace Units
         // Update uses MotorState to define how it updates
         private void Update()
         {
+            if(Owner == UnitOwner.Enemy){
+                BaseUnit enemy;
+                if(TryGetFirstClosestEnemyInArea(CurrentHex,1,out enemy)){
+                    if(enemy != null){
+                        TryAttackTarget(enemy);
+                    }
+                }
+            }
             switch (MotorState)
             {
                 case UnitMotorState.Standing:

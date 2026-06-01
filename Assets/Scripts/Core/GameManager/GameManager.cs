@@ -100,13 +100,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void LateUpdate()
-    {
-        if (!ResetNextFrame) return;
-        
-        reset();
-        ResetNextFrame = false;
-    }
+    // void LateUpdate()
+    // {
+    //     if (!ResetNextFrame) return;
+    //     
+    //     reset();
+    //     ResetNextFrame = false;
+    // }
 
     // Sets the base resources for both the player and enemy to the values.
     public void setBaseResources(int a, int b, int c)
