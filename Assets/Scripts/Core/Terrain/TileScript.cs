@@ -585,7 +585,7 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void makeUnit(GameObject unitPrefab, UnitOwner owner, int type){
+    public void makeUnit(GameObject unitPrefab, UnitOwner owner){
         
         GameObject go = Instantiate(unitPrefab, transform.position, transform.rotation);
         BaseUnit unit = go.GetComponent<BaseUnit>();
