@@ -83,9 +83,9 @@ public class GlobalSound : MonoBehaviour
         }else if(unitType == 1 && coolDowns["archerFight"] <= 0f){
             dynamicAudio.PlayOneShot(archerFight,.25f);
             coolDowns["archerFight"] = 5f;
-        }else if(unitType == 2 && coolDowns["horsesFight"] <= 0f){
+        }else if(unitType == 2 && coolDowns["horseFight"] <= 0f){
             dynamicAudio.PlayOneShot(horsesFight,.25f);
-            coolDowns["horsesFight"] = 5f;
+            coolDowns["horseFight"] = 5f;
         }
         
     }
@@ -94,9 +94,9 @@ public class GlobalSound : MonoBehaviour
         if((unitType == 0 || unitType  == 1) && coolDowns["unitDies"] <= 0f){
             dynamicAudio.PlayOneShot(unitDies,.5f);
             coolDowns["unitDies"] = 1f;
-        }else if (unitType == 2 && coolDowns["horseFight"] <= 0f){
+        }else if (unitType == 2 && coolDowns["horseDies"] <= 0f){
             dynamicAudio.PlayOneShot(horseDies,.2f);
-            coolDowns["horseFight"] = 1f;
+            coolDowns["horseDies"] = 1f;
         }
         
     }
