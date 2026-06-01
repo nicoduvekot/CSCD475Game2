@@ -60,9 +60,14 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         SetupGameManagerTracking();
+        start();
     }
 
 
+        
+    
+
+    
     void Update()
     {
         if (!paused && timeRemaining > 0)
