@@ -339,12 +339,14 @@ public class GameManager : MonoBehaviour
     {
         if (owner == UnitOwner.Player)
         {
+            GlobalSound.winGame();
             Debug.Log("Player won the game!");
             pause();
             GameoverPopup.Instance.show(UnitOwner.Player); // Line 241
         }
         else if(owner == UnitOwner.Enemy)
         {
+            GlobalSound.loseGame();
             Debug.Log("Enemy won the game!");
             pause();
             GameoverPopup.Instance.show(UnitOwner.Enemy);

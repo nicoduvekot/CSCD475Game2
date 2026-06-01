@@ -83,8 +83,8 @@ public class GlobalSound : MonoBehaviour
         }else if(unitType == 1 && coolDowns["archerFight"] <= 0f){
             dynamicAudio.PlayOneShot(archerFight,.5f);
             coolDowns["archerFight"] = 5f;
-        }else if(unitType == 2){
-            dynamicAudio.PlayOneShot(horsesFight,.5f);
+        }else if(unitType == 2 && coolDowns["horsesFight"] <= 0f){
+            dynamicAudio.PlayOneShot(horsesFight,.3f);
             coolDowns["horsesFight"] = 5f;
         }
         

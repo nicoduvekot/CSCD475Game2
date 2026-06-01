@@ -30,7 +30,7 @@ namespace Units
         private Health Health { get; set; }
         private Healthbar Healthbar { get; set; }
         private UnitStats Stats { get; set; }
-        private StateDisplayUI StateDisplayUI { get; set; }
+        // private StateDisplayUI StateDisplayUI { get; set; }
         
         // Int Representing the type of unit this is
         // 0 = Soldier
@@ -102,7 +102,7 @@ namespace Units
             _pathing = GetComponent<UnitPathing>();
             _pathResolver = new UnitPathResolver(_pathing);
             
-            StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
+            //StateDisplayUI = GetComponentInChildren<StateDisplayUI>();
             
             _renderers = GetComponentsInChildren<Renderer>(includeInactive: true);
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -245,6 +245,7 @@ namespace Units
             // increment stepping counter
             _currentStepTimer -= Time.deltaTime;
             
+            
             // bail if step counter not reached
             if (_currentStepTimer > 0f)
                 return;
@@ -330,14 +331,14 @@ namespace Units
             }
             
             // if target left our range - stop fighting and pursue
-            float dist = Vector3.Distance(_targetUnit.transform.position, _transform.position);
-            if (dist > Stats.BaseAttackRange)
-            {
-                // target moved → pursue again
-                _unitAnimator.SetAttacking(false);
-                TransitionToPursuing();
-                return;
-            }
+            // float dist = Vector3.Distance(_targetUnit.transform.position, _transform.position);
+            // if (TryComputePath(Stats.BaseAttackRange))
+            // {
+            //     // target moved → pursue again
+            //     _unitAnimator.SetAttacking(false);
+            //     TransitionToPursuing();
+            //     return;
+            // }
             
             // get direction so we ensure facing target
             Vector3 dir = _targetUnit.transform.position - _transform.position;
@@ -675,6 +676,9 @@ namespace Units
             
             _unitAnimator.SetWalking(true);
             _unitAnimator.SetAttacking(false);
+            if(Owner == UnitOwner.Player){
+                GlobalSound.playMovement(UnitType);
+            }
         }
 
         private void TransitionToPursuing()
@@ -993,8 +997,8 @@ namespace Units
             if (Healthbar != null)
                 Healthbar.SetVisible(unitVisible);
 
-            if (StateDisplayUI != null)
-                StateDisplayUI.SetVisible(isOwnerPerspective);    
+            // if (StateDisplayUI != null)
+            //     StateDisplayUI.SetVisible(isOwnerPerspective);    
         }
 
         #endregion
