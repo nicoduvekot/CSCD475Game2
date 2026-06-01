@@ -247,13 +247,14 @@ namespace Selection
         
         private void ClearSelected()
         {
+            _selectedObject = null;
+            selectedObjectDebug = null;
             try{
             _selectedObject?.OnDeselected();
             }catch (MissingReferenceException e){
-                
+
             }
-            _selectedObject = null;
-            selectedObjectDebug = null;
+            
         }
         
         private void SetSelected(ISelectable selectable)

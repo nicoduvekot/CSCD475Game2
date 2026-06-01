@@ -22,6 +22,9 @@ namespace Units
 
         public void SetWalking(bool value)
         {
+            if(_animator == null){
+                return;
+            }
             _animator.SetBool(IsWalking, value);
         }
 
@@ -31,11 +34,17 @@ namespace Units
 
         public void SetAttacking(bool value)
         {
+            if(_animator == null){
+                return;
+            }
             _animator.SetBool(IsAttacking, value);
         }
 
         public void SetAttackSpeed(float value)
         {
+            if(_animator == null){
+                return;
+            }
             _animator.SetFloat(AttackSpeed, value);
         }
 
