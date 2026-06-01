@@ -302,6 +302,16 @@ namespace Units
                 return;
             }
             
+            // if target left our range - stop fighting and pursue
+            float dist = Vector3.Distance(_targetUnit.transform.position, _transform.position);
+            if (dist > Stats.BaseAttackRange)
+            {
+                // target moved → pursue again
+                _unitAnimator.SetAttacking(false);
+                TransitionToPursuing();
+                return;
+            }
+            
             // get direction so we ensure facing target
             Vector3 dir = _targetUnit.transform.position - _transform.position;
             HandleSpriteFlip(dir);
