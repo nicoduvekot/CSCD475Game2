@@ -59,6 +59,8 @@ namespace RL_Agent
                 // these only needs to happen once
                 CacheBuildingReferences();
                 CacheWalkableTiles();
+                
+                DebugPrintWalkableTiles();
 
                 // ensure prev fog count is init
                 ResetPrevCounts();
@@ -105,11 +107,11 @@ namespace RL_Agent
         }
 
         // this is where we design state knowledge
-        public override void CollectObservations(VectorSensor sensor) // 144 total
+        public override void CollectObservations(VectorSensor sensor) // 141 total
         {
             ObserveTime(sensor);                    // 1 sensor
             ObserveBuildingOwnership(sensor);       // 9 sensors
-            ObserveMyUnits(sensor);                 // 9 sensors
+            ObserveMyUnits(sensor);                 // 12 sensors
             ObserveVisibleEnemyUnits(sensor);       // 3 sensors
             ObserveResources(sensor);               // 3 sensors
             ObserveTechUpgrades(sensor);            // 3 sensors
@@ -122,6 +124,19 @@ namespace RL_Agent
         {
             CheckRecruitmentMasks(actionMask);
             CheckTacticalMasks(actionMask);
+            MaskUnitSelection(actionMask);
+        }
+        
+        private void MaskUnitSelection(IDiscreteActionMask actionMask)
+        {
+            int count = _myUnits.Count;
+            
+            if (count == 0)
+                return;
+
+            // Disable all unit indices >= current unit count
+            for (int i = count; i < GameManager.MaxUnitsListCount; i++)
+                actionMask.SetActionEnabled(3, i, false);
         }
         
         // this is where we design action space
@@ -160,19 +175,40 @@ namespace RL_Agent
             // Action Summary
             //  0 = None
             //  1 = Move            :(myUnit and tile),
-            //  2 = Explore         :(myUnit and tile),
-            //  3 = Capture         :(myUnit and tile),
-            //  4 = Guard           :(myUnit and tile),
-            //  5 = Secure          :(myUnit and tile),
-            //  6 = Defend          :(myUnit and enemy),
-            //  7 = Fight           :(myUnit and enemy),
-            //  8 = Support        *:(myUnit and myUnit),
-            //  9 = flyYouFools     :(myUnit and tile)
+            //  2 = Capture         :(myUnit and tile),
+            //  3 = Guard           :(myUnit and tile),
+            //  4 = Secure          :(myUnit and tile),
+            //  5 = Defend          :(myUnit and enemy),
+            //  6 = Fight           :(myUnit and enemy),
+            //  7 = Support        *:(myUnit and myUnit),
+            //  8 = flyYouFools     :(myUnit and tile)
 
             RewardResourceIncome();
         }
 
         #region Tactical Action Logic
+        
+        private void DebugPrintWalkableTiles()
+        {
+            Debug.Log($"[TestAgent] Walkable Tile Count = {_allWalkableTiles.Count}");
+
+            for (int i = 0; i < _allWalkableTiles.Count; i++)
+            {
+                TileScript tile = _allWalkableTiles[i];
+
+                if (tile == null)
+                {
+                    Debug.Log($"[{i}] NULL TILE");
+                    continue;
+                }
+
+                Vector3 pos = tile.transform.localPosition;
+
+                Debug.Log(
+                    $"[{i}] Tile @ ({pos.x:F1}, {pos.z:F1})  movement={tile.getMovement()}  fogP={tile.fogForPlayer} fogE={tile.fogForEnemy}"
+                );
+            }
+        }
         
         private void HandleGoalAction(UnitAgentGoal goal, int targetIndex, int unitIndex)
         {
@@ -185,22 +221,21 @@ namespace RL_Agent
             {
                 // Tile based goals
                 case UnitAgentGoal.Move:
-                case UnitAgentGoal.Explore:
-                case UnitAgentGoal.Capture:
-                case UnitAgentGoal.Guard:
+                case UnitAgentGoal.Capture:   // [ X ]
+                case UnitAgentGoal.Guard:     // [ X ]
                 case UnitAgentGoal.Secure:
                 case UnitAgentGoal.FlyYouFools:
                     HandleUnitTileGoal(unit, goal, targetIndex);
                     break;
                 
                 // Enemy based goals
-                case UnitAgentGoal.Defend:
-                case UnitAgentGoal.Fight:
+                case UnitAgentGoal.Defend:      // X
+                case UnitAgentGoal.Fight:       // X
                     HandleUnitEnemyGoal(unit, goal, targetIndex);
                     break;
                 
                 // Ally based goals
-                case UnitAgentGoal.Support:
+                case UnitAgentGoal.Support:     // X
                     HandleUnitAllyGoal(unit, goal, targetIndex);
                     break;
                 
@@ -246,13 +281,6 @@ namespace RL_Agent
                 return;
             }
             
-            // shaping for explore action
-            if (goal == UnitAgentGoal.Explore && !IsFogged(tile))
-            {
-                AddReward(-0.05f);
-                return;
-            }
-            
             // if picking flyYouFools, and new tile not closer to capital - Shaping Reward
             if (goal == UnitAgentGoal.FlyYouFools)
             {
@@ -267,10 +295,19 @@ namespace RL_Agent
                     return;
                 }
             }
-
-            StartGoalTracking(unit, goal);   // must be BEFORE SetGoal
-            // unit.SetGoal(goal);              // must be BEFORE OnCommand
-            // unit.OnCommand(tile.transform.position, tile);
+            
+            StartGoalTracking(unit, goal);
+                
+            if (goal == UnitAgentGoal.Capture)
+                unit.RequestCaptureLocation(tile);
+            else if (goal == UnitAgentGoal.Secure)
+                 unit.RequestSecureLocation(tile);
+            else if (goal == UnitAgentGoal.Move)
+                 unit.RequestMoveTo(tile);
+            else if (goal == UnitAgentGoal.FlyYouFools)
+                 unit.RequestFlee(tile);
+            else if (goal == UnitAgentGoal.Guard)
+                unit.RequestGuardLocation(tile, 10);
         }
 
         private void HandleUnitEnemyGoal(BaseUnit unit, UnitAgentGoal goal, int enemyIndex)
@@ -294,8 +331,11 @@ namespace RL_Agent
             }
             
             StartGoalTracking(unit, goal);
-            // unit.SetGoal(goal);
-            // unit.OnCommand(enemy.transform.position, enemy);
+
+            if (goal == UnitAgentGoal.Fight)
+                unit.RequestAttackUnit(enemy, goal);
+            else if (goal == UnitAgentGoal.Defend)
+                unit.RequestAttackUnit(enemy, goal);
         }
 
         private void HandleUnitAllyGoal(BaseUnit unit, UnitAgentGoal goal, int allyIndex)
@@ -319,8 +359,13 @@ namespace RL_Agent
             }
 
             StartGoalTracking(unit, goal);
-            // unit.SetGoal(goal);
-            // unit.OnCommand(ally.transform.position, ally);
+            
+            if (goal == UnitAgentGoal.Support)
+            {
+                StartGoalTracking(unit, goal);
+                unit.RequestAttackUnit(enemy, goal);
+                return;
+            }
         }
 
         #endregion
@@ -919,7 +964,6 @@ namespace RL_Agent
         
         private int _myNoGoalCount;
         private int _myMoveGoalCount;
-        private int _myExploreGoalCount;
         private int _myCaptureGoalCount;
         private int _myGuardGoalCount;
         private int _mySecureGoalCount;
@@ -986,7 +1030,6 @@ namespace RL_Agent
             
             sensor.AddObservation(NormalizeMyUnitCount(_myNoGoalCount));
             sensor.AddObservation(NormalizeMyUnitCount(_myMoveGoalCount));
-            sensor.AddObservation(NormalizeMyUnitCount(_myExploreGoalCount));
             sensor.AddObservation(NormalizeMyUnitCount(_myCaptureGoalCount));
             sensor.AddObservation(NormalizeMyUnitCount(_myGuardGoalCount));
             sensor.AddObservation(NormalizeMyUnitCount(_mySecureGoalCount));
@@ -1005,7 +1048,6 @@ namespace RL_Agent
 
             _myNoGoalCount = 0;
             _myMoveGoalCount = 0;
-            _myExploreGoalCount = 0;
             _myCaptureGoalCount = 0;
             _myGuardGoalCount = 0;
             _mySecureGoalCount = 0;
@@ -1041,8 +1083,6 @@ namespace RL_Agent
                     case UnitAgentGoal.None: _myNoGoalCount++; break;
 
                     case UnitAgentGoal.Move: _myMoveGoalCount++; break;
-
-                    case UnitAgentGoal.Explore: _myExploreGoalCount++; break;
 
                     case UnitAgentGoal.Capture: _myCaptureGoalCount++; break;
 
@@ -1547,8 +1587,7 @@ namespace RL_Agent
         
         private bool GoalAllowsPartialReward(UnitAgentGoal goal)
         {
-            return goal == UnitAgentGoal.Explore ||
-                   goal == UnitAgentGoal.Capture ||
+            return goal == UnitAgentGoal.Capture ||
                    goal == UnitAgentGoal.Secure;
         }
 
