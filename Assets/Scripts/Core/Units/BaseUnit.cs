@@ -118,6 +118,7 @@ namespace Units
             _perspectiveManager = PerspectiveManager.Instance;
             PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
             UpdateVisibility(_perspectiveManager.CurrentPerspective);
+            
         }
 
         #endregion
@@ -320,6 +321,7 @@ namespace Units
 
         private void HandleFighting()
         {
+
             // null safety bail + target is dead check
             if (_targetUnit == null || !_targetUnit.IsAlive)
             {
@@ -330,9 +332,12 @@ namespace Units
             // get direction so we ensure facing target
             Vector3 dir = _targetUnit.transform.position - _transform.position;
             HandleSpriteFlip(dir);
+
+            
             
             // animation drives on attack hit
             _unitAnimator.SetAttacking(true);
+
         }
 
         private void HandleFleeing()
@@ -682,6 +687,9 @@ namespace Units
 
         private void TransitionToFighting()
         {
+            _unitAnimator.SetAttackSpeed(Stats.BaseAttackSpeed);
+            
+            print("start fight");
             if (CurrentGoal == UnitAgentGoal.Capture)
             {
                 ComputeCaptureReward(GoalResult.Interrupted);
@@ -701,6 +709,7 @@ namespace Units
             
             _unitAnimator.SetWalking(false);
             _unitAnimator.SetAttacking(true);
+            print("end fight");
         }
 
         private void TransitionToFleeing()
