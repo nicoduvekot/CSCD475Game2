@@ -118,6 +118,7 @@ namespace Units
             _perspectiveManager = PerspectiveManager.Instance;
             PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
             UpdateVisibility(_perspectiveManager.CurrentPerspective);
+            
         }
 
         #endregion
@@ -180,6 +181,9 @@ namespace Units
                 TickSecureCore();
         }
 
+        private float moveTime = 0f;
+        private int moveDirection = 0;
+        private float timePassed = 0f;
         private void HandleMoving()
         {
             // no path anymore
@@ -204,6 +208,7 @@ namespace Units
                 return;
             }
             
+            
             // if not currently stepping, begin a step
             if (!_isStepping)
             {
@@ -213,6 +218,27 @@ namespace Units
                 // begin the next step
                 BeginStep(NextHex);
                 _isStepping = true;
+
+                _isStepping = true;
+                moveTime = 1f / _currentStepTimer;
+                moveDirection = UnitPathing.getDirection(new int[] {CurrentHex.x,CurrentHex.y,CurrentHex.z},new int[] {NextHex.x,NextHex.y,NextHex.z});
+
+
+                GameObject Arrow =  transform.Find("Arrow").gameObject;
+                
+                Arrow.transform.rotation = Quaternion.Euler(ArrowDir.getArrowDirection(moveDirection));
+                Arrow.transform.localPosition = ArrowDir.getPosition(moveDirection);
+                if(Arrow.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("arrow")){
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().Play("arrow",0,0f);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                    
+                }else{
+                    
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                }
+
                 return;
             }
             
@@ -295,6 +321,7 @@ namespace Units
 
         private void HandleFighting()
         {
+
             // null safety bail + target is dead check
             if (_targetUnit == null || !_targetUnit.IsAlive)
             {
@@ -315,9 +342,12 @@ namespace Units
             // get direction so we ensure facing target
             Vector3 dir = _targetUnit.transform.position - _transform.position;
             HandleSpriteFlip(dir);
+
+            
             
             // animation drives on attack hit
             _unitAnimator.SetAttacking(true);
+
         }
 
         private void HandleFleeing()
@@ -667,6 +697,9 @@ namespace Units
 
         private void TransitionToFighting()
         {
+            _unitAnimator.SetAttackSpeed(Stats.BaseAttackSpeed);
+            
+            print("start fight");
             if (CurrentGoal == UnitAgentGoal.Capture)
             {
                 ComputeCaptureReward(GoalResult.Interrupted);
@@ -686,6 +719,7 @@ namespace Units
             
             _unitAnimator.SetWalking(false);
             _unitAnimator.SetAttacking(true);
+            print("end fight");
         }
 
         private void TransitionToFleeing()
@@ -715,6 +749,7 @@ namespace Units
             _unitAnimator.SetWalking(false);
             _unitAnimator.SetAttacking(false);
             _unitAnimator.TriggerDeath();
+            GlobalSound.unitDead(UnitType);
         }
 
         private void TransitionToCapturing()
@@ -969,6 +1004,7 @@ namespace Units
         private void Attack(BaseUnit enemy)
         {
             enemy.TakeDamage(Stats.BaseAttackPower, this);
+            GlobalSound.playFight(UnitType);
         }
         
         private void TakeDamage(float amount, BaseUnit attacker)
@@ -1750,6 +1786,21 @@ namespace Units
             }
         }
 
+        public void OnSelected(){
+            if(Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
+                float height = CurrentHex.getHeight() / 1.95f;
+                GameObject t = Instantiate(Resources.Load("Prefabs/SelectionHex", typeof(GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(90,0,0),transform);
+                t.name = "SelectionHex";
+            }
+            
+        }
+
+        public void OnDeselected(){
+            if(Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
+                Destroy(transform.Find("SelectionHex").gameObject);
+            }
+        }
+
         #endregion
     }
     
@@ -1802,4 +1853,6 @@ namespace Units
         OverriddenByAgent,
         Bugged
     }
+
+    
 }
