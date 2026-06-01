@@ -387,11 +387,11 @@ public class BuildingScript : MonoBehaviour
             return;
         }
 
-        if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
-        PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
-            print("cannot create units if fort is owner by other player");
-            return;
-        }
+        // if((PerspectiveManager.Instance.CurrentPerspective == Perspective.Player && controller != UnitOwner.Player) ||
+        // PerspectiveManager.Instance.CurrentPerspective == Perspective.Enemy && controller != UnitOwner.Enemy){
+        //     print("cannot create units if fort is owner by other player");
+        //     return;
+        // }
 
         int available = 0;
         TileScript tile = occupantTile.GetComponent<TileScript>();
@@ -464,20 +464,20 @@ public class BuildingScript : MonoBehaviour
         if(controller == UnitOwner.Player){
             
             if(type == 0){
-                openHex.makeUnit(Resources.Load("Prefabs/PlayerSoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player, type);
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerSoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
             }else if(type == 1){
-                openHex.makeUnit(Resources.Load("Prefabs/PlayerArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player, type);
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
             }else if(type == 2){
-                openHex.makeUnit(Resources.Load("Prefabs/PlayerHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player, type);
+                openHex.makeUnit(Resources.Load("Prefabs/PlayerHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Player);
             }
             GlobalSound.recruitUnitSound();
         }else{
             if(type == 0){
-                openHex.makeUnit(Resources.Load("Prefabs/EnemySoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy, type);
+                openHex.makeUnit(Resources.Load("Prefabs/EnemySoldier_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
             }else if(type == 1){
-                openHex.makeUnit(Resources.Load("Prefabs/EnemyArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy, type);
+                openHex.makeUnit(Resources.Load("Prefabs/EnemyArcher_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
             }else if(type == 2){
-                openHex.makeUnit(Resources.Load("Prefabs/EnemyHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy, type);
+                openHex.makeUnit(Resources.Load("Prefabs/EnemyHorseman_Prefab", typeof (GameObject)) as GameObject,UnitOwner.Enemy);
             }
         }
         
