@@ -854,8 +854,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c40f8107c45189f4d8451dc1d703b1d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIButtonManager
-  exitButton: {fileID: 9199792974724365096}
+  menuButton: {fileID: 9199792974724365096}
   techButton: {fileID: 2027662824365838593}
+  popup: {fileID: 0}
+  yesButton: {fileID: 0}
+  noButton: {fileID: 0}
 --- !u!1 &2814268823594906015
 GameObject:
   m_ObjectHideFlags: 0
@@ -1858,7 +1861,7 @@ GameObject:
   - component: {fileID: 766618947731589144}
   - component: {fileID: 9199792974724365096}
   m_Layer: 5
-  m_Name: Exit
+  m_Name: MainMenu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2341,7 +2344,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Exit
+  m_text: Main Menu
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

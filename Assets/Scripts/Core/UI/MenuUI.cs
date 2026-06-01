@@ -50,12 +50,12 @@ public class MenuUI : MonoBehaviour
     // This loads the new game scene
     private void onNewGameClick()
     {
-        SceneManager.LoadScene("TestScene_NathanUI");
+        SceneManager.LoadScene(1);
     }
 
     private void onTutorialClick()
     {
         // Load scene from tutorial
-        // SceneManager.LoadScene()
+        SceneManager.LoadScene(2);
     }
 }
