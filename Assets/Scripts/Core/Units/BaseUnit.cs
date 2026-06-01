@@ -180,6 +180,9 @@ namespace Units
                 TickSecureCore();
         }
 
+        private float moveTime = 0f;
+        private int moveDirection = 0;
+        private float timePassed = 0f;
         private void HandleMoving()
         {
             // no path anymore
@@ -204,6 +207,7 @@ namespace Units
                 return;
             }
             
+            
             // if not currently stepping, begin a step
             if (!_isStepping)
             {
@@ -213,6 +217,27 @@ namespace Units
                 // begin the next step
                 BeginStep(NextHex);
                 _isStepping = true;
+
+                _isStepping = true;
+                moveTime = 1f / _currentStepTimer;
+                moveDirection = UnitPathing.getDirection(new int[] {CurrentHex.x,CurrentHex.y,CurrentHex.z},new int[] {NextHex.x,NextHex.y,NextHex.z});
+
+
+                GameObject Arrow =  transform.Find("Arrow").gameObject;
+                
+                Arrow.transform.rotation = Quaternion.Euler(ArrowDir.getArrowDirection(moveDirection));
+                Arrow.transform.localPosition = ArrowDir.getPosition(moveDirection);
+                if(Arrow.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).IsName("arrow")){
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().Play("arrow",0,0f);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                    
+                }else{
+                    
+                    Arrow.GetComponent<Animator>().SetFloat("Speed",moveTime);
+                    Arrow.GetComponent<Animator>().SetBool("Start",true);
+                }
+
                 return;
             }
             
@@ -705,6 +730,7 @@ namespace Units
             _unitAnimator.SetWalking(false);
             _unitAnimator.SetAttacking(false);
             _unitAnimator.TriggerDeath();
+            GlobalSound.unitDead(UnitType);
         }
 
         private void TransitionToCapturing()
@@ -959,6 +985,7 @@ namespace Units
         private void Attack(BaseUnit enemy)
         {
             enemy.TakeDamage(Stats.BaseAttackPower, this);
+            GlobalSound.playFight(UnitType);
         }
         
         private void TakeDamage(float amount, BaseUnit attacker)
