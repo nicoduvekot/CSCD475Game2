@@ -32,7 +32,7 @@ public class GameManager : MonoBehaviour
     private int resourceCap = 2000;
 
     // The Max amount of units a "team" should have
-    public const int MaxUnitsListCount = 25;
+    public const int MaxUnitsListCount = 200;
 
     // Used for event update for RL training
     public event Action<UnitOwner> OnGameEnded;
@@ -257,7 +257,9 @@ public class GameManager : MonoBehaviour
     {
         pause();
         TechController.Instance.reset();
-
+        
+        GameoverPopup.Instance.hide();
+        
         DestroyAllUnits();
         
         foreach (BuildingScript building in _allBuildings)
