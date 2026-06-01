@@ -5,36 +5,32 @@ using UnityEngine.UI;
 public class UIButtonManager : MonoBehaviour
 {
     // Objects for buttons
-    [SerializeField] private Button exitButton;
+    [SerializeField] private Button menuButton; // Changed to open the popup
     [SerializeField] private Button techButton;
 
-    void Awake()
+    
+
+    void Start()
     {
         // runtime hookup so OnClick works even if Inspector won't show the method
-        if (exitButton != null && techButton != null)
+        if (menuButton != null && techButton != null)
         {
-            exitButton.onClick.RemoveAllListeners();
-            exitButton.onClick.AddListener(onExitClick);
+            menuButton.onClick.RemoveAllListeners();
+            menuButton.onClick.AddListener(onMenuClick);
 
             techButton.onClick.RemoveAllListeners();
             techButton.onClick.AddListener(onTechClick);
         }
     }
 
-    private void onExitClick()
+    private void onMenuClick()
     {
-#if UNITY_EDITOR
-        // Exits Play Mode when testing in the Editor
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        // Closes the application in a standalone build (PC, Mac, Android, etc.)
-        Application.Quit();
-#endif
+        ClosePopup.Instance.show();
+        GameManager.Instance.pause();
     }
 
     private void onTechClick()
     {
         techPopup.Instance.Show();
     }
-
 }
