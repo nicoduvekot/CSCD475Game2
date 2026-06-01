@@ -94,7 +94,7 @@ public class techPopup : MonoBehaviour
     private void updateTexts()
     {
         unit0UpgradeText.text    = "Food: " + TechController.Instance.getUnitCost(UnitOwner.Player, 0);
-        unit1UpgradeText.text    = "Iorn: " + TechController.Instance.getUnitCost(UnitOwner.Player, 1);
+        unit1UpgradeText.text    = "Iron: " + TechController.Instance.getUnitCost(UnitOwner.Player, 1);
         unit2UpgradeText.text    = "Wood: " + TechController.Instance.getUnitCost(UnitOwner.Player, 2);
         resourceUpgradeText.text = "All Resources: " + TechController.Instance.getResourceCost(UnitOwner.Player);
     }

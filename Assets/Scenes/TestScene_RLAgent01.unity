@@ -1344,6 +1344,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8520479216761638033, guid: 7853067403bf5c74ba203994fdcee59d, type: 3}
+      propertyPath: m_text
+      value: 'Iron: '
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

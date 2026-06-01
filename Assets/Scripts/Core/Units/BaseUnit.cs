@@ -31,7 +31,7 @@ namespace Units
 
         private Health Health { get; set; }
         private Healthbar Healthbar { get; set; }
-        private UnitStats Stats { get; set; }
+        private UnitStats Stats;
         // private StateDisplayUI StateDisplayUI { get; set; }
         
         // Int Representing the type of unit this is
@@ -111,12 +111,18 @@ namespace Units
             
             _unitAnimator = GetComponentInChildren<UnitAnimator>();
             
-            Health.InitializeHealth(Stats.BaseMaxHealth);
+            
             Health.OnHealthEmpty += TransitionToDying;
+            print("currentUnitType is " + UnitType);
+            print("upgrades for soldier is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,0));
+            print("upgrades for archer is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,1));
+            print("upgrades for horse is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,2));
+
         }
 
         private void Start()
         {
+            Health.InitializeHealth(Stats.BaseMaxHealth + (50 *(float)TechController.Instance.getUnitsModifier(Owner,UnitType)) - 50);
             _perspectiveManager = PerspectiveManager.Instance;
             PerspectiveManager.Instance.OnPerspectiveChanged += UpdateVisibility;
             UpdateVisibility(_perspectiveManager.CurrentPerspective);
@@ -1017,7 +1023,7 @@ namespace Units
 
         private void Attack(BaseUnit enemy)
         {
-            enemy.TakeDamage(Stats.BaseAttackPower, this);
+            enemy.TakeDamage(Stats.BaseAttackPower + (50 * (float)TechController.Instance.getUnitsModifier(Owner,UnitType)) - 50, this);
             GlobalSound.playFight(UnitType);
         }
         

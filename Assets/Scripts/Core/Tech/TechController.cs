@@ -27,6 +27,7 @@ public class TechController : MonoBehaviour
     // Upgrade tech based off this. Code isn't the most pretty
     public void upgradeUnit(UnitOwner owner, int type)
     {
+        print("upgraded");
         if (type < 0 || type > 2)
         {
             Debug.Log("upgrade in techController must have an int between 0 and 2");

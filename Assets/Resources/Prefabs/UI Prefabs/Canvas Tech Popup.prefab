@@ -339,7 +339,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Iorn: 200'
+  m_text: 'Food: 200'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1181,7 +1181,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Wood: 200'
+  m_text: 'Iron: 200'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1428,7 +1428,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -300, y: 50}
+  m_AnchoredPosition: {x: 300, y: 50}
   m_SizeDelta: {x: 200, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1556833154442700667
@@ -2493,7 +2493,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 50}
+  m_AnchoredPosition: {x: -300, y: 50}
   m_SizeDelta: {x: 200, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8304457187759623272
@@ -3001,13 +3001,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::techPopup
   canvasGroup: {fileID: 7065207081755249527}
   closeButton: {fileID: 7815937149398486543}
-  unit0UpgradeButton: {fileID: 8825746972334406126}
-  unit1UpgradeButton: {fileID: 3741225556336815457}
-  unit2UpgradeButton: {fileID: 2774747534332187403}
+  unit0UpgradeButton: {fileID: 3741225556336815457}
+  unit1UpgradeButton: {fileID: 2774747534332187403}
+  unit2UpgradeButton: {fileID: 8825746972334406126}
   resourceUpgradeButton: {fileID: 468487936358069548}
-  unit0UpgradeText: {fileID: 5617990843471634972}
-  unit1UpgradeText: {fileID: 2191608628695978351}
-  unit2UpgradeText: {fileID: 4974444579732197713}
+  unit0UpgradeText: {fileID: 2191608628695978351}
+  unit1UpgradeText: {fileID: 4974444579732197713}
+  unit2UpgradeText: {fileID: 5617990843471634972}
   resourceUpgradeText: {fileID: 996849836990462970}
 --- !u!225 &7065207081755249527
 CanvasGroup:
@@ -3207,7 +3207,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Food: 200'
+  m_text: 'Wood: 200'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3317,7 +3317,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 300, y: 50}
+  m_AnchoredPosition: {x: 0, y: 50}
   m_SizeDelta: {x: 200, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2995858283642347364
