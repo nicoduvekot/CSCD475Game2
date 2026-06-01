@@ -3,6 +3,7 @@ using Selection;
 using UnityEngine;
 using Units;
 using System.Collections.Generic;
+using NUnit.Framework.Constraints;
 using TeamControl;
 
 public class TileScript : MonoBehaviour, ISelectable
@@ -25,8 +26,10 @@ public class TileScript : MonoBehaviour, ISelectable
     private UnitOwner tileOccupant = UnitOwner.World;
     private GameObject OwnerOutline;
     private BuildingScript attachedBuilding;
-  
     
+    public BuildingScript AttachedBuilding => attachedBuilding;
+
+
     public event Action<BaseUnit> OnUnitCreated;
    
    // real hex outline is used when the player can see the tile and fake fog which is always nuetral is used when the player cannot
