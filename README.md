@@ -4,6 +4,7 @@ The Hecking Hexes Game
 ### Objective
 Recruit Units and buy upgrades. Conquer the enemies fort to win.
 We recommend using the tutorial on the main menu for a more in depth explanation of the game.
+The enemy AI for this game is using reinforcement learing, if it's having difficulties spawning units we recommend restarting the game,
 
 ### Controls
 WASD to move the camera, click on forts to recruit units, click on units to select them and right click to order them to move or attack another unit.
@@ -30,7 +31,7 @@ Download the linux version of the program from the github release. Then extract 
 
 tar -xf HeckingHexesLinux.tar
 
-cd into the directory using cd HeckingHexesLinux and run the program using ./HeckingHexesLinux.x86_64
+run the program using ./HeckingHexesLinux.x86_64
 
 if it says permission denied use the command:
 
