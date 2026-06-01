@@ -11,6 +11,8 @@ namespace Selection
         
         public void OnSelected() { }
         public void OnDeselected() { }
+
+        public GameObject GetGameObject();
         
         public void OnCommand(Vector3 worldPos, ISelectable targetSelectable) { }
         

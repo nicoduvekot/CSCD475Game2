@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Units;
 
 namespace Selection
 {
@@ -247,13 +248,12 @@ namespace Selection
         
         private void ClearSelected()
         {
+            if(_selectedObject is UnityEngine.Object obj && obj != null){
+                _selectedObject.OnDeselected();
+            }
             _selectedObject = null;
             selectedObjectDebug = null;
-            try{
-            _selectedObject?.OnDeselected();
-            }catch (MissingReferenceException e){
-
-            }
+            
             
         }
         

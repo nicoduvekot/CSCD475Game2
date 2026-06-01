@@ -61,7 +61,7 @@ public class TileScript : MonoBehaviour, ISelectable
     private int viewRange = 3;
 
     
-
+    public GameObject GetGameObject(){return gameObject;}
     void Start()
     {
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;

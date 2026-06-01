@@ -18,6 +18,8 @@ namespace Units
         
         // this is the person who can control this unit
         public UnitOwner Owner { get; private set; }
+
+        public GameObject GetGameObject(){return gameObject;}
         
         private bool _ownerInitialized;
         
@@ -1808,7 +1810,7 @@ namespace Units
         }
 
         public void OnDeselected(){
-            if(Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
+            if(gameObject != null && Owner == UnitOwner.Player && PerspectiveManager.Instance.CurrentPerspective == Perspective.Player){
                 Destroy(transform.Find("SelectionHex").gameObject);
             }
         }
