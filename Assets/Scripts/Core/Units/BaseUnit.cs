@@ -78,6 +78,8 @@ namespace Units
             startingTile.TrySetUnitOccupant(this);
             
             transform.position = startingTile.transform.position;
+            
+            UpdateStateUI();
         }
 
         #region Public API Helpers
@@ -113,10 +115,10 @@ namespace Units
             
             
             Health.OnHealthEmpty += TransitionToDying;
-            print("currentUnitType is " + UnitType);
-            print("upgrades for soldier is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,0));
-            print("upgrades for archer is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,1));
-            print("upgrades for horse is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,2));
+            //print("currentUnitType is " + UnitType);
+            //print("upgrades for soldier is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,0));
+            //print("upgrades for archer is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,1));
+            //print("upgrades for horse is " + TechController.Instance.getUnitsModifier(UnitOwner.Player,2));
 
         }
 
