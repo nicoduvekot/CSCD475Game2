@@ -42,6 +42,11 @@ public class TileScript : MonoBehaviour, ISelectable
 
     private string materialType = "";
     private Material ground;
+    
+    // these 3 are used for debugging occupied state
+    private Renderer groundRenderer;
+    private Material realGroundMaterial;
+    private Material occupiedGroundMaterial;
 
     //static value, will always be the cost to move on this terrain type
     private int realMovement = 0;
@@ -65,6 +70,10 @@ public class TileScript : MonoBehaviour, ISelectable
     void Start()
     {
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
+        
+        // used for debugging
+        groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
+        occupiedGroundMaterial = Resources.Load("Material/occupiedGround", typeof(Material)) as Material;
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
         realHexOutline = fakeHexOutline;
@@ -143,10 +152,7 @@ public class TileScript : MonoBehaviour, ISelectable
                     ground = Resources.Load("Material/building", typeof(Material)) as Material;
                     terrain = TerrainType.building;
                 }
-
-                
-
-                break;   
+                break; 
         }
 
         addFog();
@@ -159,8 +165,13 @@ public class TileScript : MonoBehaviour, ISelectable
 
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
-
         
+        // for debugging: cache the real ground material at creation
+        if (realGroundMaterial == null)
+        {
+            groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
+            realGroundMaterial = groundRenderer.material;
+        }
     }
 
     // sets the terrain of the tile after creation
@@ -421,10 +432,6 @@ public class TileScript : MonoBehaviour, ISelectable
             return false;
         }
 
-
-        // this change is part of Nico re-write
-        //movementPoints = -1;
-
         if(attachedBuilding != null){
             
             addOverlay(attachedBuilding.moveIntoHex(unit.Owner));
@@ -432,6 +439,10 @@ public class TileScript : MonoBehaviour, ISelectable
        
         RevealForOwner(unit.Owner);
         RevealAround(unit.Owner);
+        
+        // for debugging, set ground material as occupied
+        if (occupiedGroundMaterial != null)
+            groundRenderer.material = occupiedGroundMaterial;
 
         _occupyingUnit = unit;
         tileOccupant = unit.Owner;
@@ -475,15 +486,17 @@ public class TileScript : MonoBehaviour, ISelectable
             );
             return false;
         }
-
         
-
         if(OwnerOutline != null){
             addOverlay(attachedBuilding.moveOutOfHex(tileOccupant));
         }
         
         HideForOwner(tileOccupant);
         HideAround(tileOccupant);
+        
+        // from debugging: restore real ground material when unoccupied
+        if (realGroundMaterial != null)
+            groundRenderer.material = realGroundMaterial;
 
         tileOccupant = UnitOwner.World;
 
