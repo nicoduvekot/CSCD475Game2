@@ -43,10 +43,12 @@ public class TileScript : MonoBehaviour, ISelectable
     private string materialType = "";
     private Material ground;
     
+    // BUG: "for debugging": Section
     // these 3 are used for debugging occupied state
     private Renderer groundRenderer;
     private Material realGroundMaterial;
     private Material occupiedGroundMaterial;
+    // BUG: "for debugging": End Section
 
     //static value, will always be the cost to move on this terrain type
     private int realMovement = 0;
@@ -71,7 +73,8 @@ public class TileScript : MonoBehaviour, ISelectable
     {
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
         
-        // used for debugging
+        // BUG: "for debugging":
+        // cache renderer and cache occupied mat
         groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
         occupiedGroundMaterial = Resources.Load("Material/occupiedGround", typeof(Material)) as Material;
      
@@ -166,7 +169,8 @@ public class TileScript : MonoBehaviour, ISelectable
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
         
-        // for debugging: cache the real ground material at creation
+        // BUG: "for debugging":
+        // cache the real ground material at creation
         if (realGroundMaterial == null)
         {
             groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
@@ -440,7 +444,8 @@ public class TileScript : MonoBehaviour, ISelectable
         RevealForOwner(unit.Owner);
         RevealAround(unit.Owner);
         
-        // for debugging, set ground material as occupied
+        // BUG: "for debugging":
+        // set ground material as occupied. for debug
         if (occupiedGroundMaterial != null)
             groundRenderer.material = occupiedGroundMaterial;
 
@@ -494,7 +499,8 @@ public class TileScript : MonoBehaviour, ISelectable
         HideForOwner(tileOccupant);
         HideAround(tileOccupant);
         
-        // from debugging: restore real ground material when unoccupied
+        // BUG: "for debugging":
+        // restore real ground material when unoccupied. for debug
         if (realGroundMaterial != null)
             groundRenderer.material = realGroundMaterial;
 
