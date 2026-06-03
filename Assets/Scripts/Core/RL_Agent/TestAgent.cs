@@ -297,17 +297,6 @@ namespace RL_Agent
             }
             
             StartGoalTracking(unit, goal);
-                
-            if (goal == UnitAgentGoal.Capture)
-                unit.RequestCaptureLocation(tile);
-            else if (goal == UnitAgentGoal.Secure)
-                 unit.RequestSecureLocation(tile);
-            else if (goal == UnitAgentGoal.Move)
-                 unit.RequestMoveTo(tile);
-            else if (goal == UnitAgentGoal.FlyYouFools)
-                 unit.RequestFlee(tile);
-            else if (goal == UnitAgentGoal.Guard)
-                unit.RequestGuardLocation(tile, 10);
         }
 
         private void HandleUnitEnemyGoal(BaseUnit unit, UnitAgentGoal goal, int enemyIndex)
@@ -331,11 +320,6 @@ namespace RL_Agent
             }
             
             StartGoalTracking(unit, goal);
-
-            if (goal == UnitAgentGoal.Fight)
-                unit.RequestAttackUnit(enemy, goal);
-            else if (goal == UnitAgentGoal.Defend)
-                unit.RequestAttackUnit(enemy, goal);
         }
 
         private void HandleUnitAllyGoal(BaseUnit unit, UnitAgentGoal goal, int allyIndex)
@@ -359,13 +343,6 @@ namespace RL_Agent
             }
 
             StartGoalTracking(unit, goal);
-            
-            if (goal == UnitAgentGoal.Support)
-            {
-                StartGoalTracking(unit, goal);
-                unit.RequestAttackUnit(enemy, goal);
-                return;
-            }
         }
 
         #endregion
@@ -1536,14 +1513,6 @@ namespace RL_Agent
                 return;
             
             // if the unit already had an action, clear it
-            if (_activeGoals.ContainsKey(unit))
-            {
-                unit.OnGoalResolved -= HandleUnitGoalResolved;
-                _activeGoals.Remove(unit);
-            }
-            
-            _activeGoals[unit] = action;
-            unit.OnGoalResolved += HandleUnitGoalResolved;
         }
 
         /// <summary>
@@ -1581,7 +1550,6 @@ namespace RL_Agent
                 // discount that we overwrote this
             }
             
-            unit.OnGoalResolved -= HandleUnitGoalResolved;
             _activeGoals.Remove(unit);
         }
         
@@ -1596,15 +1564,11 @@ namespace RL_Agent
         /// </summary>
         private void ClearTacticalActions()
         {
-            foreach (BaseUnit unit in _activeGoals.Keys)
-                unit.OnGoalResolved -= HandleUnitGoalResolved;
-            
             _activeGoals.Clear();
         }
 
         private void ManualRemoveFromGoalRecords(BaseUnit unit)
         {
-            unit.OnGoalResolved -= HandleUnitGoalResolved;
             _activeGoals.Remove(unit);
         }
 
