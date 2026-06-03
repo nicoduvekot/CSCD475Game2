@@ -723,6 +723,11 @@ public class TileScript : MonoBehaviour, ISelectable
         };
     }
 
+    public void OnSelected()
+    {
+        if (AttachedBuilding != null) AttachedBuilding.OnSelected();
+    }
+
     public void UpdateVisibilityForCurrentPerspective()
     {
         Perspective p = PerspectiveManager.Instance.CurrentPerspective;

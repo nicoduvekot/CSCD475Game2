@@ -3,10 +3,14 @@ using UnityEngine;
 using System.Collections.Generic;
 using Units;
 using Resource;
+using Selection;
 using TeamControl;
 
-public class BuildingScript : MonoBehaviour
+public class BuildingScript : MonoBehaviour, ISelectable
 {
+    // used by ISelection to retrieve the Mono behavior of this
+    public MonoBehaviour Behaviour => this;
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private GameObject recruitBar;
     private bool recruiting;
@@ -152,6 +156,12 @@ public class BuildingScript : MonoBehaviour
         
         
         
+    }
+
+    public void OnSelected()
+    {
+        if (resource == ResourceType.Fort && controller == UnitOwner.Player)
+            UnitRecruitPopup.Instance.show(this);
     }
 
     public void createBuilding(GameObject currentTile,out UnitOwner owner){
