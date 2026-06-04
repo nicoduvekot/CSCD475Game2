@@ -58,15 +58,18 @@ namespace RL_Agent
             {
                 CacheBuildingReferences();
             }
+            
+            foreach (BuildingScript building in _allBuildings)
+                _previousControl[building] = building.GetControlPercent();
 
         }
 
-        public override void CollectObservations(VectorSensor sensor) // 133 total
+        public override void CollectObservations(VectorSensor sensor) // 158 total
         {
             ObserveTime(sensor);                    //   1 sensor
-            ObserveResources(sensor);               //   3 sensors
-            ObserveTechUpgrades(sensor);            //   3 sensors
-            ObserveBuildingOwnership(sensor);       //  18 sensors
+            ObserveResources(sensor);               //  10 sensors
+            ObserveTechUpgrades(sensor);            //  12 sensors
+            ObserveBuildingOwnership(sensor);       //  27 sensors
             ObserveCapturePoints(sensor);           // 108 sensors
         }
 
@@ -77,16 +80,26 @@ namespace RL_Agent
 
         public override void OnActionReceived(ActionBuffers actionBuffers)
         {
+            // before handling actions, reward capturing status
+            RewardCaptureProgress();
+            
             int economicAction = actionBuffers.DiscreteActions[0];
             HandleEconomicAction(economicAction);
             // Economic Action Summary:
             //  0 = Do Nothing.
-            //  1 = recruit soldier.
-            //  2 = recruit archer.
-            //  3 = recruit horseman.
-            //  4 = upgrade solider.
-            //  5 = upgrade archer.
-            //  6 = upgrade horseman.
+            //  1 = recruit soldier at capital.
+            //  2 = recruit archer at capital.
+            //  3 = recruit horseman at capital.
+            
+            //  4 = recruit soldier at fort.
+            //  5 = recruit archer at fort.
+            //  6 = recruit horseman at fort.
+            
+            //  7 = upgrade solider.
+            //  8 = upgrade archer.
+            //  9 = upgrade horseman.
+            
+            // 10 = upgrade resources.
         }
 
         #region Economy And Time Observations
@@ -98,16 +111,98 @@ namespace RL_Agent
         
         private void ObserveResources(VectorSensor sensor)
         {
+            // observe the actual amount of resources we have, normalized as percent of total we can have
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 0)); // 0 = food
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 1)); // 1 = wood
             sensor.AddObservation(_gameManager.getResourcePercentage(team, 2)); // 2 = iron
+            
+            // observe how the amount of resources we have influences recruitment capability
+            sensor.AddObservation(_gameManager.GetFood(team) >= soldierUnitCost ? 1f : 0f);
+            sensor.AddObservation(_gameManager.GetIron(team) >= archerUnitCost ? 1f : 0f);
+            sensor.AddObservation(_gameManager.GetWood(team) >= horsemanUnitCost ? 1f : 0f);
+            
+            // observe the current cost of unit type upgrades
+            sensor.AddObservation((float)(_techController.getUnitCost(team, 0) / 2000f));
+            sensor.AddObservation((float)(_techController.getUnitCost(team, 1) / 2000f));
+            sensor.AddObservation((float)(_techController.getUnitCost(team, 2) / 2000f));
+
+            // observe the current cost of resource upgrade
+            sensor.AddObservation((float)(_techController.getResourceCost(team) / 2000f));
         }
 
         private void ObserveTechUpgrades(VectorSensor sensor)
         {
+            // observe the current tech for a unit type
             sensor.AddObservation(_techController.getLevelUnit(team, 0)); // 0 = soldier
             sensor.AddObservation(_techController.getLevelUnit(team, 1)); // 1 = archer
             sensor.AddObservation(_techController.getLevelUnit(team, 2)); // 2 = horseman
+            
+            // observe the current resource upgrade level
+            sensor.AddObservation(_techController.getLevelResources(team));
+            
+            // observe the state of being able to afford the next tech upgrade
+            sensor.AddObservation(CanAffordUpgrade(0) ? 1f : 0f); // soldier upgrade
+            sensor.AddObservation(CanAffordUpgrade(1) ? 1f : 0f); // archer upgrade
+            sensor.AddObservation(CanAffordUpgrade(2) ? 1f : 0f); // horseman upgrade
+            
+            // observe when we can no longer ever purchase another upgrade for units
+            sensor.AddObservation(CanEverAffordUpgrade(0) ? 1f : 0f);
+            sensor.AddObservation(CanEverAffordUpgrade(1) ? 1f : 0f);
+            sensor.AddObservation(CanEverAffordUpgrade(2) ? 1f : 0f);
+            
+            // observe resource upgrade affordability and if we can never afford again
+            sensor.AddObservation(CanAffordResourceUpgrade() ? 1f : 0f);
+            sensor.AddObservation(CanEverAffordResourceUpgrade() ? 1f : 0f);
+        }
+
+        private bool CanAffordUpgrade(int type)
+        {
+            double cost = _techController.getUnitCost(team, type);
+
+            switch (type)
+            {
+                case 0: // soldier upgrade uses food
+                    return _gameManager.GetFood(team) >= cost;
+
+                case 1: // archer upgrade uses iron
+                    return _gameManager.GetIron(team) >= cost;
+
+                case 2: // horseman upgrade uses wood
+                    return _gameManager.GetWood(team) >= cost;
+
+                default:
+                    Debug.LogError("[NewAgent] Invalid type in CanAffordUpgrade");
+                    return false;
+            }
+        }
+
+        private bool CanEverAffordUpgrade(int type)
+        {
+            double cost =  _techController.getUnitCost(team, type);
+
+            const double maxResource = 2000.0;
+            
+            return cost <= maxResource;
+        }
+
+        private bool CanAffordResourceUpgrade()
+        {
+            double cost = _techController.getResourceCost(team);
+            
+            bool hasFood = _gameManager.GetFood(team) >= cost;
+            bool hasWood = _gameManager.GetWood(team) >= cost;
+            bool hasIron = _gameManager.GetIron(team) >= cost;
+            
+            return hasFood && hasWood && hasIron;
+        }
+
+        private bool CanEverAffordResourceUpgrade()
+        {
+            double cost = _techController.getResourceCost(team);
+            
+            const double maxResource = 2000.0;
+            
+            return cost <= maxResource;
         }
 
         #endregion
@@ -116,14 +211,11 @@ namespace RL_Agent
 
         private void EconomicActionMasks(IDiscreteActionMask actionMask)
         {
-            MaskRecruitment(actionMask, 1, 2, 3);
+            MaskRecruitment(actionMask);
+            MaskUpgrades(actionMask);
         }
 
-        private void MaskRecruitment(
-            IDiscreteActionMask actionMask,
-            int soldierAction,
-            int archerAction,
-            int horsemanAction)
+        private void MaskRecruitment(IDiscreteActionMask actionMask)
         {
             // retrieve resource values
             int foodAmount = _gameManager.GetFood(team);
@@ -134,15 +226,78 @@ namespace RL_Agent
             
             // food = soldier
             if (foodAmount < soldierUnitCost)
-                actionMask.SetActionEnabled(0, soldierAction, false);
+            {
+                // mask at capital
+                actionMask.SetActionEnabled(0, 1, false);
+                // mask at fort
+                actionMask.SetActionEnabled(0, 4, false);
+            }
             
             // iron = archer
             if (ironAmount < archerUnitCost)
-                actionMask.SetActionEnabled(0, archerAction, false);
-            
+            {
+                // mask at capital
+                actionMask.SetActionEnabled(0, 2, false);
+                // mask at fort
+                actionMask.SetActionEnabled(0, 5, false);
+            }
+
             // wood = horseman
             if (woodAmount < horsemanUnitCost)
-                actionMask.SetActionEnabled(0, horsemanAction, false);
+            {
+                // mask at capital
+                actionMask.SetActionEnabled(0, 3, false);
+                // mask at fort
+                actionMask.SetActionEnabled(0, 6, false);
+            }
+
+            // if we don't own the fort, mask the recruitment at fort options
+            bool ownsFort = _fortBuilding.getOwner() == team;
+            if (!ownsFort)
+            {
+                actionMask.SetActionEnabled(0, 4, false); // soldier at fort
+                actionMask.SetActionEnabled(0, 5, false); // archer at fort
+                actionMask.SetActionEnabled(0, 6, false); // horseman at fort
+            }
+        }
+
+        private void MaskUpgrades(IDiscreteActionMask actionMask)
+        {
+            // when we can't afford it
+            
+            // mask soldier upgrade when can't afford
+            if (!CanAffordUpgrade(0))
+                actionMask.SetActionEnabled(0, 7, false);
+
+            // mask archer upgrade when can't afford
+            if (!CanAffordUpgrade(1))
+                actionMask.SetActionEnabled(0, 8, false);
+
+            // mask horseman upgrade when can't afford
+            if (!CanAffordUpgrade(2))
+                actionMask.SetActionEnabled(0, 9, false);
+            
+            // mask resource upgrade when can't afford
+            if (!CanAffordResourceUpgrade())
+                actionMask.SetActionEnabled(0, 10, false);
+            
+            // when an upgrade will never be affordable again:
+            
+            // mask soldier upgrade if never affordable again
+            if (!CanEverAffordUpgrade(0))
+                actionMask.SetActionEnabled(0, 7, false);
+            
+            // mask archer upgrade if never affordable again
+            if (!CanEverAffordUpgrade(1))
+                actionMask.SetActionEnabled(0, 8, false);
+
+            // mask horseman upgrade if never affordable again
+            if (!CanEverAffordUpgrade(2))
+                actionMask.SetActionEnabled(0, 9, false);
+
+            // mask resource upgrade if never affordable again
+            if (!CanEverAffordResourceUpgrade())
+                actionMask.SetActionEnabled(0, 10, false);
         }
 
         #endregion
@@ -158,27 +313,43 @@ namespace RL_Agent
                     break;
 
                 case 1:
-                    //TryRecruit(0); // Soldier
+                    //TryRecruit(0, _myCapital); // Soldier
                     break;
 
                 case 2:
-                    //TryRecruit(1); // Archer
+                    //TryRecruit(1, _myCapital); // Archer
                     break;
 
                 case 3:
-                    //TryRecruit(2); // Horseman
+                    //TryRecruit(2, _myCapital); // Horseman
                     break;
-
+                
                 case 4:
-                    //TryUpgradeTech(0); // Soldier tech
+                    //TryRecruit(0, _fortBuilding); // Soldier
                     break;
 
                 case 5:
-                    //TryUpgradeTech(1); // Archer tech
+                    //TryRecruit(1, _fortBuilding); // Archer
                     break;
 
                 case 6:
+                    //TryRecruit(2, _fortBuilding); // Horseman
+                    break;
+
+                case 7:
+                    //TryUpgradeTech(0); // Soldier tech
+                    break;
+
+                case 8:
+                    //TryUpgradeTech(1); // Archer tech
+                    break;
+
+                case 9:
                     //TryUpgradeTech(2); // Horseman tech
+                    break;
+                
+                case 10:
+                    //TryUpgradeResources(); // resource upgrade
                     break;
             }
         }
@@ -194,6 +365,8 @@ namespace RL_Agent
         #endregion
 
         #region Building Observations
+        
+        private Dictionary<BuildingScript, float> _previousControl = new();
 
         /// <summary>
         /// Way for Agent to observe the ownership states of building.
@@ -227,6 +400,26 @@ namespace RL_Agent
                 Debug.LogError("[NewAgent] Building trying to be observed is null");
                 return;
             }
+
+            TileScript tile = building.occupantTile;
+            bool fogged = team switch
+            {
+                UnitOwner.Player => tile.fogForPlayer,
+                UnitOwner.Enemy => tile.fogForEnemy,
+                _ => false
+            };
+            
+            // observation for visibility status
+            sensor.AddObservation(fogged ? 0f : 1f);
+
+            if (fogged)
+            {
+                sensor.AddObservation(0f); // ownership masked
+                sensor.AddObservation(0f); // control masked
+                return;
+            }
+            
+            // visible observations only
 
             UnitOwner owner = building.getOwner();
 
@@ -486,6 +679,51 @@ namespace RL_Agent
         private void RegisterToSpawnTiles(BuildingScript building)
         {
             
+        }
+
+        #endregion
+
+        #region Continous Reward Shaping Helpers
+
+        // Note: if agent feels too capital obsessed, bring this value down and vice versa.
+        private const float CAPITAL_WEIGHT = 5f;
+        private const float NORMAL_WEIGHT = 1f;
+        
+        private void RewardCaptureProgress()
+        {
+            foreach (BuildingScript building in _allBuildings)
+            {
+                float current = building.GetControlPercent();
+                float previous = _previousControl[building];
+                
+                float delta = current - previous;
+
+                TileScript tile = building.occupantTile;
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+
+                // respect Fog Of War
+                if (!fogged)
+                {
+                    // weight based on capital status
+                    float weight = building.isCapital ? CAPITAL_WEIGHT : NORMAL_WEIGHT;
+                    
+                    // if we are actively capturing, reward! (small shaping)
+                    if (delta > 0 && building.getOwner() == team)
+                        AddReward(delta * 0.001f * weight);
+                    
+                    // if enemy is capturing, punish! (small shaping)
+                    // Note: delta will be negative, therefore it is punishment
+                    if (delta < 0 && building.getOwner() != team)
+                        AddReward(delta * 0.001f * weight);
+                }
+                // update dict
+                _previousControl[building] = current;
+            }
         }
 
         #endregion
