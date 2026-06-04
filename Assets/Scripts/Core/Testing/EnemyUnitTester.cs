@@ -10,12 +10,15 @@ namespace Core.Testing
         
         [SerializeField] private TileScript capitalTile;
         private BuildingScript _capitalBuilding;
-        private List<TileScript> _capitalSpawnTiles;
+        private List<TileScript> _capitalSpawnTiles = new(6);
         
         private GameManager _gameManager;
 
         private BaseUnit _guardUnit;
         private bool _guardUnitSpawning;
+
+        private BaseUnit _captureUnit;
+        private bool _captureUnitSpawning;
 
         private void Start()
         {
@@ -36,6 +39,7 @@ namespace Core.Testing
                 // for each spawn tile, register to OnUnitCreated event
                 foreach (TileScript tile in _capitalSpawnTiles)
                 {
+                    Debug.Log("Barney");
                     tile.OnUnitCreated += HandleUnitCreated;
                 }
             }
@@ -44,13 +48,24 @@ namespace Core.Testing
         private void Update()
         {
             UpdatePatrolUnit();
+            UpdateGuardUnit();
         }
+
+        #region Guard Unit Core
+
+        private void UpdateGuardUnit()
+        {
+            
+        }
+
+        #endregion
 
         #region Patrol Unit Logic
         
         // patrol unit internals
         private BaseUnit _patrolUnit;
         private bool _patrolUnitSpawning;
+        private bool _patrolUnitInitialized;
         
         // patrol unit respawn timer system
         [SerializeField, Min(0f)] 
@@ -65,7 +80,7 @@ namespace Core.Testing
             if (_patrolUnitSpawning) return;
 
             // core functionality
-            if (_patrolUnit != null)
+            if (_patrolUnitInitialized)
             {
                 UpdatePatrolUnitCore();
                 return;
@@ -179,6 +194,7 @@ namespace Core.Testing
                 case 2: // horseman unit created
                     _patrolUnit = unit;
                     _patrolUnitSpawning = false;
+                    _patrolUnitInitialized = true;
                     _patrolUnit.OnUnitDeath += HandlePatrolUnitDeath;
                     break;
             }
@@ -202,6 +218,7 @@ namespace Core.Testing
             _patrolUnit.OnUnitDeath -= HandlePatrolUnitDeath;
             
             // reset patrol unit internals
+            _patrolUnitInitialized = false;
             _patrolUnitSpawning = false;
             _patrolUnit = null;
             
