@@ -25,7 +25,7 @@ namespace RL_Agent
         // field for startup cache-ing usage
         private bool _hasCached;
         
-        // MAGIC: Alert! This is NOT the best way to do this!
+        // MAGIC: HardCode Warning! This is NOT the best way to do this!
         [HideInInspector]
         public int soldierUnitCost = 100;
         [HideInInspector]
@@ -87,6 +87,7 @@ namespace RL_Agent
             HandleEconomicAction(economicAction);
             // Economic Action Summary:
             //  0 = Do Nothing.
+            
             //  1 = recruit soldier at capital.
             //  2 = recruit archer at capital.
             //  3 = recruit horseman at capital.
@@ -313,45 +314,139 @@ namespace RL_Agent
                     break;
 
                 case 1:
-                    //TryRecruit(0, _myCapital); // Soldier
+                    RecruitUnit(0, _myCapital); // Soldier
                     break;
 
                 case 2:
-                    //TryRecruit(1, _myCapital); // Archer
+                    RecruitUnit(1, _myCapital); // Archer
                     break;
 
                 case 3:
-                    //TryRecruit(2, _myCapital); // Horseman
+                    RecruitUnit(2, _myCapital); // Horseman
                     break;
                 
                 case 4:
-                    //TryRecruit(0, _fortBuilding); // Soldier
+                    RecruitUnit(0, _fortBuilding); // Soldier
                     break;
 
                 case 5:
-                    //TryRecruit(1, _fortBuilding); // Archer
+                    RecruitUnit(1, _fortBuilding); // Archer
                     break;
 
                 case 6:
-                    //TryRecruit(2, _fortBuilding); // Horseman
+                    RecruitUnit(2, _fortBuilding); // Horseman
                     break;
 
                 case 7:
-                    //TryUpgradeTech(0); // Soldier tech
+                    UpgradeTech(0); // Soldier tech
                     break;
 
                 case 8:
-                    //TryUpgradeTech(1); // Archer tech
+                    UpgradeTech(1); // Archer tech
                     break;
 
                 case 9:
-                    //TryUpgradeTech(2); // Horseman tech
+                    UpgradeTech(2); // Horseman tech
                     break;
                 
                 case 10:
-                    //TryUpgradeResources(); // resource upgrade
+                    UpgradeResources(); // resource upgrade
                     break;
             }
+        }
+
+        private void RecruitUnit(int type, BuildingScript building)
+        {
+            // report error if agent does not own building: this should be masked!
+            if (building.getOwner() != team)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried recruiting at building it does not own");
+                return;
+            }
+            
+            // report error if the building can not recruit: should never be an option!
+            if (building.getResource() != ResourceType.Fort)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried recruiting at building that does not recruit");
+                return;
+            }
+            
+            // report error if no available recruit slots? (not currently masking though)
+
+            // MAGIC: HardCode Warning! This is NOT the best way to do this!
+            bool hasResources = type switch
+            {
+                0 => _gameManager.GetFood(team) >= soldierUnitCost,     // hard-coded warning
+                1 => _gameManager.GetIron(team) >= archerUnitCost,      // hard-coded warning
+                2 => _gameManager.GetWood(team) >= horsemanUnitCost,    // hard-coded warning
+                _ => false
+            };
+            
+            // report if the agent did not have the resource to recruit: this should be masked!
+            if (!hasResources)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried recruitment it could not afford");
+                return;
+            }
+            
+            // do the recruitment
+            building.recruitUnit(type);
+        }
+
+        private void UpgradeTech(int type)
+        {
+            double cost = _techController.getUnitCost(team, type);
+            
+            // report if agent will never afford the upgrade: this should be masked!
+            if (cost > 2000)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried to upgrade a > 2000 cost unit upgrade");
+                return;
+            }
+            
+            bool canAfford = type switch
+            {
+                0 => _gameManager.GetFood(team) >= cost,
+                1 => _gameManager.GetIron(team) >= cost,
+                2 => _gameManager.GetWood(team) >= cost,
+                _ => false
+            };
+            
+            // report if agent could not afford the unit upgrade: this should be masked!
+            if (!canAfford)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried a unit upgrade it could not afford");
+                return;
+            }
+            
+            // do the upgrade
+            _techController.upgradeUnit(team, type);
+        }
+
+        private void UpgradeResources()
+        {
+            double cost = _techController.getResourceCost(team);
+            
+            // report if agent will never afford the resource upgrade: this should be masked!
+            if (cost > 2000)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried to upgrade a > 2000 cost resource upgrade");
+                return;
+            }
+            
+            bool hasFood = _gameManager.GetFood(team) >= cost;
+            bool hasWood = _gameManager.GetWood(team) >= cost;
+            bool hasIron = _gameManager.GetIron(team) >= cost;
+            
+            // report if agent could not afford the resource upgrade: this should be masked!
+            if (!hasFood || !hasWood || !hasIron)
+            {
+                Debug.LogError("[NewAgent] ERROR: Agent tried a resource upgrade it could not afford");
+                return;
+            }
+            
+            // do the upgrade
+            _techController.upgradeResource(team);
         }
 
         #endregion
