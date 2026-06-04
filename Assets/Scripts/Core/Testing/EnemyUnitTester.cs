@@ -39,7 +39,6 @@ namespace Core.Testing
                 // for each spawn tile, register to OnUnitCreated event
                 foreach (TileScript tile in _capitalSpawnTiles)
                 {
-                    Debug.Log("Barney");
                     tile.OnUnitCreated += HandleUnitCreated;
                 }
             }
