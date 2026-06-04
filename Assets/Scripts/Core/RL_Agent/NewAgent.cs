@@ -14,9 +14,6 @@ namespace RL_Agent
         [Tooltip("This is the team the agent is playing for")]
         [SerializeField] private UnitOwner team;
         
-        [Tooltip("This is how long an episode will naturally be for the agent")]
-        [SerializeField] private float episodeLengthSeconds = 60f;
-        
         [Tooltip("This is the parent of all tiles in game")]
         [SerializeField] private Transform tilesParent;
         
@@ -24,7 +21,7 @@ namespace RL_Agent
         private TechController _techController;
         private GameManager _gameManager;
         
-        // Magic number alert! This is NOT the best way to do this!
+        // MAGIC: Alert! This is NOT the best way to do this!
         [HideInInspector]
         public int soldierUnitCost = 100;
         [HideInInspector]
