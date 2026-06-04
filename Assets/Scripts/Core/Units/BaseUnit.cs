@@ -402,6 +402,7 @@ namespace Units
         /// </summary>
         public void OnDeathAnimationCompleted()
         {
+            OnUnitDeath?.Invoke(this);
             MarkForDestruction();
         }
 
@@ -441,8 +442,6 @@ namespace Units
                     HandleUnitCommand(targetUnit);
                     break;
                 
-// ReSharper disable once SuspiciousTypeConversion.Global
-                // NOTE: Building Script does not currently implement ISelectable
                 case BuildingScript targetBuilding:
                     HandleBuildingCommand(targetBuilding);
                     break;
@@ -451,6 +450,15 @@ namespace Units
                     Debug.LogError("[UNIT] Unknown Command Target for Unit");
                     break;
             }
+        }
+
+        /// <summary>
+        /// AUTOMATED MOVING USE ONLY!!
+        /// </summary>
+        /// <param name="targetTile">the target tile</param>
+        public void AutomateMoveTo(TileScript targetTile)
+        {
+            HandleTileCommand(targetTile);
         }
 
         /// <summary>
