@@ -662,6 +662,8 @@ public class TileScript : MonoBehaviour, ISelectable
     private void RevealAround(UnitOwner owner)
     {
         List<TileScript> tiles = GetTilesInRange(viewRange);
+        
+        tiles.Add(this);
 
         foreach (TileScript tile in tiles)
             tile.RevealForOwner(owner);
@@ -670,6 +672,8 @@ public class TileScript : MonoBehaviour, ISelectable
     private void HideAround(UnitOwner owner)
     {
         List<TileScript> tiles = GetTilesInRange(viewRange);
+        
+        tiles.Add(this);
 
         foreach (TileScript tile in tiles)
             tile.HideForOwner(owner);
@@ -708,6 +712,10 @@ public class TileScript : MonoBehaviour, ISelectable
                 int hx = topX - i + x;
                 int hy = topY + y;
                 int hz = topZ + i + z;
+                
+                // skip the center tile (this)
+                if (hx == x && hy == y && hz == z)
+                    continue;
 
                 GameObject hexObj = MapGenerateScript.getHex(hx, hy, hz);
                 if (hexObj != null)
