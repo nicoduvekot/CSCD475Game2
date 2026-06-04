@@ -1522,6 +1522,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RecruitmentPopup
       objectReference: {fileID: 0}
+    - target: {fileID: 909994692184256602, guid: 47e41bcf949f8f846ad6e6b7015f0ec5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7504782808942233347, guid: 47e41bcf949f8f846ad6e6b7015f0ec5, type: 3}
       propertyPath: m_LocalPosition.x
       value: -21.35969
