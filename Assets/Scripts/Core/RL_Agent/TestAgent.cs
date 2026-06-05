@@ -85,7 +85,7 @@ namespace RL_Agent
             
             _nextEpisodeResetsGame = false;
         }
-        
+
         // hook into unity function to tick the time
         private void Update()
         {
@@ -104,6 +104,11 @@ namespace RL_Agent
 
             foreach (BuildingScript building in _allBuildings)
                 building.OnBuildingCaptured -= HandleCapturedEvent;
+
+            // Added by Nathan for bug fix testing
+            _hasCached = false;
+
+            RemoveObserversForBuildings();
         }
 
         // this is where we design state knowledge
@@ -938,8 +943,49 @@ namespace RL_Agent
             HelpObserveBuildingOwner(sensor, _bottomIronBuilding);
         }
 
+        private void RemoveObserversForBuildings()
+        {
+            _capitalBuildings.Clear();
+            //private BuildingScript _myCapital;
+            _myCapitalCapturePoints.Clear();
+            //private BuildingScript _enemyCapital;
+            _enemyCapitalCapturePoints.Clear();
+        
+            //private BuildingScript _fortBuilding;
+            _fortCapturePoints.Clear();
+        
+            _foodBuildings.Clear();
+            //private BuildingScript _myFoodBuilding;
+            _myFoodCapturePoints.Clear();
+            //private BuildingScript _enemyFoodBuilding;
+            _enemyFoodCapturePoints.Clear();
+        
+            _woodBuildings.Clear();
+            //private BuildingScript _myWoodBuilding;
+            _myWoodCapturePoints.Clear();
+            //private BuildingScript _enemyWoodBuilding;
+            _enemyWoodCapturePoints.Clear();
+        
+            _ironBuildings.Clear();
+            //private BuildingScript _topIronBuilding;
+            _topIronCapturePoints.Clear();
+            //private BuildingScript _bottomIronBuilding;
+            _bottomIronCapturePoints.Clear();
+        
+            _allBuildings.Clear();
+        
+            _spawnTiles.Clear();
+        }
+
         private void HelpObserveBuildingOwner(VectorSensor sensor, BuildingScript b)
         {
+            // Error handling
+            if(b == null)
+            {
+                Debug.LogWarning("HelpObserveBuildingsOwner in TestAgent should not be passed null buildingScripts");
+                return;
+            }
+
             UnitOwner owner = b.getOwner();
 
             int ownerValue =
