@@ -57,25 +57,33 @@ namespace RL_Agent
             if (!_hasCached)
             {
                 CacheBuildingReferences();
+                CacheWalkableTiles();
+                
+                _hasCached = true;
             }
             
             foreach (BuildingScript building in _allBuildings)
                 _previousControl[building] = building.GetControlPercent();
-
         }
-
-        public override void CollectObservations(VectorSensor sensor) // 158 total
+        
+        public override void CollectObservations(VectorSensor sensor) // 840 total
         {
             ObserveTime(sensor);                    //   1 sensor
+            ObserveVisibleWalkableTiles(sensor);    // 374 sensors
+            ObserveTileUnitPresence(sensor);        //   2 sensors
             ObserveResources(sensor);               //  10 sensors
             ObserveTechUpgrades(sensor);            //  12 sensors
             ObserveBuildingOwnership(sensor);       //  27 sensors
             ObserveCapturePoints(sensor);           // 108 sensors
+            ObserveMyUnits(sensor);                 //   3 sensors
+            ObserveVisibleEnemyUnits(sensor);       //   3 sensors
+            ObserveUnitInfo(sensor);                // 300 sensors
         }
 
         public override void WriteDiscreteActionMask(IDiscreteActionMask actionMask)
         {
             EconomicActionMasks(actionMask);
+            MovementActionMasks(actionMask);
         }
 
         public override void OnActionReceived(ActionBuffers actionBuffers)
@@ -101,7 +109,100 @@ namespace RL_Agent
             //  9 = upgrade horseman.
             
             // 10 = upgrade resources.
+
+            HandleUnitMovementActions(actionBuffers);
         }
+
+        #region Unit Movement Action Space
+
+        private const int MAX_UNITS = 100;
+        
+        private void HandleUnitMovementActions(ActionBuffers actionBuffers)
+        {
+            for (int i = 0; i < MAX_UNITS; i++)
+            {
+                // must start at 1!
+                // 0 is economic action
+                int branchIndex = 1 + i;
+                
+                int action = actionBuffers.DiscreteActions[branchIndex];
+
+                // skip if index higher than suppose to be
+                if (i >= _myUnits.Count)
+                    continue;
+                
+                BaseUnit unit = _myUnits[i];
+
+                // skip if action is skip
+                if (action == 0)
+                    continue;
+
+                int tileIndex = action - 1;
+
+                // skip if invalid tile request
+                if (tileIndex < 0 || tileIndex >= _allWalkableTiles.Count)
+                    continue;
+                
+                TileScript target = _allWalkableTiles[tileIndex];
+                
+                // base slap for just issuing a move?
+                AddReward(-0.1f);
+                
+                // shape punish for moving a moving unit
+                if (unit.MotorState == UnitMotorState.Moving ||
+                    unit.MotorState == UnitMotorState.Pursuing ||
+                    unit.MotorState == UnitMotorState.Fleeing ||
+                    unit.MotorState == UnitMotorState.Fighting)
+                {
+                    // BUG: technically, this should be allowed, but I can't figure out how
+                    // moving a moving unit - slap - and skip
+                    AddReward(-0.4f);
+                    continue;
+                }
+                
+                if (IsOnAnyCaptureTile(unit))
+                {
+                    AddReward(-0.5f);
+                }
+                
+                if (IsLeavingUnownedCaptureTile(unit))
+                {
+                    AddReward(-2.0f);
+                    continue;
+                }
+                
+                // distance to target hex
+                float dist = Vector3.Distance(unit.CurrentHex.transform.position,
+                    target.transform.position);
+                
+                // tiny negative slap for long movements
+                AddReward(-0.05f * dist);
+                
+                unit.AutomateMoveTo(target);
+            }
+        }
+
+        #endregion
+
+        #region Movement Action Mask
+
+        private void MovementActionMasks(IDiscreteActionMask actionMask)
+        {
+            for (int i = 0; i < MAX_UNITS; i++)
+            {
+                int branch = 1 + i;
+
+                // If this unit slot is empty, only allow "do nothing"
+                if (i >= _myUnits.Count)
+                {
+                    for (int a = 1; a <= _allWalkableTiles.Count; a++)
+                        actionMask.SetActionEnabled(branch, a, false);
+                    continue;
+                }
+            }
+        }
+
+        #endregion
 
         #region Economy And Time Observations
 
@@ -259,6 +360,22 @@ namespace RL_Agent
                 actionMask.SetActionEnabled(0, 4, false); // soldier at fort
                 actionMask.SetActionEnabled(0, 5, false); // archer at fort
                 actionMask.SetActionEnabled(0, 6, false); // horseman at fort
+            }
+            
+            // mask recruitment at capital if queue long
+            if (_myCapital.RecruitQueue.Count > 2)
+            {
+                actionMask.SetActionEnabled(0, 1, false);
+                actionMask.SetActionEnabled(0, 2, false);
+                actionMask.SetActionEnabled(0, 3, false);
+            }
+
+            // Mask fort recruitment if queue long
+            if (_fortBuilding.RecruitQueue.Count > 2)
+            {
+                actionMask.SetActionEnabled(0, 4, false);
+                actionMask.SetActionEnabled(0, 5, false);
+                actionMask.SetActionEnabled(0, 6, false);
             }
         }
 
@@ -461,7 +578,7 @@ namespace RL_Agent
 
         #region Building Observations
         
-        private Dictionary<BuildingScript, float> _previousControl = new();
+        private readonly Dictionary<BuildingScript, float> _previousControl = new();
 
         /// <summary>
         /// Way for Agent to observe the ownership states of building.
@@ -619,12 +736,12 @@ namespace RL_Agent
         private BuildingScript _bottomIronBuilding;
         private List<TileScript> _bottomIronCapturePoints = new(6);
         
-        private readonly List<TileScript> _capturePointsHelperList = new(6);
+        private readonly List<TileScript> _allWalkableTiles = new(374);
 
         private void CacheBuildingReferences()
         {
             _allBuildings = MapGenerateScript.getBuildingList();
-
+            
             foreach (BuildingScript building in _allBuildings)
             {
                 // NRE safety bail
@@ -693,6 +810,10 @@ namespace RL_Agent
             
             _topIronCapturePoints = PopulateCaptureTiles(_topIronBuilding);
             _bottomIronCapturePoints = PopulateCaptureTiles(_bottomIronBuilding);
+            
+            RegisterSpawnTiles(_myCapitalCapturePoints);
+            RegisterSpawnTiles(_enemyCapitalCapturePoints);
+            RegisterSpawnTiles(_fortCapturePoints);
         }
 
         /// <summary>
@@ -750,30 +871,272 @@ namespace RL_Agent
                 }
             }
         }
+        
+        private readonly Dictionary<TileScript, BuildingScript> _captureTileToBuilding = new();
 
         private List<TileScript> PopulateCaptureTiles(BuildingScript building)
         {
-            // clear helper list
-            _capturePointsHelperList.Clear();
+            // init result list
+            List<TileScript> captureTileList = new(6);
             
             // get neighbors, and for each add to helper list
             foreach (TileScript tile in building.GetNeighbourTiles())
             {
-                if (_capturePointsHelperList.Contains(tile))
+                if (captureTileList.Contains(tile))
                 {
                     Debug.LogError("[NewAgent] Duplicate capture point detected");
                     continue;
                 }
 
-                _capturePointsHelperList.Add(tile);
+                captureTileList.Add(tile);
+                
+                _captureTileToBuilding[tile] = building;
             }
-            
-            return _capturePointsHelperList;
+            return captureTileList;
         }
 
-        private void RegisterToSpawnTiles(BuildingScript building)
+        private void RegisterSpawnTiles(List<TileScript> spawnTiles)
         {
+            foreach (TileScript tile in spawnTiles)
+            {
+                tile.OnUnitCreated += RegisterUnit;
+            }
+        }
+
+        #endregion
+
+        #region Tile Observation
+
+        private readonly Dictionary<TileScript, int> _tileToIndex = new();
+        
+        private void CacheWalkableTiles()
+        {
+            _allWalkableTiles.Clear();
+            _tileToIndex.Clear();
+
+            int index = 0;
             
+            foreach (TileScript tile in tilesParent.GetComponentsInChildren<TileScript>())
+            {
+                // don't record non-walkable tiles
+                if (tile.getMovement() <= 0) continue;
+                
+                // add to walkable tiles list, and index record the tile
+                _allWalkableTiles.Add(tile);
+                _tileToIndex[tile] = index;
+                index++;
+            }
+        }
+
+        private void ObserveVisibleWalkableTiles(VectorSensor sensor)
+        {
+            int visible = 0;
+
+            foreach (TileScript tile in _allWalkableTiles)
+            {
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+                
+                if (!fogged)
+                    visible++;
+                
+                float ratio = (float)visible / _allWalkableTiles.Count;
+                sensor.AddObservation(ratio);
+            }
+        }
+        
+        private void ObserveTileUnitPresence(VectorSensor sensor)
+        {
+            int visibleTiles = 0;
+            int myUnitTiles = 0;
+            int enemyUnitTiles = 0;
+            
+            foreach (TileScript tile in _allWalkableTiles)
+            {
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+
+                if (fogged)
+                    continue;
+
+                visibleTiles++;
+
+                if (tile.OccupyingUnit != null)
+                {
+                    if (tile.OccupyingUnit.Owner == team)
+                        myUnitTiles++;
+                    else
+                        enemyUnitTiles++;
+                }
+            }
+
+            sensor.AddObservation(NormalizedUnitRatio(myUnitTiles, visibleTiles));
+            sensor.AddObservation(NormalizedUnitRatio(enemyUnitTiles, visibleTiles));
+        }
+
+        #endregion
+
+        #region Unit Observations
+
+        private readonly List<BaseUnit> _myUnits = new();
+
+        private readonly List<BaseUnit> _enemyUnits = new();
+
+        private void ObserveMyUnits(VectorSensor sensor)
+        {
+            int soldiers = 0;
+            int archers = 0;
+            int horsemen = 0;
+            
+            foreach (BaseUnit unit in _myUnits)
+            {
+                switch (unit.UnitType)
+                {
+                    case 0: soldiers++; break;
+                    case 1: archers++; break;
+                    case 2: horsemen++; break;
+                }
+            }
+            
+            int total = _myUnits.Count;
+            
+            sensor.AddObservation(NormalizedUnitRatio(soldiers, total));
+            sensor.AddObservation(NormalizedUnitRatio(archers, total));
+            sensor.AddObservation(NormalizedUnitRatio(horsemen, total));
+        }
+
+        private float NormalizedUnitRatio(int typeCount, int total)
+        {
+            if (total == 0)
+                return 0;
+
+            return (float)typeCount / total;
+        }
+
+        private void ObserveVisibleEnemyUnits(VectorSensor sensor)
+        {
+            int enemySoldiers = 0;
+            int enemyArchers = 0;
+            int enemyHorsemen = 0;
+
+            int totalEnemyVisible = 0;
+            
+            foreach (BaseUnit unit in _enemyUnits)
+            {
+                // get the hex the unit is on
+                TileScript tile = unit.CurrentHex;
+
+                // we can see the unit if we see the tile it is on
+                bool fogged = team switch
+                {
+                    UnitOwner.Player => tile.fogForPlayer,
+                    UnitOwner.Enemy => tile.fogForEnemy,
+                    _ => false
+                };
+
+                // skip enemy units we can not see
+                if (fogged)
+                    continue;
+
+                // increment total
+                totalEnemyVisible++;
+
+                // increment type counter
+                switch (unit.UnitType)
+                {
+                    case 0: enemySoldiers++; break;
+                    case 1: enemyArchers++; break;
+                    case 2: enemyHorsemen++; break;
+                }
+            }
+            
+            sensor.AddObservation(NormalizedUnitRatio(enemySoldiers, totalEnemyVisible));
+            sensor.AddObservation(NormalizedUnitRatio(enemyArchers, totalEnemyVisible));
+            sensor.AddObservation(NormalizedUnitRatio(enemyHorsemen, totalEnemyVisible));
+        }
+
+        private void ObserveUnitInfo(VectorSensor sensor)
+        {
+            for (int i = 0; i < MAX_UNITS; i++)
+            {
+                if (i >= _myUnits.Count)
+                {
+                    // No unit in this slot
+                    sensor.AddObservation(-1f); // tile index
+                    sensor.AddObservation(0f);  // motor state
+                    sensor.AddObservation(0f);  // dying flag
+                    continue;
+                }
+                
+                BaseUnit unit = _myUnits[i];
+                TileScript tile = unit.CurrentHex;
+
+                // observe the tile index
+                int index = _tileToIndex[tile];
+                float normalized = index / (float)_allWalkableTiles.Count;
+                sensor.AddObservation(normalized);
+
+                // observe unit motor state
+                float motor = InterprateMotorState(unit.MotorState);
+                sensor.AddObservation(motor);
+                
+                // observe life status
+                float dying = unit.MotorState == UnitMotorState.Dying ? 1f : 0f;
+                sensor.AddObservation(dying);
+            }
+        }
+
+        private float InterprateMotorState(UnitMotorState state)
+        {
+            // dying is intentionally left out of this observation space
+            // NOTE : Capturing is a facade state to standing, it's not real
+            switch (state)
+            {
+                case UnitMotorState.Fighting:
+                    return 2f;
+                
+                case UnitMotorState.Moving:
+                case UnitMotorState.Pursuing:
+                case UnitMotorState.Fleeing:
+                    return 1f;
+                
+                case UnitMotorState.Standing:
+                case UnitMotorState.Capturing:
+                default:
+                    return 0f;
+            }
+        }
+
+        #endregion
+
+        #region Unit Helpers
+
+        private void RegisterUnit(BaseUnit unit)
+        {
+            if (unit.Owner == team)
+                _myUnits.Add(unit);
+            else
+                _enemyUnits.Add(unit);
+
+            unit.OnUnitDeath += HandleUnitDeath;
+        }
+
+        private void HandleUnitDeath(BaseUnit unit)
+        {
+            // unsubscribe!
+            unit.OnUnitDeath -= HandleUnitDeath;
+            
+            // remove from the list it is in
+            _myUnits.Remove(unit);
+            _enemyUnits.Remove(unit);
         }
 
         #endregion
@@ -857,11 +1220,55 @@ namespace RL_Agent
             if (winner == team) AddReward(+1f);
             else AddReward(-1f);
             
-            // Add Helper Resets Here if needed?
+            UnsubscribeFromAllUnits();
             
             EndEpisode();
         }
+        
+        private void UnsubscribeFromAllUnits()
+        {
+            foreach (BaseUnit unit in _myUnits)
+                unit.OnUnitDeath -= HandleUnitDeath;
+
+            foreach (BaseUnit unit in _enemyUnits)
+                unit.OnUnitDeath -= HandleUnitDeath;
+            
+            _myUnits.Clear();
+            _enemyUnits.Clear();
+        }
 
         #endregion
+        
+        private bool IsOnAnyCaptureTile(BaseUnit unit)
+        {
+            TileScript hex = unit.CurrentHex;
+            if (hex == null)
+                return false;
+
+            return
+                _myCapitalCapturePoints.Contains(hex) ||
+                _enemyCapitalCapturePoints.Contains(hex) ||
+                _fortCapturePoints.Contains(hex) ||
+                _myFoodCapturePoints.Contains(hex) ||
+                _enemyFoodCapturePoints.Contains(hex) ||
+                _myWoodCapturePoints.Contains(hex) ||
+                _enemyWoodCapturePoints.Contains(hex) ||
+                _topIronCapturePoints.Contains(hex) ||
+                _bottomIronCapturePoints.Contains(hex);
+        }
+        
+        private bool IsLeavingUnownedCaptureTile(BaseUnit unit)
+        {
+            TileScript hex = unit.CurrentHex;
+            if (hex == null)
+                return false;
+
+            if (!_captureTileToBuilding.TryGetValue(hex, out BuildingScript building))
+                return false; // not a capture tile
+
+            Debug.LogWarning("A Unit should not have moved");
+            
+            return building.controller != unit.Owner;
+        }
     }
 }
