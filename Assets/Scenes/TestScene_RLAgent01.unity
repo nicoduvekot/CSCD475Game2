@@ -431,6 +431,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &262224994 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9182673254993352990, guid: 7f1b30d0296a9f54590fb34896f0c3ad, type: 3}
+  m_PrefabInstance: {fileID: 1085525855}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bf65d9ace38534da24d61dd793277a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Tile_Script
 --- !u!1 &266587038
 GameObject:
   m_ObjectHideFlags: 0
@@ -643,6 +654,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &458956059 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1873434128848143023, guid: 7f1b30d0296a9f54590fb34896f0c3ad, type: 3}
+  m_PrefabInstance: {fileID: 1085525855}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bf65d9ace38534da24d61dd793277a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Tile_Script
+--- !u!1 &482900391
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 482900393}
+  - component: {fileID: 482900392}
+  m_Layer: 0
+  m_Name: EnemyUnitTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &482900392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482900391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ea336a9b9404792b7c4a0fea904f180, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Core.Testing.EnemyUnitTester
+  team: 1
+  capitalTile: {fileID: 458956059}
+  patrolRespawnTime: 6
+  patrolPoints:
+  - {fileID: 262224994}
+  - {fileID: 1696105894}
+  patrolWaitTime: 3
+--- !u!4 &482900393
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482900391}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &526144873
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,6 +795,107 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &605539070
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 605539074}
+  - component: {fileID: 605539073}
+  - component: {fileID: 605539072}
+  - component: {fileID: 605539071}
+  m_Layer: 0
+  m_Name: NewAgent
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &605539071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605539070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
+  DecisionPeriod: 20
+  DecisionStep: 0
+  TakeActionsBetweenDecisions: 0
+--- !u!114 &605539072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605539070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Policies.BehaviorParameters
+  m_BrainParameters:
+    VectorObservationSize: 840
+    NumStackedVectorObservations: 1
+    m_ActionSpec:
+      m_NumContinuousActions: 0
+      BranchSizes: 0b00000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000
+    VectorActionSize: 0b00000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000
+    VectorActionDescriptions: []
+    VectorActionSpaceType: 0
+    hasUpgradedBrainParametersWithActionSpec: 1
+  m_Model: {fileID: 0}
+  m_InferenceDevice: 0
+  m_BehaviorType: 0
+  m_BehaviorName: NewAgent
+  TeamId: 0
+  m_UseChildSensors: 1
+  m_UseChildActuators: 1
+  m_DeterministicInference: 0
+  m_ObservableAttributeHandling: 0
+--- !u!114 &605539073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605539070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eae1f3a0fd2c43d891ac50613869c10f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RL_Agent.NewAgent
+  agentParameters:
+    maxStep: 0
+  hasUpgradedFromAgentParameters: 1
+  MaxStep: 100
+  team: 1
+  tilesParent: {fileID: 1609277178}
+  soldierUnitCost: 100
+  archerUnitCost: 100
+  horsemanUnitCost: 100
+--- !u!4 &605539074
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605539070}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -23.54185, y: 0.5, z: -78.36241}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &892543157
 GameObject:
   m_ObjectHideFlags: 0
@@ -740,7 +914,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &892543158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1088,7 +1262,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1307006491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1426,6 +1600,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8400066022769891860, guid: 7f1b30d0296a9f54590fb34896f0c3ad, type: 3}
   m_PrefabInstance: {fileID: 1085525855}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1696105894 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7349809790393310345, guid: 7f1b30d0296a9f54590fb34896f0c3ad, type: 3}
+  m_PrefabInstance: {fileID: 1085525855}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bf65d9ace38534da24d61dd793277a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Tile_Script
 --- !u!1001 &1993992829
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1437,6 +1622,10 @@ PrefabInstance:
     - target: {fileID: 909994692184256602, guid: 47e41bcf949f8f846ad6e6b7015f0ec5, type: 3}
       propertyPath: m_Name
       value: RecruitmentPopup
+      objectReference: {fileID: 0}
+    - target: {fileID: 909994692184256602, guid: 47e41bcf949f8f846ad6e6b7015f0ec5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7504782808942233347, guid: 47e41bcf949f8f846ad6e6b7015f0ec5, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1580,6 +1769,107 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b28755fd716a2f14d8a325de4749fb7e, type: 3}
+--- !u!1 &2087567803
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2087567807}
+  - component: {fileID: 2087567806}
+  - component: {fileID: 2087567805}
+  - component: {fileID: 2087567804}
+  m_Layer: 0
+  m_Name: NewAgent (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2087567804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087567803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
+  DecisionPeriod: 20
+  DecisionStep: 0
+  TakeActionsBetweenDecisions: 0
+--- !u!114 &2087567805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087567803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Policies.BehaviorParameters
+  m_BrainParameters:
+    VectorObservationSize: 840
+    NumStackedVectorObservations: 1
+    m_ActionSpec:
+      m_NumContinuousActions: 0
+      BranchSizes: 0b00000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000
+    VectorActionSize: 0b00000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000770100007701000077010000
+    VectorActionDescriptions: []
+    VectorActionSpaceType: 0
+    hasUpgradedBrainParametersWithActionSpec: 1
+  m_Model: {fileID: 0}
+  m_InferenceDevice: 0
+  m_BehaviorType: 0
+  m_BehaviorName: NewAgent
+  TeamId: 0
+  m_UseChildSensors: 1
+  m_UseChildActuators: 1
+  m_DeterministicInference: 0
+  m_ObservableAttributeHandling: 0
+--- !u!114 &2087567806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087567803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eae1f3a0fd2c43d891ac50613869c10f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RL_Agent.NewAgent
+  agentParameters:
+    maxStep: 0
+  hasUpgradedFromAgentParameters: 1
+  MaxStep: 0
+  team: 0
+  tilesParent: {fileID: 1609277178}
+  soldierUnitCost: 100
+  archerUnitCost: 100
+  horsemanUnitCost: 100
+--- !u!4 &2087567807
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2087567803}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -23.54185, y: 0.5, z: -78.36241}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3724485030560457096
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1658,3 +1948,6 @@ SceneRoots:
   - {fileID: 1556842182}
   - {fileID: 1993992829}
   - {fileID: 412372982}
+  - {fileID: 482900393}
+  - {fileID: 605539074}
+  - {fileID: 2087567807}

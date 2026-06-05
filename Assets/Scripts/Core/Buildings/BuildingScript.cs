@@ -3,10 +3,13 @@ using UnityEngine;
 using System.Collections.Generic;
 using Units;
 using Resource;
-using TeamControl;
+using Selection;
 
-public class BuildingScript : MonoBehaviour
+public class BuildingScript : MonoBehaviour, ISelectable
 {
+    // used by ISelection to retrieve the Mono behavior of this
+    public MonoBehaviour Behaviour => this;
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private GameObject recruitBar;
     private bool recruiting;
@@ -18,7 +21,7 @@ public class BuildingScript : MonoBehaviour
     
     public bool isCapital = false;
     public UnitOwner initialOwner = UnitOwner.World;
-    private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
+    public UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
     
     public event Action<BuildingScript, UnitOwner> OnBuildingCaptured;
 
@@ -33,14 +36,16 @@ public class BuildingScript : MonoBehaviour
     private Sprite resourceBuilding;
 
     private int capturing = 0; // this get how many units are in the hexes surrounding the buildings
-
-    private float controlPercent = 100; // this relates to the current owner or capturer of the building
+    
+    private float controlPercent; // this relates to the current owner or capturer of the building
+    public float GetControlPercent() => controlPercent;
 
     private float captureTimePassed = 0;
     private float recruitTimePassed = 0;
     private float recruitCooldown = 12f;
 
     private Queue<int> recruitQueue = new();
+    public Queue<int> RecruitQueue => recruitQueue;
 
     [SerializeField] 
     private ResourceType resource;
@@ -55,7 +60,7 @@ public class BuildingScript : MonoBehaviour
         recruitBar = transform.Find("RecruitBar").gameObject;
         captureBar = transform.Find("CaptureBar").gameObject;
        
-        captureBar.GetComponent<BuildingCapture>().setFill(100,controller);
+        captureBar.GetComponent<BuildingCapture>().setFill(controlPercent, controller);
      
         recruitBar.SetActive(false);
         captureBar.SetActive(false);
@@ -79,52 +84,61 @@ public class BuildingScript : MonoBehaviour
                 updateVisuals();
             }
         }
-        
-        
-        
-        if(capturing > 0){
-            captureTimePassed += Time.deltaTime * capturing;
-        }else if(capturing < 0){
-            captureTimePassed += Time.deltaTime * capturing;
-        }
-        
-        if(captureTimePassed > 1f){
-            captureTimePassed = 0f;
-            controlPercent += 15;
-            print("control percentage is " + controlPercent + "%");
-            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
-        }else if(captureTimePassed < -1f){
-            captureTimePassed = 0f;
-            controlPercent -= 15;
-            print("control percentage is " + controlPercent + "%");
-            captureBar.GetComponent<BuildingCapture>().setFill(controlPercent,controller);
-        }
 
-        controlPercent = controlPercent > 100 ? 100:controlPercent;
-        
+        float delta = 0f;
 
-        if(controlPercent < 0)
+        if (capturing > 0)
         {
-            UnitOwner newCapture = getNewCapturer();
-            
-            if(newCapture == UnitOwner.World)
+            delta = capturing * 10f * Time.deltaTime;
+        }
+        else if (capturing < 0)
+        {
+            delta = capturing * 10f * Time.deltaTime;
+        }
+        else
+        {
+            if (controller == UnitOwner.Player && controlPercent < 100f)
+                delta = 5f * Time.deltaTime;
+            else if (controller == UnitOwner.Enemy && controlPercent > -100f)
+                delta = -5f * Time.deltaTime;
+            else
             {
-                
-                occupantTile.removeBuildingOwner();
-            }else{
-                if(newCapture != controller){
-                    occupantTile.removeBuildingOwner();
-                    occupantTile.addBuildingOwner(newCapture);
-                    
-                    OnBuildingCaptured?.Invoke(this, newCapture);
-                }
-                controller = newCapture;
-                capturing = getCapturingCount();
+                // Neutral buildings recover toward 0
+                if (controlPercent > 0f)
+                    delta = -5f * Time.deltaTime;
+                else if (controlPercent < 0f)
+                    delta = 5f * Time.deltaTime;
             }
+        }
+        
+        controlPercent += delta;
+        controlPercent = Mathf.Clamp(controlPercent, -100f, 100f);
+        captureBar.GetComponent<BuildingCapture>().setFill(controlPercent, controller);
 
-            
+        const float captureThreshold = 99.999f;
+        
+        if (controlPercent >= captureThreshold && controller != UnitOwner.Player)
+        {
+            controller = UnitOwner.Player;
+            occupantTile.removeBuildingOwner();
+            occupantTile.addBuildingOwner(UnitOwner.Player);
+            OnBuildingCaptured?.Invoke(this, UnitOwner.Player);
             updateVisuals();
-            controlPercent = 0;
+            
+            if (isCapital)
+                GameManager.Instance.gameOver(UnitOwner.Player);
+        }
+
+        if (controlPercent <= -captureThreshold && controller != UnitOwner.Enemy)
+        {
+            controller = UnitOwner.Enemy;
+            occupantTile.removeBuildingOwner();
+            occupantTile.addBuildingOwner(UnitOwner.Enemy);
+            OnBuildingCaptured?.Invoke(this, UnitOwner.Enemy);
+            updateVisuals();
+            
+            if (isCapital)
+                GameManager.Instance.gameOver(UnitOwner.Enemy);
         }
 
         if(recruitQueue.Count >= 1 && recruitTimePassed >= recruitCooldown){
@@ -154,8 +168,18 @@ public class BuildingScript : MonoBehaviour
         
     }
 
+    public void OnSelected()
+    {
+        if (resource == ResourceType.Fort && controller == UnitOwner.Player)
+            UnitRecruitPopup.Instance.show(this);
+    }
+
     public void createBuilding(GameObject currentTile,out UnitOwner owner){
 
+        if (isCapital)
+        {
+            controlPercent = (initialOwner == UnitOwner.Player) ? 100f : -100f;
+        }
         
         occupantTile = currentTile.GetComponent<TileScript>();
         controller = initialOwner;
@@ -224,30 +248,25 @@ public class BuildingScript : MonoBehaviour
 
     
 
-    public Sprite moveIntoHex(UnitOwner unitOwnerID){
-        
-        if(unitOwnerID == controller){
+    public Sprite moveIntoHex(UnitOwner unitOwnerID)
+    {
+        // player units add positive to capture
+        if (unitOwnerID == UnitOwner.Player)
             capturing++;
-        }else{
+        // enemy units add negative to capture
+        else if (unitOwnerID == UnitOwner.Enemy)
             capturing--;
-        }
-        
-        if(unitOwnerID == UnitOwner.Player){
-            return playerControl;
-        }else{
-            return enemyControl;
-        }
-        
+    
+        return unitOwnerID == UnitOwner.Player ? playerControl : enemyControl;
     }
 
-    public Sprite moveOutOfHex(UnitOwner unitOwnerID){
-        if(unitOwnerID == controller){
+    public Sprite moveOutOfHex(UnitOwner unitOwnerID)
+    {
+        if (unitOwnerID == UnitOwner.Player)
             capturing--;
-        }else{
+        else if (unitOwnerID == UnitOwner.Enemy)
             capturing++;
-        }
-        print("moving out of hex");
-
+    
         return neutralControl;
     }
 
@@ -299,14 +318,15 @@ public class BuildingScript : MonoBehaviour
         
     }
 
-    public int getCapturingCount(){
+    public int getCapturingCount()
+    {
         int num = 0;
-        foreach(TileScript tile in surroundingTiles){
-            if(tile.getOccupant() == controller){
+        foreach(TileScript tile in surroundingTiles)
+        {
+            if (tile.getOccupant() == UnitOwner.Player)
                 num++;
-            }else if(tile.getOccupant() != UnitOwner.World){
+            else if (tile.getOccupant() == UnitOwner.Enemy)
                 num--;
-            }
         }
         return num;
     }
@@ -347,10 +367,21 @@ public class BuildingScript : MonoBehaviour
         recruitTimePassed = 0f;
         
         // reset the ownership
-        controller = resetOwnership;
-        
-        // reset control percent (if capital 100 control, else 0)
-        controlPercent = isCapital ? 100f : 0f;
+        if (resetOwnership == UnitOwner.Player)
+        {
+            controller = UnitOwner.Player;
+            controlPercent = 100f;
+        }
+        else if (resetOwnership == UnitOwner.Enemy)
+        {
+            controller = UnitOwner.Enemy;
+            controlPercent = -100f;
+        }
+        else
+        {
+            controller = UnitOwner.World;
+            controlPercent = 0f;
+        }
 
         // change building owner to resetOwnership value
         occupantTile.removeBuildingOwner();
@@ -365,6 +396,9 @@ public class BuildingScript : MonoBehaviour
         
         // reset the visual overlay
         updateVisuals();
+        
+        // reset capture bar
+        captureBar.GetComponent<BuildingCapture>().setFill(controlPercent, resetOwnership);
     }
 
     public ResourceType getResource(){

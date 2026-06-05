@@ -42,6 +42,13 @@ public class TileScript : MonoBehaviour, ISelectable
 
     private string materialType = "";
     private Material ground;
+    
+    // BUG: "for debugging": Section
+    // these 3 are used for debugging occupied state
+    private Renderer groundRenderer;
+    private Material realGroundMaterial;
+    private Material occupiedGroundMaterial;
+    // BUG: "for debugging": End Section
 
     //static value, will always be the cost to move on this terrain type
     private int realMovement = 0;
@@ -65,6 +72,11 @@ public class TileScript : MonoBehaviour, ISelectable
     void Start()
     {
         ground = Resources.Load("Material/dirt", typeof(Material)) as Material;
+        
+        // BUG: "for debugging":
+        // cache renderer and cache occupied mat
+        groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
+        occupiedGroundMaterial = Resources.Load("Material/occupiedGround", typeof(Material)) as Material;
      
         PerspectiveManager.Instance.OnPerspectiveChanged += _ => UpdateVisibilityForCurrentPerspective();
         realHexOutline = fakeHexOutline;
@@ -143,10 +155,7 @@ public class TileScript : MonoBehaviour, ISelectable
                     ground = Resources.Load("Material/building", typeof(Material)) as Material;
                     terrain = TerrainType.building;
                 }
-
-                
-
-                break;   
+                break; 
         }
 
         addFog();
@@ -159,8 +168,14 @@ public class TileScript : MonoBehaviour, ISelectable
 
         realMovement = movementPoints;
         transform.Find("Hex").GetComponent<Renderer>().material = ground;
-
         
+        // BUG: "for debugging":
+        // cache the real ground material at creation
+        if (realGroundMaterial == null)
+        {
+            groundRenderer = transform.Find("Hex").GetComponent<Renderer>();
+            realGroundMaterial = groundRenderer.material;
+        }
     }
 
     // sets the terrain of the tile after creation
@@ -421,10 +436,6 @@ public class TileScript : MonoBehaviour, ISelectable
             return false;
         }
 
-
-        // this change is part of Nico re-write
-        //movementPoints = -1;
-
         if(attachedBuilding != null){
             
             addOverlay(attachedBuilding.moveIntoHex(unit.Owner));
@@ -432,6 +443,11 @@ public class TileScript : MonoBehaviour, ISelectable
        
         RevealForOwner(unit.Owner);
         RevealAround(unit.Owner);
+        
+        // BUG: "for debugging":
+        // set ground material as occupied. for debug
+        if (occupiedGroundMaterial != null)
+            groundRenderer.material = occupiedGroundMaterial;
 
         _occupyingUnit = unit;
         tileOccupant = unit.Owner;
@@ -475,15 +491,18 @@ public class TileScript : MonoBehaviour, ISelectable
             );
             return false;
         }
-
         
-
         if(OwnerOutline != null){
             addOverlay(attachedBuilding.moveOutOfHex(tileOccupant));
         }
         
         HideForOwner(tileOccupant);
         HideAround(tileOccupant);
+        
+        // BUG: "for debugging":
+        // restore real ground material when unoccupied. for debug
+        if (realGroundMaterial != null)
+            groundRenderer.material = realGroundMaterial;
 
         tileOccupant = UnitOwner.World;
 
@@ -643,6 +662,8 @@ public class TileScript : MonoBehaviour, ISelectable
     private void RevealAround(UnitOwner owner)
     {
         List<TileScript> tiles = GetTilesInRange(viewRange);
+        
+        tiles.Add(this);
 
         foreach (TileScript tile in tiles)
             tile.RevealForOwner(owner);
@@ -651,6 +672,8 @@ public class TileScript : MonoBehaviour, ISelectable
     private void HideAround(UnitOwner owner)
     {
         List<TileScript> tiles = GetTilesInRange(viewRange);
+        
+        tiles.Add(this);
 
         foreach (TileScript tile in tiles)
             tile.HideForOwner(owner);
@@ -689,6 +712,10 @@ public class TileScript : MonoBehaviour, ISelectable
                 int hx = topX - i + x;
                 int hy = topY + y;
                 int hz = topZ + i + z;
+                
+                // skip the center tile (this)
+                if (hx == x && hy == y && hz == z)
+                    continue;
 
                 GameObject hexObj = MapGenerateScript.getHex(hx, hy, hz);
                 if (hexObj != null)
@@ -721,6 +748,11 @@ public class TileScript : MonoBehaviour, ISelectable
             UnitOwner.World => !fogForWorld,
             _ => false
         };
+    }
+
+    public void OnSelected()
+    {
+        if (AttachedBuilding != null) AttachedBuilding.OnSelected();
     }
 
     public void UpdateVisibilityForCurrentPerspective()

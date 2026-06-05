@@ -8,6 +8,15 @@ namespace RL_Agent
     {
         // agent class does inherit from MonoBehaviour unity event functions
         
+        /// <summary>
+        /// MaxStep Summary
+        /// There is a MaxStep variable given by Agent contract, which can be set in the inspector.
+        ///
+        /// This defines how long a "natural" episode is for the Agent.
+        /// Consider an action to be a Step.
+        /// This means we are defining how many actions make an episode by this value.
+        /// </summary>
+        
         public override void Initialize()
         {
             // NOTE : runs between OnEnable and Start Unity event functions
