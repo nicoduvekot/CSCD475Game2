@@ -21,7 +21,7 @@ public class BuildingScript : MonoBehaviour, ISelectable
     
     public bool isCapital = false;
     public UnitOwner initialOwner = UnitOwner.World;
-    private UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
+    public UnitOwner controller = (UnitOwner)2; // 2 for neutral, anything else is player num will be filled in even if control% isen't 100
     
     public event Action<BuildingScript, UnitOwner> OnBuildingCaptured;
 
@@ -45,6 +45,7 @@ public class BuildingScript : MonoBehaviour, ISelectable
     private float recruitCooldown = 12f;
 
     private Queue<int> recruitQueue = new();
+    public Queue<int> RecruitQueue => recruitQueue;
 
     [SerializeField] 
     private ResourceType resource;
