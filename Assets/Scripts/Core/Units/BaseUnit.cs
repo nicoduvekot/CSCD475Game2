@@ -203,6 +203,12 @@ namespace Units
             // if not currently stepping, begin a step
             if (!_isStepping)
             {
+                if (!RefreshPath(0))
+                {
+                    TransitionToStanding();
+                    return;
+                }
+                
                 // set next hex from path
                 NextHex = _previewPath[_pathIndex];
 
@@ -215,6 +221,7 @@ namespace Units
                 moveDirection = UnitPathing.getDirection(new int[] {CurrentHex.x,CurrentHex.y,CurrentHex.z},new int[] {NextHex.x,NextHex.y,NextHex.z});
 
 
+                // BUG: ? handle moving is getting arrow info? what?
                 GameObject Arrow =  transform.Find("Arrow").gameObject;
                 
                 Arrow.transform.rotation = Quaternion.Euler(ArrowDir.getArrowDirection(moveDirection));
@@ -276,22 +283,25 @@ namespace Units
             
             // compute path using range as index trim
             int attackRange = Stats.BaseAttackRange;
-            if (!TryComputePath(attackRange))
-            {
-                TransitionToStanding();
-                return;
-            }
-            
-            // if in range, fight
-            if (IsInRange())
-            {
-                TransitionToFighting();
-                return;
-            }
             
             // step check
             if (!_isStepping)
             {
+                if (!RefreshPath(attackRange))
+                {
+                    if (IsInRange())
+                        TransitionToFighting();
+                    else 
+                        TransitionToStanding();
+                    return;
+                }
+                
+                if (IsInRange())
+                {
+                    TransitionToFighting();
+                    return;
+                }
+
                 NextHex = _previewPath[_pathIndex];
                 BeginStep(NextHex);
                 _isStepping = true;
@@ -357,6 +367,18 @@ namespace Units
             // step check
             if (!_isStepping)
             {
+                if (!RefreshPath(0))
+                {
+                    TransitionToStanding();
+                    return;
+                }
+                
+                if (IsInRange())
+                {
+                    TransitionToStanding();
+                    return;
+                }
+
                 NextHex = _previewPath[_pathIndex];
                 BeginStep(NextHex);
                 _isStepping = true;
@@ -823,6 +845,26 @@ namespace Units
             // take step, return false if could not occupy the space
             if (!NextHex.TrySetUnitOccupant(this))
             {
+                if (NextHex.TryGetOccupant(out MonoBehaviour occ) && occ is BaseUnit otherUnit)
+                {
+                    if (IsFriendly(otherUnit))
+                    {
+                        // reset step flag for re-draw of path
+                        _isStepping = false;
+                        _pathIndex = 0;
+
+                        // next frame, Handle (movement) will RefreshPath and try again
+                        return true;
+                    }
+                    else
+                    {
+                        // Enemy blocked = engage them
+                        _targetUnit = otherUnit;
+                        TransitionToFighting();
+                        return false;
+                    }
+                }
+                
                 Debug.LogWarning("[UNIT] Failed to claim next tile during movement");
                 return false;
             }
@@ -843,6 +885,22 @@ namespace Units
             _isStepping = false;
             _pathIndex++;
 
+            return true;
+        }
+
+        private bool RefreshPath(int range)
+        {
+            if (!TryComputePath(range))
+                return false;
+
+            if (_previewPath.Count == 0)
+            {
+                _pathIndex = 0;
+                return false;
+            }
+
+            _pathIndex = 0;
+            
             return true;
         }
 
