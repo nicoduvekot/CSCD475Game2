@@ -78,9 +78,9 @@ public class MouseInput : MonoBehaviour
         if(hit.collider != null){
             
 
-//             GameObject inverseTile;
-//             TileScript inverseTileScript = hit.collider.gameObject.GetComponent<TileScript>();
-//             hit.collider.gameObject.GetComponent<TileScript>().setTerrain(terrainType);
+            // GameObject inverseTile;
+            TileScript inverseTileScript = hit.collider.gameObject.GetComponent<TileScript>();
+            hit.collider.gameObject.GetComponent<TileScript>().setTerrain(terrainType);
 // 
 // 
 // 
@@ -133,24 +133,24 @@ public class MouseInput : MonoBehaviour
     }
 
     public void changeTerrainType(InputAction.CallbackContext context){
-        // if(terrainType == "dirt"){
-        //     terrainType = "grass";
-        // }else if(terrainType == "grass"){
-        //     terrainType = "forest";
-        // }else if(terrainType == "forest"){
-        //     terrainType = "mountain";
-        // }else if(terrainType == "mountain"){
-        //     terrainType = "water";
-        // }else if(terrainType == "water"){
-        //     terrainType = "desert";
-        // }else if(terrainType == "desert"){
-        //     terrainType = "snow";
-        // }else if(terrainType == "snow"){
-        //     terrainType = "building";
-        // }else if(terrainType == "building"){
-        //     terrainType = "dirt";
-        // }
-        // print("terrain type is + " + terrainType);
+        if(terrainType == "dirt"){
+            terrainType = "grass";
+        }else if(terrainType == "grass"){
+            terrainType = "forest";
+        }else if(terrainType == "forest"){
+            terrainType = "mountain";
+        }else if(terrainType == "mountain"){
+            terrainType = "water";
+        }else if(terrainType == "water"){
+            terrainType = "desert";
+        }else if(terrainType == "desert"){
+            terrainType = "snow";
+        }else if(terrainType == "snow"){
+            terrainType = "building";
+        }else if(terrainType == "building"){
+            terrainType = "dirt";
+        }
+        print("terrain type is + " + terrainType);
         // if(controller == 0){
         //     controller = 1;
         //     print("controller is now enemy");
