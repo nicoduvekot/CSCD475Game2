@@ -45,7 +45,6 @@ public class MapGenerateScript : MonoBehaviour
 
     private Vector3Int maxCords;
     private Vector3Int minCords;
-    public bool refreshMaterial = false;
 
     private static List<BuildingScript> buildings = new();
 
@@ -92,9 +91,8 @@ public class MapGenerateScript : MonoBehaviour
                 
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
                 visibleHexes.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),false);
-                if(refreshMaterial){
-                    childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
-                }
+                childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
+                
                 
 
             }

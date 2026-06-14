@@ -84,7 +84,6 @@ public class TileScript : MonoBehaviour, ISelectable
         terrain = incomingTerrain;
         fakeHexOutline = Resources.Load("PixelArt/BuildingHexGrey", typeof(Sprite)) as Sprite;
 
-
         switch (terrain){
             case TerrainType.dirt:
                 movementPoints = 1;
@@ -349,8 +348,8 @@ public class TileScript : MonoBehaviour, ISelectable
         }
     }
 
-    public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){
-        if(OwnerOutline == null){
+    public void addInitialOverlay(Sprite sprite,BuildingScript incomingBuilding){  
+        if(OwnerOutline == null){            
             float height = GetComponent<MeshCollider>().bounds.size.y /1.98f;
             OwnerOutline = Instantiate(Resources.Load("Prefabs/Owner", typeof (GameObject)) as GameObject,transform.position + new Vector3(0,height,0),Quaternion.Euler(new Vector3(90,0,0)),transform);
             attachedBuilding = incomingBuilding;
