@@ -45,7 +45,6 @@ public class MapGenerateScript : MonoBehaviour
 
     private Vector3Int maxCords;
     private Vector3Int minCords;
-    public bool refreshMaterial = false;
 
     private static List<BuildingScript> buildings = new();
 
@@ -92,9 +91,8 @@ public class MapGenerateScript : MonoBehaviour
                 
                 hexStorage.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),transform.GetChild(i).gameObject);// add children to list outside loop
                 visibleHexes.Add(new Vector3Int(childTile.x,childTile.y,childTile.z),false);
-                if(refreshMaterial){
-                    childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
-                }
+                childTile.createHex(childTile.x,childTile.y,childTile.z,childTile.getTerrain());
+                
                 
 
             }
@@ -248,7 +246,7 @@ public class MapGenerateScript : MonoBehaviour
                 TileScript childTile = transform.GetChild(i).GetComponent<TileScript>();
                 
 
-                if(childTile.x < childTile.z && Mathf.Abs(childTile.x) + Mathf.Abs(childTile.z) >= rows - 2){ // combined x and z will equal the top row or the top row - 1, 
+                if(childTile.x < childTile.z && getHex(childTile.x - 1,childTile.y,childTile.z + 1) == null){ // combined x and z will equal the top row or the top row - 1, 
                                                                                                             // if x is less than z then this is the bottom row
 
                     
@@ -270,7 +268,7 @@ public class MapGenerateScript : MonoBehaviour
                     temp.GetComponent<TileScript>().createHex(x,y,z,terrain);
 
                     hexStorage.Add(new Vector3Int(x,y,z),temp);
-                }else if(childTile.x > childTile.z && Mathf.Abs(childTile.x) + Mathf.Abs(childTile.z) >= rows - 1){
+                }else if(childTile.x > childTile.z && getHex(childTile.x + 1,childTile.y,childTile.z - 1) == null){
 
                     height = childTile.gameObject.GetComponent<MeshCollider>().bounds.size.z * 1.03f;
                     GameObject temp = Instantiate(terrainPrefab,childTile.transform.position + new Vector3(0,0,height),transform.rotation,transform);

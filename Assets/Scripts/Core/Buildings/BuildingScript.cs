@@ -215,6 +215,7 @@ public class BuildingScript : MonoBehaviour
             hex6.addOverlay(neutralControl);
         }
 
+        occupantTile.addInitialOverlay(neutralControl,this);
         updateVisuals();
         GetComponent<SpriteRenderer>().sprite = resourceBuilding;
         
